@@ -1,7 +1,12 @@
-export default function Home() {
+export const metadata = {
+  title: 'Sistema Audioprotesis',
+  description: 'Sistema de ventas'
+}
+
+export default function RootLayout({ children }) {
   return (
-    <div>
-      <h1>FUNCIONA AHORA</h1>
-    </div>
+    <html lang="es">
+      <body>{children}</body>
+    </html>
   )
 }
