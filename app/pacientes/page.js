@@ -6,7 +6,6 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
 export default function Pacientes() {
-  const [pacientes, setPacientes] = useState([])
   const [provincias, setProvincias] = useState([])
 
   const [form, setForm] = useState({
@@ -22,20 +21,8 @@ export default function Pacientes() {
   })
 
   useEffect(() => {
-    obtenerPacientes()
     obtenerProvincias()
   }, [])
-
-  async function obtenerPacientes() {
-    const { data, error } = await supabase.from('pacientes').select('*')
-
-    if (error) {
-      console.error(error)
-      return
-    }
-
-    setPacientes(data || [])
-  }
 
   async function obtenerProvincias() {
     const { data, error } = await supabase.from('provincias').select('*')
@@ -101,6 +88,7 @@ export default function Pacientes() {
       return
     }
 
+    // limpiar formulario
     setForm({
       apellido_paciente: '',
       nombres_paciente: '',
@@ -113,7 +101,7 @@ export default function Pacientes() {
       observaciones: '',
     })
 
-    obtenerPacientes()
+    alert('Paciente guardado correctamente')
   }
 
   return (
@@ -142,18 +130,6 @@ export default function Pacientes() {
 
         <button onClick={agregarPaciente}>Guardar paciente</button>
       </div>
-
-      <hr style={{ margin: '30px 0' }} />
-
-      <h2>Listado</h2>
-
-      <ul>
-        {pacientes.map((p) => (
-          <li key={p.id}>
-            {p.apellido_paciente} {p.nombres_paciente} - {p.dni}
-          </li>
-        ))}
-      </ul>
     </div>
   )
 }
