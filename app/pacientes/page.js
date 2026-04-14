@@ -29,6 +29,11 @@ export default function Pacientes() {
     alert('Error: ' + error.message)
     return
   }
+
+  setNombre('')
+  setApellido('')
+  obtenerPacientes()
+}
     await supabase.from('pacientes').insert([
       { nombre, apellido },
     ])
