@@ -10,7 +10,8 @@ export default function Pacientes() {
   const [provincias, setProvincias] = useState([])
 
   const [form, setForm] = useState({
-    nombre_paciente: '',
+    apellido_paciente: '',
+    nombres_paciente: '',
     dni: '',
     telefono: '',
     domicilio: '',
@@ -55,7 +56,12 @@ export default function Pacientes() {
   }
 
   async function agregarPaciente() {
-    if (!form.nombre_paciente) {
+    if (!form.apellido_paciente) {
+      alert('El apellido es obligatorio')
+      return
+    }
+
+    if (!form.nombres_paciente) {
       alert('El nombre es obligatorio')
       return
     }
@@ -96,7 +102,8 @@ export default function Pacientes() {
     }
 
     setForm({
-      nombre_paciente: '',
+      apellido_paciente: '',
+      nombres_paciente: '',
       dni: '',
       telefono: '',
       domicilio: '',
@@ -114,7 +121,8 @@ export default function Pacientes() {
       <h1>Alta de Pacientes</h1>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <input name="nombre_paciente" placeholder="Nombre" value={form.nombre_paciente} onChange={handleChange} />
+        <input name="apellido_paciente" placeholder="Apellido" value={form.apellido_paciente} onChange={handleChange} />
+        <input name="nombres_paciente" placeholder="Nombre" value={form.nombres_paciente} onChange={handleChange} />
         <input name="dni" placeholder="DNI" value={form.dni} onChange={handleChange} />
         <input name="telefono" placeholder="Teléfono" value={form.telefono} onChange={handleChange} />
         <input name="domicilio" placeholder="Domicilio" value={form.domicilio} onChange={handleChange} />
@@ -142,7 +150,7 @@ export default function Pacientes() {
       <ul>
         {pacientes.map((p) => (
           <li key={p.id}>
-            {p.nombre_paciente} - {p.dni}
+            {p.apellido_paciente} {p.nombres_paciente} - {p.dni}
           </li>
         ))}
       </ul>
