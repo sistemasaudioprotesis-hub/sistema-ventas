@@ -13,30 +13,35 @@ export default function Pacientes() {
   }, [])
 
   async function obtenerPacientes() {
-    const { data } = await supabase.from('pacientes').select('*')
+    const { data, error } = await supabase
+      .from('pacientes')
+      .select('*')
+
+    if (error) {
+      console.error(error)
+      return
+    }
+
     setPacientes(data || [])
   }
 
   async function agregarPaciente() {
-  const { data, error } = await supabase.from('pacientes').insert([
-    { nombre, apellido },
-  ])
+    const { data, error } = await supabase
+      .from('pacientes')
+      .insert([
+        {
+          nombre: nombre,
+          apellido: apellido,
+        },
+      ])
 
-  console.log('DATA:', data)
-  console.log('ERROR:', error)
+    console.log('DATA:', data)
+    console.log('ERROR:', error)
 
-  if (error) {
-    alert('Error: ' + error.message)
-    return
-  }
-
-  setNombre('')
-  setApellido('')
-  obtenerPacientes()
-}
-    await supabase.from('pacientes').insert([
-      { nombre, apellido },
-    ])
+    if (error) {
+      alert('Error: ' + error.message)
+      return
+    }
 
     setNombre('')
     setApellido('')
