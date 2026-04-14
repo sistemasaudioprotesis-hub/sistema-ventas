@@ -18,6 +18,17 @@ export default function Pacientes() {
   }
 
   async function agregarPaciente() {
+  const { data, error } = await supabase.from('pacientes').insert([
+    { nombre, apellido },
+  ])
+
+  console.log('DATA:', data)
+  console.log('ERROR:', error)
+
+  if (error) {
+    alert('Error: ' + error.message)
+    return
+  }
     await supabase.from('pacientes').insert([
       { nombre, apellido },
     ])
