@@ -1,44 +1,27 @@
-'use client'
-import { useState } from 'react'
-import { supabase } from '../../lib/supabaseClient'
+import { supabase } from '@/lib/supabaseClient'
 
-export default function Pacientes() {
-  const [nombre, setNombre] = useState('')
-  const [dni, setDni] = useState('')
+export default async function Pacientes() {
+  const { data: pacientes, error } = await supabase
+    .from('pacientes')
+    .select('*')
 
-  const guardarPaciente = async () => {
-    const { error } = await supabase
-      .from('PACIENTES')
-      .insert([{ NOMBRE_PACIENTE: nombre, DNI: dni }])
-
-    if (error) {
-      alert(error.message)
-    } else {
-      alert('Paciente guardado')
-      setNombre('')
-      setDni('')
-    }
+  if (error) {
+    return <div>Error cargando pacientes</div>
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Pacientes</h1>
+    <div>
+      <h1>Lista de pacientes</h1>
 
-      <input
-        placeholder="Nombre"
-        value={nombre}
-        onChange={(e) => setNombre(e.target.value)}
-      />
+      {pacientes?.length === 0 && <p>No hay pacientes</p>}
 
-      <input
-        placeholder="DNI"
-        value={dni}
-        onChange={(e) => setDni(e.target.value)}
-      />
-
-      <button onClick={guardarPaciente}>
-        Guardar
-      </button>
+      <ul>
+        {pacientes?.map((p) => (
+          <li key={p.id}>
+            {p.nombre} {p.apellido}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
