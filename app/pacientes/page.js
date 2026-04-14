@@ -1,22 +1,52 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
-export default async function Pacientes() {
-  const { data: pacientes, error } = await supabase
-    .from('pacientes')
-    .select('*')
+export default function Pacientes() {
+  const [pacientes, setPacientes] = useState([])
+  const [nombre, setNombre] = useState('')
+  const [apellido, setApellido] = useState('')
 
-  if (error) {
-    return <div>Error cargando pacientes</div>
+  useEffect(() => {
+    obtenerPacientes()
+  }, [])
+
+  async function obtenerPacientes() {
+    const { data } = await supabase.from('pacientes').select('*')
+    setPacientes(data || [])
+  }
+
+  async function agregarPaciente() {
+    await supabase.from('pacientes').insert([
+      { nombre, apellido },
+    ])
+
+    setNombre('')
+    setApellido('')
+    obtenerPacientes()
   }
 
   return (
     <div>
-      <h1>Lista de pacientes</h1>
+      <h1>Pacientes</h1>
 
-      {pacientes?.length === 0 && <p>No hay pacientes</p>}
+      <input
+        placeholder="Nombre"
+        value={nombre}
+        onChange={(e) => setNombre(e.target.value)}
+      />
+
+      <input
+        placeholder="Apellido"
+        value={apellido}
+        onChange={(e) => setApellido(e.target.value)}
+      />
+
+      <button onClick={agregarPaciente}>Agregar</button>
 
       <ul>
-        {pacientes?.map((p) => (
+        {pacientes.map((p) => (
           <li key={p.id}>
             {p.nombre} {p.apellido}
           </li>
