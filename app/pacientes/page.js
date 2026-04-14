@@ -11,7 +11,7 @@ export default function Pacientes() {
   useEffect(() => {
     obtenerPacientes()
   }, [])
-  
+
   async function obtenerPacientes() {
     const { data } = await supabase.from('pacientes').select('*')
     setPacientes(data || [])
