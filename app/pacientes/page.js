@@ -7,6 +7,8 @@ import { supabase } from '../../lib/supabaseClient'
 
 export default function Pacientes() {
   const [provincias, setProvincias] = useState([])
+  const [busquedaDni, setBusquedaDni] = useState('')
+  const [pacienteId, setPacienteId] = useState(null)
 
   const [form, setForm] = useState({
     apellido_paciente: '',
@@ -42,24 +44,70 @@ export default function Pacientes() {
     })
   }
 
+  async function buscarPaciente() {
+    if (!busquedaDni) {
+      alert('Ingresar DNI')
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('pacientes')
+      .select('*')
+      .eq('dni', busquedaDni)
+      .maybeSingle()
+
+    if (error) {
+      console.error(error)
+      alert('Error al buscar')
+      return
+    }
+
+    if (!data) {
+      alert('No se encontró paciente')
+      return
+    }
+
+    setPacienteId(data.id)
+
+    setForm({
+      apellido_paciente: data.apellido_paciente || '',
+      nombres_paciente: data.nombres_paciente || '',
+      dni: data.dni || '',
+      telefono: data.telefono || '',
+      domicilio: data.domicilio || '',
+      localidad: data.localidad || '',
+      provincia_id: data.provincia_id ? String(data.provincia_id) : '',
+      mail: data.mail || '',
+      observaciones: data.observaciones || '',
+    })
+  }
+
+  async function actualizarPaciente() {
+    if (!pacienteId) {
+      alert('Primero buscá un paciente')
+      return
+    }
+
+    const { error } = await supabase
+      .from('pacientes')
+      .update({
+        ...form,
+        provincia_id: Number(form.provincia_id),
+      })
+      .eq('id', pacienteId)
+
+    if (error) {
+      console.error(error)
+      alert('Error al actualizar')
+      return
+    }
+
+    alert('Paciente actualizado correctamente')
+  }
+
   async function agregarPaciente() {
-    if (!form.apellido_paciente) {
-      alert('El apellido es obligatorio')
-      return
-    }
-
-    if (!form.nombres_paciente) {
-      alert('El nombre es obligatorio')
-      return
-    }
-
-    if (!form.dni) {
-      alert('El DNI es obligatorio')
-      return
-    }
-
-    if (!form.provincia_id) {
-      alert('Seleccionar provincia')
+    if (!form.apellido_paciente || !form.nombres_paciente || !form.dni || !form.provincia_id) {
+      alert('Completar campos obligatorios')
       return
     }
 
@@ -84,34 +132,33 @@ export default function Pacientes() {
 
     if (error) {
       console.error(error)
-      alert(error.message)
+      alert('Error al guardar')
       return
     }
-
-    // limpiar formulario
-    setForm({
-      apellido_paciente: '',
-      nombres_paciente: '',
-      dni: '',
-      telefono: '',
-      domicilio: '',
-      localidad: '',
-      provincia_id: '',
-      mail: '',
-      observaciones: '',
-    })
 
     alert('Paciente guardado correctamente')
   }
 
   return (
     <div style={{ padding: '30px', maxWidth: '600px' }}>
-      <h1>Alta de Pacientes</h1>
+      <h1>Pacientes</h1>
+
+      <h3>Buscar por DNI</h3>
+      <input
+        placeholder="Ingresar DNI"
+        value={busquedaDni}
+        onChange={(e) => setBusquedaDni(e.target.value)}
+      />
+      <button onClick={buscarPaciente}>Buscar</button>
+
+      <hr style={{ margin: '20px 0' }} />
+
+      <h3>Formulario</h3>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <input name="apellido_paciente" placeholder="Apellido" value={form.apellido_paciente} onChange={handleChange} />
         <input name="nombres_paciente" placeholder="Nombre" value={form.nombres_paciente} onChange={handleChange} />
-        <input name="dni" placeholder="DNI" value={form.dni} onChange={handleChange} />
+        <input name="dni" placeholder="DNI (no editable)" value={form.dni} disabled />
         <input name="telefono" placeholder="Teléfono" value={form.telefono} onChange={handleChange} />
         <input name="domicilio" placeholder="Domicilio" value={form.domicilio} onChange={handleChange} />
         <input name="localidad" placeholder="Localidad" value={form.localidad} onChange={handleChange} />
@@ -128,7 +175,8 @@ export default function Pacientes() {
         <input name="mail" placeholder="Mail" value={form.mail} onChange={handleChange} />
         <textarea name="observaciones" placeholder="Observaciones" value={form.observaciones} onChange={handleChange} />
 
-        <button onClick={agregarPaciente}>Guardar paciente</button>
+        <button onClick={agregarPaciente}>Guardar nuevo</button>
+        <button onClick={actualizarPaciente}>Actualizar paciente</button>
       </div>
     </div>
   )
