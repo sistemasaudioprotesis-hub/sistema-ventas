@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '../../lib/supabaseClient'
 
 export default function Pacientes() {
   const [pacientes, setPacientes] = useState([])
@@ -55,7 +55,6 @@ export default function Pacientes() {
   }
 
   async function agregarPaciente() {
-    // VALIDACIONES
     if (!form.nombre_paciente) {
       alert('El nombre es obligatorio')
       return
@@ -71,7 +70,6 @@ export default function Pacientes() {
       return
     }
 
-    // VALIDAR DNI ÚNICO
     const { data: existe } = await supabase
       .from('pacientes')
       .select('id')
@@ -87,7 +85,7 @@ export default function Pacientes() {
       {
         ...form,
         provincia_id: Number(form.provincia_id),
-        creado_por: 1, // temporal
+        creado_por: 1,
       },
     ])
 
@@ -97,7 +95,6 @@ export default function Pacientes() {
       return
     }
 
-    // limpiar formulario
     setForm({
       nombre_paciente: '',
       dni: '',
