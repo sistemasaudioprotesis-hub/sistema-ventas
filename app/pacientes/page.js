@@ -5,8 +5,7 @@ import { supabase } from '../../lib/supabaseClient'
 
 export default function Pacientes() {
   const [pacientes, setPacientes] = useState([])
-  const [nombre, setNombre] = useState('')
-  const [apellido, setApellido] = useState('')
+  const [nombrePaciente, setNombrePaciente] = useState('')
 
   useEffect(() => {
     obtenerPacientes()
@@ -26,24 +25,20 @@ export default function Pacientes() {
   }
 
   async function agregarPaciente() {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('pacientes')
       .insert([
         {
-          nombre_paciente: nombre + ' ' + apellido,
+          nombre_paciente: nombrePaciente,
         },
       ])
-
-    console.log('DATA:', data)
-    console.log('ERROR:', error)
 
     if (error) {
       alert('Error: ' + error.message)
       return
     }
 
-    setNombre('')
-    setApellido('')
+    setNombrePaciente('')
     obtenerPacientes()
   }
 
@@ -52,15 +47,9 @@ export default function Pacientes() {
       <h1>Pacientes</h1>
 
       <input
-        placeholder="Nombre"
-        value={nombre}
-        onChange={(e) => setNombre(e.target.value)}
-      />
-
-      <input
-        placeholder="Apellido"
-        value={apellido}
-        onChange={(e) => setApellido(e.target.value)}
+        placeholder="Nombre del paciente"
+        value={nombrePaciente}
+        onChange={(e) => setNombrePaciente(e.target.value)}
       />
 
       <button onClick={agregarPaciente}>Agregar</button>
