@@ -44,6 +44,22 @@ export default function Pacientes() {
     })
   }
 
+  function limpiarFormulario() {
+    setPacienteId(null)
+    setBusquedaDni('')
+    setForm({
+      apellido_paciente: '',
+      nombres_paciente: '',
+      dni: '',
+      telefono: '',
+      domicilio: '',
+      localidad: '',
+      provincia_id: '',
+      mail: '',
+      observaciones: '',
+    })
+  }
+
   async function buscarPaciente() {
     if (!busquedaDni) {
       alert('Ingresar DNI')
@@ -137,6 +153,7 @@ export default function Pacientes() {
     }
 
     alert('Paciente guardado correctamente')
+    limpiarFormulario()
   }
 
   return (
@@ -150,6 +167,7 @@ export default function Pacientes() {
         onChange={(e) => setBusquedaDni(e.target.value)}
       />
       <button onClick={buscarPaciente}>Buscar</button>
+      <button onClick={limpiarFormulario}>Nuevo paciente</button>
 
       <hr style={{ margin: '20px 0' }} />
 
@@ -158,7 +176,15 @@ export default function Pacientes() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <input name="apellido_paciente" placeholder="Apellido" value={form.apellido_paciente} onChange={handleChange} />
         <input name="nombres_paciente" placeholder="Nombre" value={form.nombres_paciente} onChange={handleChange} />
-        <input name="dni" placeholder="DNI (no editable)" value={form.dni} disabled />
+
+        <input
+          name="dni"
+          placeholder="DNI"
+          value={form.dni}
+          onChange={handleChange}
+          disabled={pacienteId !== null}
+        />
+
         <input name="telefono" placeholder="Teléfono" value={form.telefono} onChange={handleChange} />
         <input name="domicilio" placeholder="Domicilio" value={form.domicilio} onChange={handleChange} />
         <input name="localidad" placeholder="Localidad" value={form.localidad} onChange={handleChange} />
