@@ -30,8 +30,7 @@ export default function Pacientes() {
       .from('pacientes')
       .insert([
         {
-          nombre: nombre,
-          apellido: apellido,
+          nombre_paciente: nombre + ' ' + apellido,
         },
       ])
 
@@ -69,7 +68,7 @@ export default function Pacientes() {
       <ul>
         {pacientes.map((p) => (
           <li key={p.id}>
-            {p.nombre} {p.apellido}
+            {p.nombre_paciente}
           </li>
         ))}
       </ul>
