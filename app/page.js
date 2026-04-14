@@ -7,7 +7,7 @@ export default function Pacientes() {
   const [pacientes, setPacientes] = useState([])
   const [nombre, setNombre] = useState('')
   const [apellido, setApellido] = useState('')
- 
+
   // cargar pacientes
   useEffect(() => {
     obtenerPacientes()
