@@ -4,7 +4,7 @@ export default async function Pacientes() {
   const { data: pacientes, error } = await supabase
     .from('pacientes')
     .select('*')
- 
+
   if (error) {
     return <div>Error cargando pacientes</div>
   }
