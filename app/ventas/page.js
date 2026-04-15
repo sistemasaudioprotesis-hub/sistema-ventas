@@ -168,12 +168,14 @@ export default function Ventas() {
       setVentaId(ventaActualId)
     }
 
+    // 🔥 FIX PRODUCTO SIN SERIE
     const { data: detalle } = await supabase
       .from('venta_detalle')
       .insert([
         {
           venta_id: ventaActualId,
           numero_serie_id: modoConSerie ? Number(form.numero_serie_id) : null,
+          producto_id: !modoConSerie ? Number(form.producto_id) : null,
           precio_venta_pesos: form.precio_pesos || null,
           precio_venta_usd: form.precio_usd || null,
           creado_por: 1,
