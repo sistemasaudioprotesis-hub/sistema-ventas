@@ -231,9 +231,22 @@ export default function Ventas() {
       <button onClick={buscarPaciente}>Buscar</button>
 
       {paciente && (
-        <p>
-          {paciente.apellido_paciente} {paciente.nombres_paciente}
-        </p>
+        <div style={{ marginTop: '10px', border: '1px solid #ccc', padding: '10px' }}>
+          <strong>
+            {paciente.apellido_paciente} {paciente.nombres_paciente}
+          </strong>
+
+          <div>Tel: {paciente.telefono || '-'}</div>
+          <div>Mail: {paciente.mail || '-'}</div>
+
+          <button
+            onClick={() =>
+              (window.location.href = `/pacientes?dni=${paciente.dni}&volver=ventas`)
+            }
+          >
+            Editar paciente
+          </button>
+        </div>
       )}
 
       <hr />
