@@ -13,12 +13,14 @@ export default function Ventas() {
   const [paciente, setPaciente] = useState(null)
 
   const [series, setSeries] = useState([])
+  const [seriesFiltradas, setSeriesFiltradas] = useState([])
+
   const [productos, setProductos] = useState([])
 
   const [modoConSerie, setModoConSerie] = useState(true)
   const [ventaId, setVentaId] = useState(null)
 
-  const [items, setItems] = useState([]) // 🔥 carrito
+  const [items, setItems] = useState([])
 
   const [form, setForm] = useState({
     numero_serie_id: '',
@@ -48,6 +50,7 @@ export default function Ventas() {
       .select(`
         id,
         numero_serie,
+        producto_id,
         productos (producto),
         depositos (deposito)
       `)
@@ -103,6 +106,13 @@ export default function Ventas() {
 
       setModoConSerie(requiereSerie)
 
+      // 🔥 filtrar series por producto
+      const filtradas = series.filter(
+        s => s.producto_id === Number(value)
+      )
+
+      setSeriesFiltradas(filtradas)
+
       setForm({
         ...form,
         producto_id: value,
@@ -136,7 +146,6 @@ export default function Ventas() {
     const fecha = new Date().toISOString()
     let ventaActualId = ventaId
 
-    // crear venta si no existe
     if (!ventaActualId) {
       const { data: venta } = await supabase
         .from('ventas')
@@ -154,7 +163,6 @@ export default function Ventas() {
       setVentaId(ventaActualId)
     }
 
-    // guardar detalle
     const { data: detalle } = await supabase
       .from('venta_detalle')
       .insert([
@@ -169,7 +177,6 @@ export default function Ventas() {
       .select()
       .single()
 
-    // actualizar stock
     if (modoConSerie) {
       await supabase
         .from('numeros_serie')
@@ -180,7 +187,6 @@ export default function Ventas() {
         .eq('id', form.numero_serie_id)
     }
 
-    // 🔥 agregar al carrito visual
     setItems([
       ...items,
       {
@@ -195,7 +201,6 @@ export default function Ventas() {
       },
     ])
 
-    // limpiar form
     setForm({
       numero_serie_id: '',
       producto_id: '',
@@ -246,7 +251,7 @@ export default function Ventas() {
       {modoConSerie && (
         <select name="numero_serie_id" value={form.numero_serie_id} onChange={handleChange}>
           <option value="">Seleccionar serie</option>
-          {series.map(s => (
+          {seriesFiltradas.map(s => (
             <option key={s.id} value={s.id}>
               {s.numero_serie} - {s.productos?.producto}
             </option>
