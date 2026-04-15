@@ -10,7 +10,6 @@ import { normalizarTexto } from '../../lib/formatText'
 export default function Pacientes() {
   const searchParams = useSearchParams()
 
-  const volver = searchParams.get('volver')
   const dniParam = searchParams.get('dni')
 
   const [provincias, setProvincias] = useState([])
@@ -142,7 +141,7 @@ export default function Pacientes() {
     }
   }
 
-  async function guardar() {
+  async function guardar(destino) {
     if (!form.apellido_paciente || !form.nombres_paciente || !form.dni) {
       alert('Completar campos obligatorios')
       return
@@ -169,17 +168,6 @@ export default function Pacientes() {
 
       alert('Paciente actualizado')
     } else {
-      const { data: existe } = await supabase
-        .from('pacientes')
-        .select('id')
-        .eq('dni', form.dni)
-        .maybeSingle()
-
-      if (existe) {
-        alert('Ya existe un paciente con ese DNI')
-        return
-      }
-
       const { error } = await supabase.from('pacientes').insert([
         {
           ...form,
@@ -196,8 +184,12 @@ export default function Pacientes() {
       alert('Paciente creado')
     }
 
-    if (volver === 'ventas') {
+    if (destino === 'ventas') {
       window.location.href = `/ventas?dni=${form.dni}`
+    }
+
+    if (destino === 'pagos') {
+      window.location.href = `/pagos?dni=${form.dni}`
     }
   }
 
@@ -246,9 +238,15 @@ export default function Pacientes() {
         <input name="mail" placeholder="Mail" value={form.mail} onChange={handleChange} />
         <textarea name="observaciones" placeholder="Observaciones" value={form.observaciones} onChange={handleChange} />
 
-        <button onClick={guardar}>
-          {pacienteId ? 'Actualizar paciente' : 'Guardar paciente'}
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={() => guardar('ventas')}>
+            Guardar y volver a ventas
+          </button>
+
+          <button onClick={() => guardar('pagos')}>
+            Guardar y volver a pagos
+          </button>
+        </div>
       </div>
     </div>
   )
