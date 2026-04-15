@@ -147,8 +147,16 @@ export default function Pagos() {
       return
     }
 
-    if (!form.monto_pesos && !form.monto_usd) {
+    const montoPesos = Number(form.monto_pesos) || 0
+    const montoUsd = Number(form.monto_usd) || 0
+
+    if (!montoPesos && !montoUsd) {
       alert('Debe ingresar monto en pesos o USD')
+      return
+    }
+
+    if (montoPesos && montoUsd) {
+      alert('No se puede cargar pago en ambas monedas')
       return
     }
 
@@ -157,10 +165,30 @@ export default function Pagos() {
       return
     }
 
-    const saldo = totalVenta - totalPagado
-    const pagoNuevo = Number(form.monto_pesos) || 0
+    // 🔥 traer pagos existentes
+    const { data: pagosExistentes } = await supabase
+      .from('pagos')
+      .select('*')
+      .eq('venta_id', ventaSeleccionada)
 
-    if (pagoNuevo > saldo) {
+    // 🔥 detectar moneda usada
+    const usaPesos = (pagosExistentes || []).some(p => p.monto_pesos)
+    const usaUsd = (pagosExistentes || []).some(p => p.monto_usd)
+
+    if (usaPesos && montoUsd) {
+      alert('Esta venta ya tiene pagos en PESOS')
+      return
+    }
+
+    if (usaUsd && montoPesos) {
+      alert('Esta venta ya tiene pagos en USD')
+      return
+    }
+
+    // 🔥 validar saldo (solo pesos por ahora)
+    const saldo = totalVenta - totalPagado
+
+    if (montoPesos > saldo) {
       alert('El pago supera el saldo pendiente')
       return
     }
@@ -170,8 +198,8 @@ export default function Pagos() {
         venta_id: Number(ventaSeleccionada),
         fecha_pago: new Date().toISOString(),
         forma_pago_id: Number(form.forma_pago_id),
-        monto_pesos: form.monto_pesos || null,
-        monto_usd: form.monto_usd || null,
+        monto_pesos: montoPesos || null,
+        monto_usd: montoUsd || null,
         creado_por: 1,
       },
     ])
@@ -189,8 +217,6 @@ export default function Pagos() {
   return (
     <div style={{ padding: '30px', maxWidth: '700px' }}>
       <h1>Pagos</h1>
-
-      <h3>Buscar paciente</h3>
 
       <input
         placeholder="DNI"
@@ -223,8 +249,6 @@ export default function Pagos() {
 
       <hr />
 
-      <h3>Seleccionar venta</h3>
-
       <select
         value={ventaSeleccionada}
         onChange={(e) => {
@@ -245,29 +269,13 @@ export default function Pagos() {
         ))}
       </select>
 
-      {detalleVenta.length > 0 && (
-        <div style={{ marginTop: '15px', border: '1px solid #ccc', padding: '10px' }}>
-          <h4>Detalle de venta</h4>
-
-          {detalleVenta.map(d => (
-            <div key={d.id}>
-              {d.numeros_serie?.productos?.producto || '-'} | 
-              Serie: {d.numeros_serie?.numero_serie || '-'} | 
-              {formatearPesos(d.precio_venta_pesos || 0)}
-            </div>
-          ))}
-
-          <hr />
-
-          <div>Total venta: {formatearPesos(totalVenta)}</div>
-          <div>Total pagado: {formatearPesos(totalPagado)}</div>
-          <div><strong>Saldo: {formatearPesos(totalVenta - totalPagado)}</strong></div>
-        </div>
-      )}
-
       <hr />
 
-      <h3>Cargar pago</h3>
+      <div>Total venta: {formatearPesos(totalVenta)}</div>
+      <div>Total pagado: {formatearPesos(totalPagado)}</div>
+      <div><strong>Saldo: {formatearPesos(totalVenta - totalPagado)}</strong></div>
+
+      <hr />
 
       <select
         name="forma_pago_id"
