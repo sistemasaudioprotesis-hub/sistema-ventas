@@ -91,7 +91,9 @@ export default function Ventas() {
 
     if (!data) {
       const confirmar = confirm('Paciente no encontrado. ¿Querés crearlo?')
-      if (confirmar) window.location.href = `/pacientes?dni=${dni}`
+      if (confirmar) {
+        window.location.href = `/pacientes?dni=${dni}&volver=ventas`
+      }
       return
     }
 
@@ -212,13 +214,8 @@ export default function Ventas() {
     obtenerSeries()
   }
 
-  // 🔥 ELIMINAR ITEM
   async function eliminarItem(item) {
-    await supabase
-      .from('venta_detalle')
-      .delete()
-      .eq('id', item.id)
-
+    await supabase.from('venta_detalle').delete().eq('id', item.id)
     setItems(items.filter(i => i.id !== item.id))
   }
 
@@ -233,16 +230,8 @@ export default function Ventas() {
     setItems([])
   }
 
-  // 🔥 TOTALES
-  const totalPesos = items.reduce(
-    (acc, i) => acc + (Number(i.precio_pesos) || 0),
-    0
-  )
-
-  const totalUSD = items.reduce(
-    (acc, i) => acc + (Number(i.precio_usd) || 0),
-    0
-  )
+  const totalPesos = items.reduce((acc, i) => acc + (Number(i.precio_pesos) || 0), 0)
+  const totalUSD = items.reduce((acc, i) => acc + (Number(i.precio_usd) || 0), 0)
 
   return (
     <div style={{ padding: '30px', maxWidth: '700px' }}>
@@ -294,19 +283,8 @@ export default function Ventas() {
         </select>
       )}
 
-      <input
-        name="precio_pesos"
-        placeholder="Precio en pesos"
-        value={form.precio_pesos}
-        onChange={handleChange}
-      />
-
-      <input
-        name="precio_usd"
-        placeholder="Precio en USD"
-        value={form.precio_usd}
-        onChange={handleChange}
-      />
+      <input name="precio_pesos" placeholder="Precio en pesos" value={form.precio_pesos} onChange={handleChange} />
+      <input name="precio_usd" placeholder="Precio en USD" value={form.precio_usd} onChange={handleChange} />
 
       <button onClick={agregarItem}>Agregar a venta</button>
 
@@ -320,7 +298,6 @@ export default function Ventas() {
           {item.precio_pesos
             ? formatearPesos(item.precio_pesos)
             : formatearUSD(item.precio_usd)}
-
           <button onClick={() => eliminarItem(item)}>❌</button>
         </div>
       ))}
@@ -328,7 +305,6 @@ export default function Ventas() {
       <hr />
 
       <h3>Totales</h3>
-
       <div>Total Pesos: {formatearPesos(totalPesos)}</div>
       <div>Total USD: {formatearUSD(totalUSD)}</div>
 
