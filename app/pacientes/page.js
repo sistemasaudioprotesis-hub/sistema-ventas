@@ -3,9 +3,12 @@
 export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 
 export default function Pacientes() {
+  const searchParams = useSearchParams()
+
   const [provincias, setProvincias] = useState([])
   const [busquedaDni, setBusquedaDni] = useState('')
   const [pacienteId, setPacienteId] = useState(null)
@@ -24,6 +27,15 @@ export default function Pacientes() {
 
   useEffect(() => {
     obtenerProvincias()
+
+    const dniParam = searchParams.get('dni')
+
+    if (dniParam) {
+      setForm((prev) => ({
+        ...prev,
+        dni: dniParam,
+      }))
+    }
   }, [])
 
   async function obtenerProvincias() {
@@ -153,7 +165,9 @@ export default function Pacientes() {
     }
 
     alert('Paciente guardado correctamente')
-    limpiarFormulario()
+
+    // 🔥 volver a ventas con DNI
+    window.location.href = `/ventas?dni=${form.dni}`
   }
 
   return (
