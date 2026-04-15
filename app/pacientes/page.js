@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
+import { normalizarTexto } from '../../lib/formatText'
 
 export default function Pacientes() {
   const searchParams = useSearchParams()
@@ -43,9 +44,24 @@ export default function Pacientes() {
   }
 
   function handleChange(e) {
+    const { name, value } = e.target
+
+    const camposTexto = [
+      'apellido_paciente',
+      'nombres_paciente',
+      'domicilio',
+      'localidad',
+      'observaciones',
+      'mail',
+    ]
+
+    const nuevoValor = camposTexto.includes(name)
+      ? normalizarTexto(value)
+      : value
+
     setForm({
       ...form,
-      [e.target.name]: e.target.value,
+      [name]: nuevoValor,
     })
   }
 
@@ -132,14 +148,24 @@ export default function Pacientes() {
       return
     }
 
+    if (!form.provincia_id) {
+      alert('Seleccionar provincia')
+      return
+    }
+
     if (pacienteId) {
-      await supabase
+      const { error } = await supabase
         .from('pacientes')
         .update({
           ...form,
           provincia_id: Number(form.provincia_id),
         })
         .eq('id', pacienteId)
+
+      if (error) {
+        alert('Error: ' + error.message)
+        return
+      }
 
       alert('Paciente actualizado')
     } else {
@@ -154,7 +180,7 @@ export default function Pacientes() {
         return
       }
 
-      await supabase.from('pacientes').insert([
+      const { error } = await supabase.from('pacientes').insert([
         {
           ...form,
           provincia_id: Number(form.provincia_id),
@@ -162,10 +188,14 @@ export default function Pacientes() {
         },
       ])
 
+      if (error) {
+        alert('Error: ' + error.message)
+        return
+      }
+
       alert('Paciente creado')
     }
 
-    // 🔥 ESTE ES EL FIX CLAVE
     if (volver === 'ventas') {
       window.location.href = `/ventas?dni=${form.dni}`
     }
