@@ -56,6 +56,7 @@ export default function Ventas() {
         depositos (deposito)
       `)
       .eq('en_stock', true)
+      .order('numero_serie', { ascending: true }) // 🔥 ORDEN
 
     setSeries(data || [])
   }
@@ -193,7 +194,7 @@ export default function Ventas() {
       ...items,
       {
         id: detalle.id,
-        numero_serie_id: form.numero_serie_id, // 🔥 guardamos el ID
+        numero_serie_id: form.numero_serie_id,
         producto: modoConSerie
           ? series.find(s => s.id == form.numero_serie_id)?.productos?.producto
           : productos.find(p => p.id == form.producto_id)?.producto,
@@ -215,9 +216,7 @@ export default function Ventas() {
     obtenerSeries()
   }
 
-  // 🔥 FIX REAL DE STOCK
   async function eliminarItem(item) {
-    // devolver stock si corresponde
     if (item.numero_serie_id) {
       await supabase
         .from('numeros_serie')
@@ -228,13 +227,10 @@ export default function Ventas() {
         .eq('id', item.numero_serie_id)
     }
 
-    // eliminar detalle
     await supabase.from('venta_detalle').delete().eq('id', item.id)
 
-    // actualizar UI
     setItems(items.filter(i => i.id !== item.id))
 
-    // refrescar stock
     obtenerSeries()
   }
 
