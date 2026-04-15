@@ -13,6 +13,7 @@ export default function Pacientes() {
   const dniParam = searchParams.get('dni')
 
   const [provincias, setProvincias] = useState([])
+  const [busquedaDni, setBusquedaDni] = useState('')
   const [pacienteId, setPacienteId] = useState(null)
 
   const [form, setForm] = useState({
@@ -31,6 +32,7 @@ export default function Pacientes() {
     obtenerProvincias()
 
     if (dniParam) {
+      setBusquedaDni(dniParam)
       cargarPacientePorDni(dniParam)
     }
   }, [])
@@ -38,6 +40,61 @@ export default function Pacientes() {
   async function obtenerProvincias() {
     const { data } = await supabase.from('provincias').select('*')
     setProvincias(data || [])
+  }
+
+  function handleChange(e) {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    })
+  }
+
+  function limpiarFormulario() {
+    setPacienteId(null)
+    setBusquedaDni('')
+    setForm({
+      apellido_paciente: '',
+      nombres_paciente: '',
+      dni: '',
+      telefono: '',
+      domicilio: '',
+      localidad: '',
+      provincia_id: '',
+      mail: '',
+      observaciones: '',
+    })
+  }
+
+  async function buscarPaciente() {
+    if (!busquedaDni) {
+      alert('Ingresar DNI')
+      return
+    }
+
+    const { data } = await supabase
+      .from('pacientes')
+      .select('*')
+      .eq('dni', busquedaDni)
+      .maybeSingle()
+
+    if (!data) {
+      alert('No se encontró paciente')
+      return
+    }
+
+    setPacienteId(data.id)
+
+    setForm({
+      apellido_paciente: data.apellido_paciente || '',
+      nombres_paciente: data.nombres_paciente || '',
+      dni: data.dni || '',
+      telefono: data.telefono || '',
+      domicilio: data.domicilio || '',
+      localidad: data.localidad || '',
+      provincia_id: data.provincia_id ? String(data.provincia_id) : '',
+      mail: data.mail || '',
+      observaciones: data.observaciones || '',
+    })
   }
 
   async function cargarPacientePorDni(dni) {
@@ -62,15 +119,11 @@ export default function Pacientes() {
         observaciones: data.observaciones || '',
       })
     } else {
-      setForm(prev => ({ ...prev, dni }))
+      setForm((prev) => ({
+        ...prev,
+        dni: dni,
+      }))
     }
-  }
-
-  function handleChange(e) {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    })
   }
 
   async function guardar() {
@@ -90,6 +143,17 @@ export default function Pacientes() {
 
       alert('Paciente actualizado')
     } else {
+      const { data: existe } = await supabase
+        .from('pacientes')
+        .select('id')
+        .eq('dni', form.dni)
+        .maybeSingle()
+
+      if (existe) {
+        alert('Ya existe un paciente con ese DNI')
+        return
+      }
+
       await supabase.from('pacientes').insert([
         {
           ...form,
@@ -101,6 +165,7 @@ export default function Pacientes() {
       alert('Paciente creado')
     }
 
+    // 🔥 ESTE ES EL FIX CLAVE
     if (volver === 'ventas') {
       window.location.href = `/ventas?dni=${form.dni}`
     }
@@ -110,93 +175,48 @@ export default function Pacientes() {
     <div style={{ padding: '30px', maxWidth: '600px' }}>
       <h1>Pacientes</h1>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        
-        <div>
-          <label>Apellido</label>
-          <input
-            name="apellido_paciente"
-            value={form.apellido_paciente}
-            onChange={handleChange}
-          />
-        </div>
+      <h3>Buscar por DNI</h3>
+      <input
+        placeholder="Ingresar DNI"
+        value={busquedaDni}
+        onChange={(e) => setBusquedaDni(e.target.value)}
+      />
+      <button onClick={buscarPaciente}>Buscar</button>
+      <button onClick={limpiarFormulario}>Nuevo paciente</button>
 
-        <div>
-          <label>Nombre</label>
-          <input
-            name="nombres_paciente"
-            value={form.nombres_paciente}
-            onChange={handleChange}
-          />
-        </div>
+      <hr style={{ margin: '20px 0' }} />
 
-        <div>
-          <label>DNI</label>
-          <input name="dni" value={form.dni} disabled />
-        </div>
+      <h3>Formulario</h3>
 
-        <div>
-          <label>Teléfono</label>
-          <input
-            name="telefono"
-            value={form.telefono}
-            onChange={handleChange}
-          />
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <input name="apellido_paciente" placeholder="Apellido" value={form.apellido_paciente} onChange={handleChange} />
+        <input name="nombres_paciente" placeholder="Nombre" value={form.nombres_paciente} onChange={handleChange} />
 
-        <div>
-          <label>Domicilio</label>
-          <input
-            name="domicilio"
-            value={form.domicilio}
-            onChange={handleChange}
-          />
-        </div>
+        <input
+          name="dni"
+          placeholder="DNI"
+          value={form.dni}
+          onChange={handleChange}
+          disabled={pacienteId !== null}
+        />
 
-        <div>
-          <label>Localidad</label>
-          <input
-            name="localidad"
-            value={form.localidad}
-            onChange={handleChange}
-          />
-        </div>
+        <input name="telefono" placeholder="Teléfono" value={form.telefono} onChange={handleChange} />
+        <input name="domicilio" placeholder="Domicilio" value={form.domicilio} onChange={handleChange} />
+        <input name="localidad" placeholder="Localidad" value={form.localidad} onChange={handleChange} />
 
-        <div>
-          <label>Provincia</label>
-          <select
-            name="provincia_id"
-            value={form.provincia_id}
-            onChange={handleChange}
-          >
-            <option value="">Seleccionar provincia</option>
-            {provincias.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.provincia}
-              </option>
-            ))}
-          </select>
-        </div>
+        <select name="provincia_id" value={form.provincia_id} onChange={handleChange}>
+          <option value="">Seleccionar provincia</option>
+          {provincias.map(p => (
+            <option key={p.id} value={p.id}>
+              {p.provincia}
+            </option>
+          ))}
+        </select>
 
-        <div>
-          <label>Mail</label>
-          <input
-            name="mail"
-            value={form.mail}
-            onChange={handleChange}
-          />
-        </div>
+        <input name="mail" placeholder="Mail" value={form.mail} onChange={handleChange} />
+        <textarea name="observaciones" placeholder="Observaciones" value={form.observaciones} onChange={handleChange} />
 
-        <div>
-          <label>Observaciones</label>
-          <textarea
-            name="observaciones"
-            value={form.observaciones}
-            onChange={handleChange}
-          />
-        </div>
-
-        <button onClick={guardar} style={{ marginTop: '10px' }}>
+        <button onClick={guardar}>
           {pacienteId ? 'Actualizar paciente' : 'Guardar paciente'}
         </button>
       </div>
