@@ -260,6 +260,15 @@ export default function Ventas() {
     setDerivadorId('')
   }
 
+  function irAPagos() {
+    if (!ventaId) {
+      alert('Primero debe crear la venta')
+      return
+    }
+
+    window.location.href = `/pagos?venta_id=${ventaId}`
+  }
+
   const totalPesos = items.reduce((acc, i) => acc + (Number(i.precio_pesos) || 0), 0)
   const totalUSD = items.reduce((acc, i) => acc + (Number(i.precio_usd) || 0), 0)
 
@@ -350,6 +359,7 @@ export default function Ventas() {
       <div>Total USD: {formatearUSD(totalUSD)}</div>
 
       <button onClick={finalizarVenta}>Finalizar venta</button>
+      <button onClick={irAPagos}>Ingresar pago</button>
     </div>
   )
 }
