@@ -16,6 +16,7 @@ export default function Ventas() {
   const [form, setForm] = useState({
     numero_serie_id: '',
     precio_pesos: '',
+    precio_usd: '',
   })
 
   useEffect(() => {
@@ -25,16 +26,37 @@ export default function Ventas() {
 
     if (dniParam) {
       setDni(dniParam)
+
+      setTimeout(() => {
+        buscarPacienteAutomatico(dniParam)
+      }, 300)
     }
   }, [])
 
   async function obtenerSeries() {
     const { data } = await supabase
       .from('numeros_serie')
-      .select('*')
+      .select(`
+        id,
+        numero_serie,
+        productos (producto),
+        depositos (deposito)
+      `)
       .eq('en_stock', true)
 
     setSeries(data || [])
+  }
+
+  async function buscarPacienteAutomatico(dniValor) {
+    const { data } = await supabase
+      .from('pacientes')
+      .select('*')
+      .eq('dni', dniValor)
+      .maybeSingle()
+
+    if (data) {
+      setPaciente(data)
+    }
   }
 
   async function buscarPaciente() {
@@ -75,6 +97,11 @@ export default function Ventas() {
       return
     }
 
+    if (!form.precio_pesos && !form.precio_usd) {
+      alert('Ingresar precio en pesos o USD')
+      return
+    }
+
     const fecha = new Date().toISOString()
 
     // 1. crear venta
@@ -104,6 +131,7 @@ export default function Ventas() {
           venta_id: venta.id,
           numero_serie_id: Number(form.numero_serie_id),
           precio_venta_pesos: form.precio_pesos ? Number(form.precio_pesos) : null,
+          precio_venta_usd: form.precio_usd ? Number(form.precio_usd) : null,
           creado_por: 1,
         },
       ])
@@ -131,6 +159,7 @@ export default function Ventas() {
     setForm({
       numero_serie_id: '',
       precio_pesos: '',
+      precio_usd: '',
     })
 
     obtenerSeries()
@@ -160,7 +189,7 @@ export default function Ventas() {
 
       <hr style={{ margin: '20px 0' }} />
 
-      <h3>Venta</h3>
+      <h3>Detalle de venta</h3>
 
       <select
         name="numero_serie_id"
@@ -170,7 +199,7 @@ export default function Ventas() {
         <option value="">Seleccionar número de serie</option>
         {series.map((s) => (
           <option key={s.id} value={s.id}>
-            {s.numero_serie}
+            {s.numero_serie} - {s.productos?.producto} - {s.depositos?.deposito}
           </option>
         ))}
       </select>
@@ -179,6 +208,13 @@ export default function Ventas() {
         name="precio_pesos"
         placeholder="Precio en pesos"
         value={form.precio_pesos}
+        onChange={handleChange}
+      />
+
+      <input
+        name="precio_usd"
+        placeholder="Precio en USD"
+        value={form.precio_usd}
         onChange={handleChange}
       />
 
