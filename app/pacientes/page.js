@@ -62,18 +62,12 @@ export default function Pacientes() {
         observaciones: data.observaciones || '',
       })
     } else {
-      setForm((prev) => ({
-        ...prev,
-        dni: dni,
-      }))
+      setForm(prev => ({ ...prev, dni }))
     }
   }
 
   function handleChange(e) {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    })
+    setForm({ ...form, [e.target.name]: e.target.value })
   }
 
   async function guardar() {
@@ -85,23 +79,12 @@ export default function Pacientes() {
     if (pacienteId) {
       await supabase
         .from('pacientes')
-        .update({
-          ...form,
-          provincia_id: Number(form.provincia_id),
-        })
+        .update({ ...form, provincia_id: Number(form.provincia_id) })
         .eq('id', pacienteId)
-
-      alert('Paciente actualizado')
     } else {
       await supabase.from('pacientes').insert([
-        {
-          ...form,
-          provincia_id: Number(form.provincia_id),
-          creado_por: 1,
-        },
+        { ...form, provincia_id: Number(form.provincia_id), creado_por: 1 },
       ])
-
-      alert('Paciente creado')
     }
 
     if (volver === 'ventas') {
@@ -113,32 +96,27 @@ export default function Pacientes() {
     <div style={{ padding: '30px', maxWidth: '600px' }}>
       <h1>Pacientes</h1>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <input name="apellido_paciente" placeholder="Apellido" value={form.apellido_paciente} onChange={handleChange} />
-        <input name="nombres_paciente" placeholder="Nombre" value={form.nombres_paciente} onChange={handleChange} />
+      <input name="apellido_paciente" value={form.apellido_paciente} onChange={handleChange} placeholder="Apellido" />
+      <input name="nombres_paciente" value={form.nombres_paciente} onChange={handleChange} placeholder="Nombre" />
+      <input name="dni" value={form.dni} disabled />
 
-        <input name="dni" value={form.dni} disabled />
+      <input name="telefono" value={form.telefono} onChange={handleChange} placeholder="Teléfono" />
+      <input name="domicilio" value={form.domicilio} onChange={handleChange} placeholder="Domicilio" />
+      <input name="localidad" value={form.localidad} onChange={handleChange} placeholder="Localidad" />
 
-        <input name="telefono" placeholder="Teléfono" value={form.telefono} onChange={handleChange} />
-        <input name="domicilio" placeholder="Domicilio" value={form.domicilio} onChange={handleChange} />
-        <input name="localidad" placeholder="Localidad" value={form.localidad} onChange={handleChange} />
+      <select name="provincia_id" value={form.provincia_id} onChange={handleChange}>
+        <option value="">Seleccionar provincia</option>
+        {provincias.map(p => (
+          <option key={p.id} value={p.id}>{p.provincia}</option>
+        ))}
+      </select>
 
-        <select name="provincia_id" value={form.provincia_id} onChange={handleChange}>
-          <option value="">Seleccionar provincia</option>
-          {provincias.map(p => (
-            <option key={p.id} value={p.id}>
-              {p.provincia}
-            </option>
-          ))}
-        </select>
+      <input name="mail" value={form.mail} onChange={handleChange} placeholder="Mail" />
+      <textarea name="observaciones" value={form.observaciones} onChange={handleChange} />
 
-        <input name="mail" placeholder="Mail" value={form.mail} onChange={handleChange} />
-        <textarea name="observaciones" placeholder="Observaciones" value={form.observaciones} onChange={handleChange} />
-
-        <button onClick={guardar}>
-          {pacienteId ? 'Actualizar paciente' : 'Guardar paciente'}
-        </button>
-      </div>
+      <button onClick={guardar}>
+        {pacienteId ? 'Actualizar paciente' : 'Guardar paciente'}
+      </button>
     </div>
   )
 }
