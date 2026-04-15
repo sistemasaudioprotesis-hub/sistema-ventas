@@ -16,6 +16,9 @@ export default function Ventas() {
   const [productos, setProductos] = useState([])
 
   const [modoConSerie, setModoConSerie] = useState(true)
+  const [ventaId, setVentaId] = useState(null)
+
+  const [items, setItems] = useState([]) // 🔥 carrito
 
   const [form, setForm] = useState({
     numero_serie_id: '',
@@ -45,7 +48,7 @@ export default function Ventas() {
       .select(`
         id,
         numero_serie,
-        productos (producto, tipo_id),
+        productos (producto),
         depositos (deposito)
       `)
       .eq('en_stock', true)
@@ -59,7 +62,6 @@ export default function Ventas() {
       .select(`
         id,
         producto,
-        tipo_id,
         tipo_producto (requiere_serie)
       `)
 
@@ -77,11 +79,6 @@ export default function Ventas() {
   }
 
   async function buscarPaciente() {
-    if (!dni) {
-      alert('Ingresar DNI')
-      return
-    }
-
     const { data } = await supabase
       .from('pacientes')
       .select('*')
@@ -102,7 +99,6 @@ export default function Ventas() {
 
     if (name === 'producto_id') {
       const prod = productos.find(p => p.id === Number(value))
-
       const requiereSerie = prod?.tipo_producto?.requiere_serie
 
       setModoConSerie(requiereSerie)
@@ -122,54 +118,58 @@ export default function Ventas() {
     })
   }
 
-  async function guardarVenta() {
-    if (!paciente) {
-      alert('Seleccionar paciente')
-      return
-    }
+  async function agregarItem() {
+    if (!paciente) return alert('Seleccionar paciente')
 
     if (!form.precio_pesos && !form.precio_usd) {
-      alert('Ingresar precio')
-      return
+      return alert('Ingresar precio')
     }
 
     if (modoConSerie && !form.numero_serie_id) {
-      alert('Seleccionar número de serie')
-      return
+      return alert('Seleccionar serie')
     }
 
     if (!modoConSerie && !form.producto_id) {
-      alert('Seleccionar producto')
-      return
+      return alert('Seleccionar producto')
     }
 
     const fecha = new Date().toISOString()
+    let ventaActualId = ventaId
 
-    // 1. crear venta
-    const { data: venta } = await supabase
-      .from('ventas')
+    // crear venta si no existe
+    if (!ventaActualId) {
+      const { data: venta } = await supabase
+        .from('ventas')
+        .insert([
+          {
+            paciente_id: paciente.id,
+            fecha,
+            creado_por: 1,
+          },
+        ])
+        .select()
+        .single()
+
+      ventaActualId = venta.id
+      setVentaId(ventaActualId)
+    }
+
+    // guardar detalle
+    const { data: detalle } = await supabase
+      .from('venta_detalle')
       .insert([
         {
-          paciente_id: paciente.id,
-          fecha,
+          venta_id: ventaActualId,
+          numero_serie_id: modoConSerie ? Number(form.numero_serie_id) : null,
+          precio_venta_pesos: form.precio_pesos || null,
+          precio_venta_usd: form.precio_usd || null,
           creado_por: 1,
         },
       ])
       .select()
       .single()
 
-    // 2. detalle
-    await supabase.from('venta_detalle').insert([
-      {
-        venta_id: venta.id,
-        numero_serie_id: modoConSerie ? Number(form.numero_serie_id) : null,
-        precio_venta_pesos: form.precio_pesos ? Number(form.precio_pesos) : null,
-        precio_venta_usd: form.precio_usd ? Number(form.precio_usd) : null,
-        creado_por: 1,
-      },
-    ])
-
-    // 3. actualizar stock si corresponde
+    // actualizar stock
     if (modoConSerie) {
       await supabase
         .from('numeros_serie')
@@ -180,10 +180,22 @@ export default function Ventas() {
         .eq('id', form.numero_serie_id)
     }
 
-    alert('Venta registrada')
+    // 🔥 agregar al carrito visual
+    setItems([
+      ...items,
+      {
+        id: detalle.id,
+        producto: modoConSerie
+          ? series.find(s => s.id == form.numero_serie_id)?.productos?.producto
+          : productos.find(p => p.id == form.producto_id)?.producto,
+        serie: modoConSerie
+          ? series.find(s => s.id == form.numero_serie_id)?.numero_serie
+          : '-',
+        precio: form.precio_pesos || form.precio_usd,
+      },
+    ])
 
-    setPaciente(null)
-    setDni('')
+    // limpiar form
     setForm({
       numero_serie_id: '',
       producto_id: '',
@@ -194,15 +206,22 @@ export default function Ventas() {
     obtenerSeries()
   }
 
+  function finalizarVenta() {
+    if (!ventaId) return alert('No hay venta')
+
+    alert('Venta finalizada')
+
+    setVentaId(null)
+    setPaciente(null)
+    setDni('')
+    setItems([])
+  }
+
   return (
-    <div style={{ padding: '30px', maxWidth: '600px' }}>
+    <div style={{ padding: '30px', maxWidth: '700px' }}>
       <h1>Ventas</h1>
 
-      <input
-        placeholder="DNI"
-        value={dni}
-        onChange={(e) => setDni(e.target.value)}
-      />
+      <input value={dni} onChange={(e) => setDni(e.target.value)} placeholder="DNI" />
       <button onClick={buscarPaciente}>Buscar</button>
 
       {paciente && (
@@ -213,9 +232,8 @@ export default function Ventas() {
 
       <hr />
 
-      <h3>Detalle</h3>
+      <h3>Agregar producto</h3>
 
-      {/* PRODUCTO */}
       <select name="producto_id" value={form.producto_id} onChange={handleChange}>
         <option value="">Seleccionar producto</option>
         {productos.map(p => (
@@ -225,7 +243,6 @@ export default function Ventas() {
         ))}
       </select>
 
-      {/* SERIE SOLO SI CORRESPONDE */}
       {modoConSerie && (
         <select name="numero_serie_id" value={form.numero_serie_id} onChange={handleChange}>
           <option value="">Seleccionar serie</option>
@@ -251,7 +268,19 @@ export default function Ventas() {
         onChange={handleChange}
       />
 
-      <button onClick={guardarVenta}>Guardar venta</button>
+      <button onClick={agregarItem}>Agregar a venta</button>
+
+      <hr />
+
+      <h3>Carrito</h3>
+
+      {items.map(item => (
+        <div key={item.id}>
+          {item.producto} | {item.serie} | ${item.precio}
+        </div>
+      ))}
+
+      <button onClick={finalizarVenta}>Finalizar venta</button>
     </div>
   )
 }
