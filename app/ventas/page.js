@@ -18,11 +18,9 @@ export default function Ventas() {
 
   const [productos, setProductos] = useState([])
 
-  const [derivadores, setDerivadores] = useState([])
-  const [derivadorId, setDerivadorId] = useState('')
-
   const [modoConSerie, setModoConSerie] = useState(true)
   const [ventaId, setVentaId] = useState(null)
+  const [ventaConfirmada, setVentaConfirmada] = useState(false)
 
   const [items, setItems] = useState([])
 
@@ -36,7 +34,6 @@ export default function Ventas() {
   useEffect(() => {
     obtenerSeries()
     obtenerProductos()
-    obtenerDerivadores()
 
     const dniParam = searchParams.get('dni')
 
@@ -60,7 +57,7 @@ export default function Ventas() {
         depositos (deposito)
       `)
       .eq('en_stock', true)
-      .order('numero_serie', { ascending: true })
+      .order('numero_serie')
 
     setSeries(data || [])
   }
@@ -75,15 +72,6 @@ export default function Ventas() {
       `)
 
     setProductos(data || [])
-  }
-
-  async function obtenerDerivadores() {
-    const { data } = await supabase
-      .from('derivadores')
-      .select('*')
-      .order('derivador')
-
-    setDerivadores(data || [])
   }
 
   async function buscarPacienteAutomatico(dniValor) {
@@ -169,8 +157,8 @@ export default function Ventas() {
           {
             paciente_id: paciente.id,
             fecha,
-            derivador_id: derivadorId || null,
             creado_por: 1,
+            confirmada: false,
           },
         ])
         .select()
@@ -208,7 +196,6 @@ export default function Ventas() {
       ...items,
       {
         id: detalle.id,
-        numero_serie_id: form.numero_serie_id,
         producto: modoConSerie
           ? series.find(s => s.id == form.numero_serie_id)?.productos?.producto
           : productos.find(p => p.id == form.producto_id)?.producto,
@@ -231,6 +218,8 @@ export default function Ventas() {
   }
 
   async function eliminarItem(item) {
+    await supabase.from('venta_detalle').delete().eq('id', item.id)
+
     if (item.numero_serie_id) {
       await supabase
         .from('numeros_serie')
@@ -241,11 +230,36 @@ export default function Ventas() {
         .eq('id', item.numero_serie_id)
     }
 
-    await supabase.from('venta_detalle').delete().eq('id', item.id)
-
     setItems(items.filter(i => i.id !== item.id))
 
     obtenerSeries()
+  }
+
+  async function confirmarVenta() {
+    if (!ventaId) return alert('No hay venta')
+
+    const { error } = await supabase
+      .from('ventas')
+      .update({ confirmada: true })
+      .eq('id', ventaId)
+
+    if (error) {
+      alert('Error: ' + error.message)
+      return
+    }
+
+    setVentaConfirmada(true)
+
+    alert('Venta confirmada')
+  }
+
+  function irAPagos() {
+    if (!ventaConfirmada) {
+      alert('Debe confirmar la venta primero')
+      return
+    }
+
+    window.location.href = `/pagos?venta_id=${ventaId}`
   }
 
   function finalizarVenta() {
@@ -257,16 +271,7 @@ export default function Ventas() {
     setPaciente(null)
     setDni('')
     setItems([])
-    setDerivadorId('')
-  }
-
-  function irAPagos() {
-    if (!ventaId) {
-      alert('Primero debe crear la venta')
-      return
-    }
-
-    window.location.href = `/pagos?venta_id=${ventaId}`
+    setVentaConfirmada(false)
   }
 
   const totalPesos = items.reduce((acc, i) => acc + (Number(i.precio_pesos) || 0), 0)
@@ -297,17 +302,6 @@ export default function Ventas() {
           </button>
         </div>
       )}
-
-      <h3>Derivador</h3>
-
-      <select value={derivadorId} onChange={(e) => setDerivadorId(e.target.value)}>
-        <option value="">Sin derivador</option>
-        {derivadores.map(d => (
-          <option key={d.id} value={d.id}>
-            {d.derivador}
-          </option>
-        ))}
-      </select>
 
       <hr />
 
@@ -358,8 +352,9 @@ export default function Ventas() {
       <div>Total Pesos: {formatearPesos(totalPesos)}</div>
       <div>Total USD: {formatearUSD(totalUSD)}</div>
 
-      <button onClick={finalizarVenta}>Finalizar venta</button>
+      <button onClick={confirmarVenta}>Confirmar venta</button>
       <button onClick={irAPagos}>Ingresar pago</button>
+      <button onClick={finalizarVenta}>Finalizar venta</button>
     </div>
   )
 }
