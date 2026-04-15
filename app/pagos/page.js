@@ -11,14 +11,19 @@ export default function Pagos() {
   const router = useRouter()
 
   const ventaIdParam = searchParams.get('venta_id')
+  const dniParam = searchParams.get('dni')
 
-  const [dni, setDni] = useState('')
+  const [dni, setDni] = useState(dniParam || '')
   const [paciente, setPaciente] = useState(null)
 
   const [ventas, setVentas] = useState([])
   const [ventaSeleccionada, setVentaSeleccionada] = useState(ventaIdParam || '')
 
   const [formasPago, setFormasPago] = useState([])
+
+  const [detalleVenta, setDetalleVenta] = useState([])
+  const [totalVenta, setTotalVenta] = useState(0)
+  const [totalPagado, setTotalPagado] = useState(0)
 
   const [form, setForm] = useState({
     forma_pago_id: '',
@@ -29,8 +34,13 @@ export default function Pagos() {
   useEffect(() => {
     obtenerFormasPago()
 
+    if (dniParam) {
+      buscarPacienteAutomatico(dniParam)
+    }
+
     if (ventaIdParam) {
       setVentaSeleccionada(ventaIdParam)
+      cargarDetalleVenta(ventaIdParam)
     }
   }, [])
 
@@ -41,6 +51,26 @@ export default function Pagos() {
       .order('forma_pago')
 
     setFormasPago(data || [])
+  }
+
+  async function buscarPacienteAutomatico(dniValor) {
+    const { data } = await supabase
+      .from('pacientes')
+      .select('*')
+      .eq('dni', dniValor)
+      .maybeSingle()
+
+    if (data) {
+      setPaciente(data)
+
+      const { data: ventasData } = await supabase
+        .from('ventas')
+        .select('*')
+        .eq('paciente_id', data.id)
+        .order('fecha', { ascending: false })
+
+      setVentas(ventasData || [])
+    }
   }
 
   async function buscarPaciente() {
@@ -62,7 +92,6 @@ export default function Pagos() {
 
     setPaciente(data)
 
-    // 🔥 traer ventas del paciente
     const { data: ventasData } = await supabase
       .from('ventas')
       .select('*')
@@ -70,6 +99,38 @@ export default function Pagos() {
       .order('fecha', { ascending: false })
 
     setVentas(ventasData || [])
+  }
+
+  async function cargarDetalleVenta(ventaId) {
+    const { data: detalle } = await supabase
+      .from('venta_detalle')
+      .select(`
+        *,
+        numeros_serie (
+          numero_serie,
+          productos (producto)
+        )
+      `)
+      .eq('venta_id', ventaId)
+
+    setDetalleVenta(detalle || [])
+
+    const total = (detalle || []).reduce((acc, d) => {
+      return acc + (Number(d.precio_venta_pesos) || 0)
+    }, 0)
+
+    setTotalVenta(total)
+
+    const { data: pagos } = await supabase
+      .from('pagos')
+      .select('*')
+      .eq('venta_id', ventaId)
+
+    const pagado = (pagos || []).reduce((acc, p) => {
+      return acc + (Number(p.monto_pesos) || 0)
+    }, 0)
+
+    setTotalPagado(pagado)
   }
 
   function handleChange(e) {
@@ -113,7 +174,7 @@ export default function Pagos() {
 
     alert('Pago registrado')
 
-    router.replace('/ventas')
+    router.replace(`/ventas?dni=${dni}`)
   }
 
   return (
@@ -157,7 +218,14 @@ export default function Pagos() {
 
       <select
         value={ventaSeleccionada}
-        onChange={(e) => setVentaSeleccionada(e.target.value)}
+        onChange={(e) => {
+          const id = e.target.value
+          setVentaSeleccionada(id)
+
+          if (id) {
+            cargarDetalleVenta(id)
+          }
+        }}
       >
         <option value="">Seleccionar venta</option>
 
@@ -167,6 +235,26 @@ export default function Pagos() {
           </option>
         ))}
       </select>
+
+      {detalleVenta.length > 0 && (
+        <div style={{ marginTop: '15px', border: '1px solid #ccc', padding: '10px' }}>
+          <h4>Detalle de venta</h4>
+
+          {detalleVenta.map(d => (
+            <div key={d.id}>
+              {d.numeros_serie?.productos?.producto || '-'} | 
+              Serie: {d.numeros_serie?.numero_serie || '-'} | 
+              ${d.precio_venta_pesos || 0}
+            </div>
+          ))}
+
+          <hr />
+
+          <div>Total venta: ${totalVenta}</div>
+          <div>Total pagado: ${totalPagado}</div>
+          <div><strong>Saldo: ${totalVenta - totalPagado}</strong></div>
+        </div>
+      )}
 
       <hr />
 
