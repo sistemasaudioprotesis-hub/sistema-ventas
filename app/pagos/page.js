@@ -3,11 +3,12 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 
 export default function Pagos() {
   const searchParams = useSearchParams()
+  const router = useRouter()
 
   const ventaId = searchParams.get('venta_id')
 
@@ -40,6 +41,13 @@ export default function Pagos() {
   }
 
   async function guardarPago() {
+    console.log('ventaId:', ventaId)
+
+    if (!ventaId) {
+      alert('Error: no se encontró la venta')
+      return
+    }
+
     if (!form.monto_pesos && !form.monto_usd) {
       alert('Debe ingresar monto en pesos o USD')
       return
@@ -63,17 +71,22 @@ export default function Pagos() {
 
     if (error) {
       alert('Error: ' + error.message)
+      console.error(error)
       return
     }
 
     alert('Pago registrado')
 
-    window.location.href = '/ventas'
+    router.replace('/ventas')
   }
 
   return (
     <div style={{ padding: '30px', maxWidth: '600px' }}>
       <h1>Pagos</h1>
+
+      <div style={{ marginBottom: '10px' }}>
+        Venta ID: {ventaId || 'No definido'}
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <select name="forma_pago_id" value={form.forma_pago_id} onChange={handleChange}>
