@@ -212,6 +212,16 @@ export default function Ventas() {
     obtenerSeries()
   }
 
+  // 🔥 ELIMINAR ITEM
+  async function eliminarItem(item) {
+    await supabase
+      .from('venta_detalle')
+      .delete()
+      .eq('id', item.id)
+
+    setItems(items.filter(i => i.id !== item.id))
+  }
+
   function finalizarVenta() {
     if (!ventaId) return alert('No hay venta')
 
@@ -222,6 +232,17 @@ export default function Ventas() {
     setDni('')
     setItems([])
   }
+
+  // 🔥 TOTALES
+  const totalPesos = items.reduce(
+    (acc, i) => acc + (Number(i.precio_pesos) || 0),
+    0
+  )
+
+  const totalUSD = items.reduce(
+    (acc, i) => acc + (Number(i.precio_usd) || 0),
+    0
+  )
 
   return (
     <div style={{ padding: '30px', maxWidth: '700px' }}>
@@ -299,8 +320,17 @@ export default function Ventas() {
           {item.precio_pesos
             ? formatearPesos(item.precio_pesos)
             : formatearUSD(item.precio_usd)}
+
+          <button onClick={() => eliminarItem(item)}>❌</button>
         </div>
       ))}
+
+      <hr />
+
+      <h3>Totales</h3>
+
+      <div>Total Pesos: {formatearPesos(totalPesos)}</div>
+      <div>Total USD: {formatearUSD(totalUSD)}</div>
 
       <button onClick={finalizarVenta}>Finalizar venta</button>
     </div>
