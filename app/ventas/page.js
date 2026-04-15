@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
+import { formatearPesos, formatearUSD } from '../../lib/format'
 
 export default function Ventas() {
   const searchParams = useSearchParams()
@@ -106,7 +107,6 @@ export default function Ventas() {
 
       setModoConSerie(requiereSerie)
 
-      // 🔥 filtrar series por producto
       const filtradas = series.filter(
         s => s.producto_id === Number(value)
       )
@@ -197,7 +197,8 @@ export default function Ventas() {
         serie: modoConSerie
           ? series.find(s => s.id == form.numero_serie_id)?.numero_serie
           : '-',
-        precio: form.precio_pesos || form.precio_usd,
+        precio_pesos: form.precio_pesos,
+        precio_usd: form.precio_usd,
       },
     ])
 
@@ -281,7 +282,10 @@ export default function Ventas() {
 
       {items.map(item => (
         <div key={item.id}>
-          {item.producto} | {item.serie} | ${item.precio}
+          {item.producto} | {item.serie} |{' '}
+          {item.precio_pesos
+            ? formatearPesos(item.precio_pesos)
+            : formatearUSD(item.precio_usd)}
         </div>
       ))}
 
