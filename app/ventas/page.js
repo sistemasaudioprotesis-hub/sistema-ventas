@@ -196,6 +196,7 @@ export default function Ventas() {
       ...items,
       {
         id: detalle.id,
+        numero_serie_id: form.numero_serie_id,
         producto: modoConSerie
           ? series.find(s => s.id == form.numero_serie_id)?.productos?.producto
           : productos.find(p => p.id == form.producto_id)?.producto,
@@ -262,10 +263,20 @@ export default function Ventas() {
     window.location.href = `/pagos?venta_id=${ventaId}`
   }
 
-  function finalizarVenta() {
+  async function finalizarVenta() {
     if (!ventaId) return alert('No hay venta')
 
-    alert('Venta finalizada')
+    const { error } = await supabase
+      .from('ventas')
+      .update({ confirmada: true })
+      .eq('id', ventaId)
+
+    if (error) {
+      alert('Error: ' + error.message)
+      return
+    }
+
+    alert('Venta finalizada sin pagos')
 
     setVentaId(null)
     setPaciente(null)
@@ -354,7 +365,7 @@ export default function Ventas() {
 
       <button onClick={confirmarVenta}>Confirmar venta</button>
       <button onClick={irAPagos}>Ingresar pago</button>
-      <button onClick={finalizarVenta}>Finalizar venta</button>
+      <button onClick={finalizarVenta}>Finalizar venta sin pagos</button>
     </div>
   )
 }
