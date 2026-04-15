@@ -18,6 +18,9 @@ export default function Ventas() {
 
   const [productos, setProductos] = useState([])
 
+  const [derivadores, setDerivadores] = useState([])
+  const [derivadorId, setDerivadorId] = useState('')
+
   const [modoConSerie, setModoConSerie] = useState(true)
   const [ventaId, setVentaId] = useState(null)
 
@@ -33,6 +36,7 @@ export default function Ventas() {
   useEffect(() => {
     obtenerSeries()
     obtenerProductos()
+    obtenerDerivadores()
 
     const dniParam = searchParams.get('dni')
 
@@ -56,7 +60,7 @@ export default function Ventas() {
         depositos (deposito)
       `)
       .eq('en_stock', true)
-      .order('numero_serie', { ascending: true }) // 🔥 ORDEN
+      .order('numero_serie', { ascending: true })
 
     setSeries(data || [])
   }
@@ -71,6 +75,15 @@ export default function Ventas() {
       `)
 
     setProductos(data || [])
+  }
+
+  async function obtenerDerivadores() {
+    const { data } = await supabase
+      .from('derivadores')
+      .select('*')
+      .order('derivador')
+
+    setDerivadores(data || [])
   }
 
   async function buscarPacienteAutomatico(dniValor) {
@@ -156,6 +169,7 @@ export default function Ventas() {
           {
             paciente_id: paciente.id,
             fecha,
+            derivador_id: derivadorId || null,
             creado_por: 1,
           },
         ])
@@ -243,6 +257,7 @@ export default function Ventas() {
     setPaciente(null)
     setDni('')
     setItems([])
+    setDerivadorId('')
   }
 
   const totalPesos = items.reduce((acc, i) => acc + (Number(i.precio_pesos) || 0), 0)
@@ -273,6 +288,17 @@ export default function Ventas() {
           </button>
         </div>
       )}
+
+      <h3>Derivador</h3>
+
+      <select value={derivadorId} onChange={(e) => setDerivadorId(e.target.value)}>
+        <option value="">Sin derivador</option>
+        {derivadores.map(d => (
+          <option key={d.id} value={d.id}>
+            {d.derivador}
+          </option>
+        ))}
+      </select>
 
       <hr />
 
