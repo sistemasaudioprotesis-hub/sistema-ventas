@@ -11,16 +11,22 @@ export default function Ventas() {
 
   const [dni, setDni] = useState('')
   const [paciente, setPaciente] = useState(null)
+
   const [series, setSeries] = useState([])
+  const [productos, setProductos] = useState([])
+
+  const [modoConSerie, setModoConSerie] = useState(true)
 
   const [form, setForm] = useState({
     numero_serie_id: '',
+    producto_id: '',
     precio_pesos: '',
     precio_usd: '',
   })
 
   useEffect(() => {
     obtenerSeries()
+    obtenerProductos()
 
     const dniParam = searchParams.get('dni')
 
@@ -39,12 +45,25 @@ export default function Ventas() {
       .select(`
         id,
         numero_serie,
-        productos (producto),
+        productos (producto, tipo_id),
         depositos (deposito)
       `)
       .eq('en_stock', true)
 
     setSeries(data || [])
+  }
+
+  async function obtenerProductos() {
+    const { data } = await supabase
+      .from('productos')
+      .select(`
+        id,
+        producto,
+        tipo_id,
+        tipo_producto (requiere_serie)
+      `)
+
+    setProductos(data || [])
   }
 
   async function buscarPacienteAutomatico(dniValor) {
@@ -54,9 +73,7 @@ export default function Ventas() {
       .eq('dni', dniValor)
       .maybeSingle()
 
-    if (data) {
-      setPaciente(data)
-    }
+    if (data) setPaciente(data)
   }
 
   async function buscarPaciente() {
@@ -73,11 +90,7 @@ export default function Ventas() {
 
     if (!data) {
       const confirmar = confirm('Paciente no encontrado. ¿Querés crearlo?')
-
-      if (confirmar) {
-        window.location.href = `/pacientes?dni=${dni}`
-      }
-
+      if (confirmar) window.location.href = `/pacientes?dni=${dni}`
       return
     }
 
@@ -85,27 +98,55 @@ export default function Ventas() {
   }
 
   function handleChange(e) {
+    const { name, value } = e.target
+
+    if (name === 'producto_id') {
+      const prod = productos.find(p => p.id === Number(value))
+
+      const requiereSerie = prod?.tipo_producto?.requiere_serie
+
+      setModoConSerie(requiereSerie)
+
+      setForm({
+        ...form,
+        producto_id: value,
+        numero_serie_id: '',
+      })
+
+      return
+    }
+
     setForm({
       ...form,
-      [e.target.name]: e.target.value,
+      [name]: value,
     })
   }
 
   async function guardarVenta() {
-    if (!paciente || !form.numero_serie_id) {
-      alert('Completar datos')
+    if (!paciente) {
+      alert('Seleccionar paciente')
       return
     }
 
     if (!form.precio_pesos && !form.precio_usd) {
-      alert('Ingresar precio en pesos o USD')
+      alert('Ingresar precio')
+      return
+    }
+
+    if (modoConSerie && !form.numero_serie_id) {
+      alert('Seleccionar número de serie')
+      return
+    }
+
+    if (!modoConSerie && !form.producto_id) {
+      alert('Seleccionar producto')
       return
     }
 
     const fecha = new Date().toISOString()
 
     // 1. crear venta
-    const { data: venta, error: errorVenta } = await supabase
+    const { data: venta } = await supabase
       .from('ventas')
       .insert([
         {
@@ -117,47 +158,35 @@ export default function Ventas() {
       .select()
       .single()
 
-    if (errorVenta) {
-      console.error(errorVenta)
-      alert('Error al crear venta')
-      return
+    // 2. detalle
+    await supabase.from('venta_detalle').insert([
+      {
+        venta_id: venta.id,
+        numero_serie_id: modoConSerie ? Number(form.numero_serie_id) : null,
+        precio_venta_pesos: form.precio_pesos ? Number(form.precio_pesos) : null,
+        precio_venta_usd: form.precio_usd ? Number(form.precio_usd) : null,
+        creado_por: 1,
+      },
+    ])
+
+    // 3. actualizar stock si corresponde
+    if (modoConSerie) {
+      await supabase
+        .from('numeros_serie')
+        .update({
+          en_stock: false,
+          fecha_salida: fecha,
+        })
+        .eq('id', form.numero_serie_id)
     }
 
-    // 2. crear detalle
-    const { error: errorDetalle } = await supabase
-      .from('venta_detalle')
-      .insert([
-        {
-          venta_id: venta.id,
-          numero_serie_id: Number(form.numero_serie_id),
-          precio_venta_pesos: form.precio_pesos ? Number(form.precio_pesos) : null,
-          precio_venta_usd: form.precio_usd ? Number(form.precio_usd) : null,
-          creado_por: 1,
-        },
-      ])
+    alert('Venta registrada')
 
-    if (errorDetalle) {
-      console.error(errorDetalle)
-      alert('Error en detalle')
-      return
-    }
-
-    // 3. actualizar stock
-    await supabase
-      .from('numeros_serie')
-      .update({
-        en_stock: false,
-        fecha_salida: fecha,
-      })
-      .eq('id', form.numero_serie_id)
-
-    alert('Venta registrada correctamente')
-
-    // reset
     setPaciente(null)
     setDni('')
     setForm({
       numero_serie_id: '',
+      producto_id: '',
       precio_pesos: '',
       precio_usd: '',
     })
@@ -169,40 +198,44 @@ export default function Ventas() {
     <div style={{ padding: '30px', maxWidth: '600px' }}>
       <h1>Ventas</h1>
 
-      <h3>Buscar paciente</h3>
-
       <input
-        placeholder="Ingresar DNI"
+        placeholder="DNI"
         value={dni}
         onChange={(e) => setDni(e.target.value)}
       />
-
       <button onClick={buscarPaciente}>Buscar</button>
 
       {paciente && (
-        <div style={{ marginTop: '10px' }}>
-          <strong>
-            {paciente.apellido_paciente} {paciente.nombres_paciente}
-          </strong>
-        </div>
+        <p>
+          {paciente.apellido_paciente} {paciente.nombres_paciente}
+        </p>
       )}
 
-      <hr style={{ margin: '20px 0' }} />
+      <hr />
 
-      <h3>Detalle de venta</h3>
+      <h3>Detalle</h3>
 
-      <select
-        name="numero_serie_id"
-        value={form.numero_serie_id}
-        onChange={handleChange}
-      >
-        <option value="">Seleccionar número de serie</option>
-        {series.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.numero_serie} - {s.productos?.producto} - {s.depositos?.deposito}
+      {/* PRODUCTO */}
+      <select name="producto_id" value={form.producto_id} onChange={handleChange}>
+        <option value="">Seleccionar producto</option>
+        {productos.map(p => (
+          <option key={p.id} value={p.id}>
+            {p.producto}
           </option>
         ))}
       </select>
+
+      {/* SERIE SOLO SI CORRESPONDE */}
+      {modoConSerie && (
+        <select name="numero_serie_id" value={form.numero_serie_id} onChange={handleChange}>
+          <option value="">Seleccionar serie</option>
+          {series.map(s => (
+            <option key={s.id} value={s.id}>
+              {s.numero_serie} - {s.productos?.producto}
+            </option>
+          ))}
+        </select>
+      )}
 
       <input
         name="precio_pesos"
