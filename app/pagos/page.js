@@ -10,7 +10,13 @@ export default function Pagos() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const ventaId = searchParams.get('venta_id')
+  const ventaIdParam = searchParams.get('venta_id')
+
+  const [dni, setDni] = useState('')
+  const [paciente, setPaciente] = useState(null)
+
+  const [ventas, setVentas] = useState([])
+  const [ventaSeleccionada, setVentaSeleccionada] = useState(ventaIdParam || '')
 
   const [formasPago, setFormasPago] = useState([])
 
@@ -22,6 +28,10 @@ export default function Pagos() {
 
   useEffect(() => {
     obtenerFormasPago()
+
+    if (ventaIdParam) {
+      setVentaSeleccionada(ventaIdParam)
+    }
   }, [])
 
   async function obtenerFormasPago() {
@@ -33,6 +43,35 @@ export default function Pagos() {
     setFormasPago(data || [])
   }
 
+  async function buscarPaciente() {
+    if (!dni) {
+      alert('Ingresar DNI')
+      return
+    }
+
+    const { data } = await supabase
+      .from('pacientes')
+      .select('*')
+      .eq('dni', dni)
+      .maybeSingle()
+
+    if (!data) {
+      alert('Paciente no encontrado')
+      return
+    }
+
+    setPaciente(data)
+
+    // 🔥 traer ventas del paciente
+    const { data: ventasData } = await supabase
+      .from('ventas')
+      .select('*')
+      .eq('paciente_id', data.id)
+      .order('fecha', { ascending: false })
+
+    setVentas(ventasData || [])
+  }
+
   function handleChange(e) {
     setForm({
       ...form,
@@ -41,10 +80,8 @@ export default function Pagos() {
   }
 
   async function guardarPago() {
-    console.log('ventaId:', ventaId)
-
-    if (!ventaId) {
-      alert('Error: no se encontró la venta')
+    if (!ventaSeleccionada) {
+      alert('Seleccionar venta')
       return
     }
 
@@ -60,7 +97,7 @@ export default function Pagos() {
 
     const { error } = await supabase.from('pagos').insert([
       {
-        venta_id: Number(ventaId),
+        venta_id: Number(ventaSeleccionada),
         fecha_pago: new Date().toISOString(),
         forma_pago_id: Number(form.forma_pago_id),
         monto_pesos: form.monto_pesos || null,
@@ -71,7 +108,6 @@ export default function Pagos() {
 
     if (error) {
       alert('Error: ' + error.message)
-      console.error(error)
       return
     }
 
@@ -81,41 +117,91 @@ export default function Pagos() {
   }
 
   return (
-    <div style={{ padding: '30px', maxWidth: '600px' }}>
+    <div style={{ padding: '30px', maxWidth: '700px' }}>
       <h1>Pagos</h1>
 
-      <div style={{ marginBottom: '10px' }}>
-        Venta ID: {ventaId || 'No definido'}
-      </div>
+      <h3>Buscar paciente</h3>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <select name="forma_pago_id" value={form.forma_pago_id} onChange={handleChange}>
-          <option value="">Seleccionar forma de pago</option>
-          {formasPago.map(f => (
-            <option key={f.id} value={f.id}>
-              {f.forma_pago}
-            </option>
-          ))}
-        </select>
+      <input
+        placeholder="DNI"
+        value={dni}
+        onChange={(e) => setDni(e.target.value)}
+      />
 
-        <input
-          name="monto_pesos"
-          placeholder="Monto en pesos"
-          value={form.monto_pesos}
-          onChange={handleChange}
-        />
+      <button onClick={buscarPaciente}>
+        Buscar
+      </button>
 
-        <input
-          name="monto_usd"
-          placeholder="Monto en USD"
-          value={form.monto_usd}
-          onChange={handleChange}
-        />
+      {paciente && (
+        <div style={{ marginTop: '10px', border: '1px solid #ccc', padding: '10px' }}>
+          <strong>
+            {paciente.apellido_paciente} {paciente.nombres_paciente}
+          </strong>
 
-        <button onClick={guardarPago}>
-          Guardar pago
-        </button>
-      </div>
+          <div>Tel: {paciente.telefono || '-'}</div>
+          <div>Mail: {paciente.mail || '-'}</div>
+
+          <button
+            onClick={() =>
+              (window.location.href = `/pacientes?dni=${paciente.dni}&volver=pagos`)
+            }
+          >
+            Editar paciente
+          </button>
+        </div>
+      )}
+
+      <hr />
+
+      <h3>Seleccionar venta</h3>
+
+      <select
+        value={ventaSeleccionada}
+        onChange={(e) => setVentaSeleccionada(e.target.value)}
+      >
+        <option value="">Seleccionar venta</option>
+
+        {ventas.map(v => (
+          <option key={v.id} value={v.id}>
+            Venta #{v.id} - {new Date(v.fecha).toLocaleDateString()}
+          </option>
+        ))}
+      </select>
+
+      <hr />
+
+      <h3>Cargar pago</h3>
+
+      <select
+        name="forma_pago_id"
+        value={form.forma_pago_id}
+        onChange={handleChange}
+      >
+        <option value="">Forma de pago</option>
+        {formasPago.map(f => (
+          <option key={f.id} value={f.id}>
+            {f.forma_pago}
+          </option>
+        ))}
+      </select>
+
+      <input
+        name="monto_pesos"
+        placeholder="Monto en pesos"
+        value={form.monto_pesos}
+        onChange={handleChange}
+      />
+
+      <input
+        name="monto_usd"
+        placeholder="Monto en USD"
+        value={form.monto_usd}
+        onChange={handleChange}
+      />
+
+      <button onClick={guardarPago}>
+        Guardar pago
+      </button>
     </div>
   )
 }
