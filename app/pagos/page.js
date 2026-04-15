@@ -110,6 +110,9 @@ export default function Pagos() {
         numeros_serie (
           numero_serie,
           productos (producto)
+        ),
+        productos (
+          producto
         )
       `)
       .eq('venta_id', ventaId)
@@ -165,13 +168,11 @@ export default function Pagos() {
       return
     }
 
-    // 🔥 traer pagos existentes
     const { data: pagosExistentes } = await supabase
       .from('pagos')
       .select('*')
       .eq('venta_id', ventaSeleccionada)
 
-    // 🔥 detectar moneda usada
     const usaPesos = (pagosExistentes || []).some(p => p.monto_pesos)
     const usaUsd = (pagosExistentes || []).some(p => p.monto_usd)
 
@@ -185,7 +186,6 @@ export default function Pagos() {
       return
     }
 
-    // 🔥 validar saldo (solo pesos por ahora)
     const saldo = totalVenta - totalPagado
 
     if (montoPesos > saldo) {
@@ -268,6 +268,17 @@ export default function Pagos() {
           </option>
         ))}
       </select>
+
+      <hr />
+
+      <h3>Detalle de venta</h3>
+
+      {detalleVenta.map(d => (
+        <div key={d.id}>
+          {d.numeros_serie?.productos?.producto || d.productos?.producto || '-'} | 
+          {formatearPesos(d.precio_venta_pesos || 0)}
+        </div>
+      ))}
 
       <hr />
 
