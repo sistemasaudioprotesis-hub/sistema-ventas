@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
+import { formatearPesos } from '../../lib/format'
 
 export default function Pagos() {
   const searchParams = useSearchParams()
@@ -156,6 +157,14 @@ export default function Pagos() {
       return
     }
 
+    const saldo = totalVenta - totalPagado
+    const pagoNuevo = Number(form.monto_pesos) || 0
+
+    if (pagoNuevo > saldo) {
+      alert('El pago supera el saldo pendiente')
+      return
+    }
+
     const { error } = await supabase.from('pagos').insert([
       {
         venta_id: Number(ventaSeleccionada),
@@ -244,15 +253,15 @@ export default function Pagos() {
             <div key={d.id}>
               {d.numeros_serie?.productos?.producto || '-'} | 
               Serie: {d.numeros_serie?.numero_serie || '-'} | 
-              ${d.precio_venta_pesos || 0}
+              {formatearPesos(d.precio_venta_pesos || 0)}
             </div>
           ))}
 
           <hr />
 
-          <div>Total venta: ${totalVenta}</div>
-          <div>Total pagado: ${totalPagado}</div>
-          <div><strong>Saldo: ${totalVenta - totalPagado}</strong></div>
+          <div>Total venta: {formatearPesos(totalVenta)}</div>
+          <div>Total pagado: {formatearPesos(totalPagado)}</div>
+          <div><strong>Saldo: {formatearPesos(totalVenta - totalPagado)}</strong></div>
         </div>
       )}
 
