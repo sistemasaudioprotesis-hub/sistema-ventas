@@ -159,7 +159,27 @@ export default function Pacientes() {
       }
 
       // 🔥 historial
-      await supabase.from('pacientes_historial').insert([
+      const { error: errorHistorial } = await supabase
+  .from('pacientes_historial')
+  .insert([
+    {
+      paciente_id: pacienteId,
+      apellido_paciente: form.apellido_paciente,
+      nombres_paciente: form.nombres_paciente,
+      telefono: form.telefono,
+      domicilio: form.domicilio,
+      localidad: form.localidad,
+      provincia_id: Number(form.provincia_id),
+      mail: form.mail,
+      observaciones: form.observaciones,
+      creado_por: 1,
+    },
+  ])
+
+if (errorHistorial) {
+  console.error('ERROR HISTORIAL:', errorHistorial)
+  alert('Error guardando historial')
+}
         {
           paciente_id: pacienteId,
           apellido_paciente: form.apellido_paciente,
