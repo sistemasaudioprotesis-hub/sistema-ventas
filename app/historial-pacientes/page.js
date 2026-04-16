@@ -75,16 +75,19 @@ export default function HistorialPacientes() {
             border: '1px solid #ccc',
             padding: '10px',
             marginBottom: '10px',
+            background: '#fafafa',
           }}
         >
           <div>
             <strong>
-              {new Date(h.created_at).toLocaleString()}
+              {new Date(h.created_at).toLocaleString('es-AR', {
+                timeZone: 'America/Argentina/Buenos_Aires',
+              })}
             </strong>
           </div>
 
-          <div>
-            {h.apellido_paciente} {h.nombres_paciente}
+          <div style={{ marginTop: '5px' }}>
+            <strong>ANTES:</strong> {h.apellido_paciente} {h.nombres_paciente}
           </div>
 
           <div>Tel: {h.telefono || '-'}</div>
