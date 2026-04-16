@@ -140,11 +140,16 @@ setTotalUSD(totalUSDCalc)
       .select('*')
       .eq('venta_id', ventaId)
 
-    const pagado = (pagos || []).reduce((acc, p) => {
-      return acc + (Number(p.monto_pesos) || 0)
-    }, 0)
+    const pagadoPesosCalc = (pagos || []).reduce((acc, p) => {
+  return acc + (Number(p.monto_pesos) || 0)
+}, 0)
 
-    setTotalPagado(pagado)
+const pagadoUSDCalc = (pagos || []).reduce((acc, p) => {
+  return acc + (Number(p.monto_usd) || 0)
+}, 0)
+
+setPagadoPesos(pagadoPesosCalc)
+setPagadoUSD(pagadoUSDCalc)
   }
 
   function handleChange(e) {
