@@ -201,7 +201,8 @@ setPagadoUSD(pagadoUSDCalc)
       return
     }
 
-    const saldo = totalVenta - totalPagado
+    const saldoPesos = totalPesos - pagadoPesos
+const saldoUSD = totalUSD - pagadoUSD
 
     if (montoPesos > saldo) {
       alert('El pago supera el saldo pendiente')
