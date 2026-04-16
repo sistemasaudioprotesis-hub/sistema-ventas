@@ -6,7 +6,7 @@ export default function Home() {
 
       {/* HEADER */}
       <div style={header}>
-        <img src="/logo.png" alt="logo" style={logo} />
+        <img src="/logo.jpeg" alt="logo" style={logo} />
         <h1 style={title}>Audioprotesis</h1>
       </div>
 
