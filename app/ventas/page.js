@@ -358,9 +358,14 @@ export default function Ventas() {
       {items.map(item => (
         <div key={item.id}>
           {item.producto} | {item.serie} |{' '}
-          {item.precio_pesos
-            ? formatearPesos(item.precio_pesos)
-            : formatearUSD(item.precio_usd)}
+          <>
+  {item.precio_pesos && (
+    <span>{formatearPesos(item.precio_pesos)}</span>
+  )}
+  {item.precio_usd && (
+    <span> {formatearUSD(item.precio_usd)}</span>
+  )}
+</>
           <button onClick={() => eliminarItem(item)}>❌</button>
         </div>
       ))}
