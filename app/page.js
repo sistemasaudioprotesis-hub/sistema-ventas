@@ -2,92 +2,108 @@
 
 export default function Home() {
   return (
-    <div style={{ padding: '40px', maxWidth: '900px', margin: 'auto' }}>
-      
-      <h1 style={{ marginBottom: '30px' }}>
-        Audioprotesis
-      </h1>
+    <div style={container}>
 
-      <div style={{ display: 'grid', gap: '30px' }}>
+      {/* HEADER */}
+      <div style={header}>
+        <img src="/logo.png" alt="logo" style={logo} />
+        <h1 style={title}>Audioprotesis</h1>
+      </div>
 
-        {/* PACIENTES */}
-        <div>
-          <h2>Pacientes</h2>
+      {/* SECCIONES */}
+      <div style={grid}>
 
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-            <a href="/pacientes">
-              <button style={btn}>Gestión de Pacientes</button>
-            </a>
-          </div>
-        </div>
+        <Section title="Pacientes">
+          <Card title="Gestión de Pacientes" href="/pacientes" />
+        </Section>
 
-        {/* OPERACIONES */}
-        <div>
-          <h2>Operaciones</h2>
+        <Section title="Operaciones">
+          <Card title="Ventas" href="/ventas" />
+          <Card title="Pagos" href="/pagos" />
+        </Section>
 
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-            <a href="/ventas">
-              <button style={btn}>Ventas</button>
-            </a>
-
-            <a href="/pagos">
-              <button style={btn}>Pagos</button>
-            </a>
-          </div>
-        </div>
-
-        {/* STOCK */}
-        <div>
-          <h2>Stock</h2>
-
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-            <a href="/numeros_serie">
-              <button style={btn}>Números de Serie</button>
-            </a>
-          </div>
-        </div>
-
-        {/* CONFIGURACIÓN */}
-        <div>
-          <h2>Configuración</h2>
-
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-            <a href="/tipo_producto">
-              <button style={btn}>Tipos de Producto</button>
-            </a>
-
-            <a href="/productos">
-              <button style={btn}>Productos</button>
-            </a>
-
-            <a href="/derivadores">
-              <button style={btn}>Derivadores</button>
-            </a>
-
-            <a href="/obras_sociales">
-              <button style={btn}>Obras Sociales</button>
-            </a>
-
-            <a href="/depositos">
-              <button style={btn}>Depósitos</button>
-            </a>
-
-            <a href="/formas_pago">
-              <button style={btn}>Formas de Pago</button>
-            </a>
-          </div>
-        </div>
+        <Section title="Stock">
+          <Card title="Números de Serie" href="/numeros_serie" />
+        </Section>
 
       </div>
+
     </div>
   )
 }
 
-const btn = {
-  padding: '15px 25px',
-  fontSize: '16px',
-  borderRadius: '10px',
-  border: '1px solid #ccc',
+/* COMPONENTES */
+
+function Section({ title, children }) {
+  return (
+    <div style={{ marginBottom: '30px' }}>
+      <h2 style={sectionTitle}>{title}</h2>
+      <div style={cardContainer}>{children}</div>
+    </div>
+  )
+}
+
+function Card({ title, href }) {
+  return (
+    <a href={href} style={{ textDecoration: 'none' }}>
+      <div style={card}>
+        {title}
+      </div>
+    </a>
+  )
+}
+
+/* ESTILOS */
+
+const container = {
+  padding: '30px',
+  maxWidth: '900px',
+  margin: 'auto',
+  fontFamily: 'sans-serif',
+}
+
+const header = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '15px',
+  marginBottom: '30px',
+}
+
+const logo = {
+  width: '50px',
+  height: '50px',
+}
+
+const title = {
+  fontSize: '28px',
+  fontWeight: 'bold',
+  color: '#8B1E2D', // bordó marca
+}
+
+const sectionTitle = {
+  marginBottom: '10px',
+  color: '#8B1E2D',
+}
+
+const grid = {
+  display: 'flex',
+  flexDirection: 'column',
+}
+
+const cardContainer = {
+  display: 'flex',
+  gap: '15px',
+  flexWrap: 'wrap',
+}
+
+const card = {
+  padding: '20px',
+  minWidth: '200px',
+  borderRadius: '12px',
+  background: '#ffffff',
+  border: '1px solid #eee',
+  boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
   cursor: 'pointer',
-  background: '#f5f5f5',
+  fontWeight: '500',
+  transition: '0.2s',
 }
