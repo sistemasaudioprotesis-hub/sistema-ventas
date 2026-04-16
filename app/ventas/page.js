@@ -273,9 +273,13 @@ export default function Ventas() {
     if (!ventaId) return alert('No hay venta')
 
     const { error } = await supabase
-      .from('ventas')
-      .update({ confirmada: true })
-      .eq('id', ventaId)
+  .from('ventas')
+  .update({
+    confirmada: true,
+    total_pesos: totalPesos,
+    total_dolares: totalUSD,
+  })
+  .eq('id', ventaId)
 
     if (error) {
       alert('Error: ' + error.message)
