@@ -158,43 +158,31 @@ export default function Pacientes() {
         provincia_id: Number(form.provincia_id),
       }
 
-      // 🔥 historial
+      // 🔥 guardar historial
       const { error: errorHistorial } = await supabase
-  .from('pacientes_historial')
-  .insert([
-    {
-      paciente_id: pacienteId,
-      apellido_paciente: form.apellido_paciente,
-      nombres_paciente: form.nombres_paciente,
-      telefono: form.telefono,
-      domicilio: form.domicilio,
-      localidad: form.localidad,
-      provincia_id: Number(form.provincia_id),
-      mail: form.mail,
-      observaciones: form.observaciones,
-      creado_por: 1,
-    },
-  ])
+        .from('pacientes_historial')
+        .insert([
+          {
+            paciente_id: pacienteId,
+            apellido_paciente: form.apellido_paciente,
+            nombres_paciente: form.nombres_paciente,
+            telefono: form.telefono,
+            domicilio: form.domicilio,
+            localidad: form.localidad,
+            provincia_id: Number(form.provincia_id),
+            mail: form.mail,
+            observaciones: form.observaciones,
+            creado_por: 1,
+          },
+        ])
 
-if (errorHistorial) {
-  console.error('ERROR HISTORIAL:', errorHistorial)
-  alert('Error guardando historial')
-}
-        {
-          paciente_id: pacienteId,
-          apellido_paciente: form.apellido_paciente,
-          nombres_paciente: form.nombres_paciente,
-          telefono: form.telefono,
-          domicilio: form.domicilio,
-          localidad: form.localidad,
-          provincia_id: Number(form.provincia_id),
-          mail: form.mail,
-          observaciones: form.observaciones,
-          creado_por: 1,
-        },
-      ])
+      if (errorHistorial) {
+        alert('Error guardando historial')
+        console.error(errorHistorial)
+        return
+      }
 
-      // 🔥 update
+      // 🔥 actualizar paciente
       const { error } = await supabase
         .from('pacientes')
         .update(datosActualizados)
