@@ -295,11 +295,18 @@ if (montoUsd > saldoUSD) {
       <h3>Detalle de venta</h3>
 
       {detalleVenta.map(d => (
-        <div key={d.id}>
-          {d.numeros_serie?.productos?.producto || d.productos?.producto || '-'} | 
-          {formatearPesos(d.precio_venta_pesos || 0)}
-        </div>
-      ))}
+  <div key={d.id}>
+    {d.numeros_serie?.productos?.producto || d.productos?.producto || '-'} | 
+
+    {d.precio_venta_pesos && (
+      <span>{formatearPesos(d.precio_venta_pesos)}</span>
+    )}
+
+    {d.precio_venta_usd && (
+      <span> U$S {d.precio_venta_usd}</span>
+    )}
+  </div>
+))}
 
       <hr />
 
