@@ -124,11 +124,16 @@ export default function Pagos() {
 
     setDetalleVenta(detalle || [])
 
-    const total = (detalle || []).reduce((acc, d) => {
-      return acc + (Number(d.precio_venta_pesos) || 0)
-    }, 0)
+    const totalPesosCalc = (detalle || []).reduce((acc, d) => {
+  return acc + (Number(d.precio_venta_pesos) || 0)
+}, 0)
 
-    setTotalVenta(total)
+const totalUSDCalc = (detalle || []).reduce((acc, d) => {
+  return acc + (Number(d.precio_venta_usd) || 0)
+}, 0)
+
+setTotalPesos(totalPesosCalc)
+setTotalUSD(totalUSDCalc)
 
     const { data: pagos } = await supabase
       .from('pagos')
