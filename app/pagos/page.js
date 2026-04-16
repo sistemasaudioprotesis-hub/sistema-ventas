@@ -204,10 +204,15 @@ setPagadoUSD(pagadoUSDCalc)
     const saldoPesos = totalPesos - pagadoPesos
 const saldoUSD = totalUSD - pagadoUSD
 
-    if (montoPesos > saldo) {
-      alert('El pago supera el saldo pendiente')
-      return
-    }
+    if (montoPesos > saldoPesos) {
+  alert('El pago en pesos supera el saldo')
+  return
+}
+
+if (montoUsd > saldoUSD) {
+  alert('El pago en USD supera el saldo')
+  return
+}
 
     const { error } = await supabase.from('pagos').insert([
       {
