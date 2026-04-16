@@ -168,7 +168,6 @@ export default function Ventas() {
       setVentaId(ventaActualId)
     }
 
-    // 🔥 FIX PRODUCTO SIN SERIE
     const { data: detalle } = await supabase
       .from('venta_detalle')
       .insert([
@@ -239,16 +238,16 @@ export default function Ventas() {
   }
 
   async function confirmarVenta() {
-  if (!ventaId) return alert('No hay venta')
+    if (!ventaId) return alert('No hay venta')
 
-  const { error } = await supabase
-    .from('ventas')
-    .update({
-      confirmada: true,
-      total_pesos: totalPesos,
-      total_dolares: totalUSD,
-    })
-    .eq('id', ventaId)
+    const { error } = await supabase
+      .from('ventas')
+      .update({
+        confirmada: true,
+        total_pesos: totalPesos,
+        total_dolares: totalUSD,
+      })
+      .eq('id', ventaId)
 
     if (error) {
       alert('Error: ' + error.message)
@@ -256,7 +255,6 @@ export default function Ventas() {
     }
 
     setVentaConfirmada(true)
-
     alert('Venta confirmada')
   }
 
@@ -266,20 +264,20 @@ export default function Ventas() {
       return
     }
 
-    window.location.href = `/pagos?venta_id=${ventaId}`
+    window.location.href = `/pagos?venta_id=${ventaId}&dni=${dni}`
   }
 
   async function finalizarVenta() {
     if (!ventaId) return alert('No hay venta')
 
     const { error } = await supabase
-  .from('ventas')
-  .update({
-    confirmada: true,
-    total_pesos: totalPesos,
-    total_dolares: totalUSD,
-  })
-  .eq('id', ventaId)
+      .from('ventas')
+      .update({
+        confirmada: true,
+        total_pesos: totalPesos,
+        total_dolares: totalUSD,
+      })
+      .eq('id', ventaId)
 
     if (error) {
       alert('Error: ' + error.message)
