@@ -23,8 +23,11 @@ export default function Pagos() {
   const [formasPago, setFormasPago] = useState([])
 
   const [detalleVenta, setDetalleVenta] = useState([])
-  const [totalVenta, setTotalVenta] = useState(0)
-  const [totalPagado, setTotalPagado] = useState(0)
+  const [totalPesos, setTotalPesos] = useState(0)
+  const [totalUSD, setTotalUSD] = useState(0)
+
+  const [pagadoPesos, setPagadoPesos] = useState(0)
+  const [pagadoUSD, setPagadoUSD] = useState(0)
 
   const [form, setForm] = useState({
     forma_pago_id: '',
