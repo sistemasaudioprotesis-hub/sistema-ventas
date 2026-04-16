@@ -303,10 +303,15 @@ if (montoUsd > saldoUSD) {
 
       <hr />
 
-      <div>Total venta: {formatearPesos(totalVenta)}</div>
-      <div>Total pagado: {formatearPesos(totalPagado)}</div>
-      <div><strong>Saldo: {formatearPesos(totalVenta - totalPagado)}</strong></div>
+      <div>Total Pesos: {formatearPesos(totalPesos)}</div>
+<div>Pagado Pesos: {formatearPesos(pagadoPesos)}</div>
+<div><strong>Saldo Pesos: {formatearPesos(totalPesos - pagadoPesos)}</strong></div>
 
+<div style={{ marginTop: '10px' }}>
+  Total USD: {totalUSD}
+</div>
+<div>Pagado USD: {pagadoUSD}</div>
+<div><strong>Saldo USD: {totalUSD - pagadoUSD}</strong></div>
       <hr />
 
       <select
