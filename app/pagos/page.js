@@ -38,12 +38,14 @@ export default function Pagos() {
     if (dniParam) {
       buscarPacienteAutomatico(dniParam)
     }
+  }, [])
 
+  useEffect(() => {
     if (ventaIdParam) {
       setVentaSeleccionada(ventaIdParam)
       cargarDetalleVenta(ventaIdParam)
     }
-  }, [])
+  }, [ventaIdParam])
 
   async function obtenerFormasPago() {
     const { data } = await supabase
