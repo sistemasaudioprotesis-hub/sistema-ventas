@@ -153,25 +153,32 @@ export default function Pacientes() {
     }
 
     if (pacienteId) {
-      const datosActualizados = {
-        ...form,
-        provincia_id: Number(form.provincia_id),
+      // 🔥 1. traer estado actual (ANTES del cambio)
+      const { data: pacienteActual, error: errorFetch } = await supabase
+        .from('pacientes')
+        .select('*')
+        .eq('id', pacienteId)
+        .single()
+
+      if (errorFetch) {
+        alert('Error obteniendo paciente')
+        return
       }
 
-      // 🔥 guardar historial
+      // 🔥 2. guardar historial con datos ANTERIORES
       const { error: errorHistorial } = await supabase
         .from('pacientes_historial')
         .insert([
           {
             paciente_id: pacienteId,
-            apellido_paciente: form.apellido_paciente,
-            nombres_paciente: form.nombres_paciente,
-            telefono: form.telefono,
-            domicilio: form.domicilio,
-            localidad: form.localidad,
-            provincia_id: Number(form.provincia_id),
-            mail: form.mail,
-            observaciones: form.observaciones,
+            apellido_paciente: pacienteActual.apellido_paciente,
+            nombres_paciente: pacienteActual.nombres_paciente,
+            telefono: pacienteActual.telefono,
+            domicilio: pacienteActual.domicilio,
+            localidad: pacienteActual.localidad,
+            provincia_id: pacienteActual.provincia_id,
+            mail: pacienteActual.mail,
+            observaciones: pacienteActual.observaciones,
             creado_por: 1,
           },
         ])
@@ -182,10 +189,13 @@ export default function Pacientes() {
         return
       }
 
-      // 🔥 actualizar paciente
+      // 🔥 3. actualizar con datos NUEVOS
       const { error } = await supabase
         .from('pacientes')
-        .update(datosActualizados)
+        .update({
+          ...form,
+          provincia_id: Number(form.provincia_id),
+        })
         .eq('id', pacienteId)
 
       if (error) {
