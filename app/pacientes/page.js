@@ -242,9 +242,11 @@ export default function Pacientes() {
             setResultados([])
           }}
         >
-          <div><strong>{p.apellido_paciente}</strong></div>
-          <div>{p.nombres_paciente}</div>
-          <div>DNI: {p.dni}</div>
+          <div>
+  <strong>
+    {p.apellido_paciente} {p.nombres_paciente} - DNI: {p.dni}
+  </strong>
+</div>
         </div>
       ))}
 
