@@ -276,14 +276,20 @@ export default function Pacientes() {
         <textarea name="observaciones" placeholder="Observaciones" value={form.observaciones} onChange={handleChange} />
 
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={() => guardar('ventas')}>
-            Guardar y volver a ventas
-          </button>
 
-          <button onClick={() => guardar('pagos')}>
-            Guardar y volver a pagos
-          </button>
-        </div>
+  <button onClick={() => guardar('')}>
+    Guardar
+  </button>
+
+  <button onClick={() => guardar('ventas')}>
+    Guardar y volver a ventas
+  </button>
+
+  <button onClick={() => guardar('pagos')}>
+    Guardar y volver a pagos
+  </button>
+
+</div>
       </div>
     </div>
   )
