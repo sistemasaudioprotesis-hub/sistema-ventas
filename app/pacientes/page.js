@@ -213,42 +213,38 @@ export default function Pacientes() {
 
       <button onClick={buscarPaciente}>Buscar</button>
 
-      {resultados.map(p => (
-        <div
-          key={p.id}
-          style={{
-            border: '1px solid #ddd',
-            padding: '10px',
-            marginTop: '5px',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            background: '#fafafa'
-          }}
-          onClick={() => {
-            setPacienteId(p.id)
+      <select
+  value=""
+  onChange={(e) => {
+    const p = resultados.find(x => x.id == e.target.value)
 
-            setForm({
-              apellido_paciente: p.apellido_paciente || '',
-              nombres_paciente: p.nombres_paciente || '',
-              dni: p.dni || '',
-              telefono: p.telefono || '',
-              domicilio: p.domicilio || '',
-              localidad: p.localidad || '',
-              provincia_id: p.provincia_id ? String(p.provincia_id) : '',
-              mail: p.mail || '',
-              observaciones: p.observaciones || '',
-            })
+    if (!p) return
 
-            setResultados([])
-          }}
-        >
-          <div>
-  <strong>
-    {p.apellido_paciente} {p.nombres_paciente} - DNI: {p.dni}
-  </strong>
-</div>
-        </div>
-      ))}
+    setPacienteId(p.id)
+
+    setForm({
+      apellido_paciente: p.apellido_paciente || '',
+      nombres_paciente: p.nombres_paciente || '',
+      dni: p.dni || '',
+      telefono: p.telefono || '',
+      domicilio: p.domicilio || '',
+      localidad: p.localidad || '',
+      provincia_id: p.provincia_id ? String(p.provincia_id) : '',
+      mail: p.mail || '',
+      observaciones: p.observaciones || '',
+    })
+
+    setResultados([])
+  }}
+>
+  <option value="">Seleccionar paciente</option>
+
+  {resultados.map(p => (
+    <option key={p.id} value={p.id}>
+      {p.apellido_paciente} {p.nombres_paciente} - DNI: {p.dni}
+    </option>
+  ))}
+</select>
 
       <button onClick={limpiarFormulario}>Nuevo paciente</button>
 
