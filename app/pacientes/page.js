@@ -228,6 +228,9 @@ export default function Pacientes() {
     if (destino === 'pagos') {
       window.location.href = `/pagos?dni=${form.dni}`
     }
+    if (!destino) {
+  limpiarFormulario()
+}
   }
 
   return (
