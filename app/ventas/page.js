@@ -80,32 +80,48 @@ setProductos(data || [])
 async function buscarPaciente() {
   const valor = busqueda.trim()
 
+  console.log('VALOR BUSQUEDA:', valor)
+
   if (!valor) {
     alert('Ingresar DNI o apellido')
     return
   }
 
-  let query = supabase.from('pacientes').select('*')
+  let data, error
 
   if (/^\d+$/.test(valor)) {
-    query = query.eq('dni', Number(valor))
+    console.log('BUSCANDO POR DNI')
+
+    const res = await supabase
+      .from('pacientes')
+      .select('*')
+      .eq('dni', Number(valor))
+
+    data = res.data
+    error = res.error
+
   } else {
-    query = query.ilike('apellido_paciente', `%${valor}%`)
+    console.log('BUSCANDO POR APELLIDO')
+
+    const res = await supabase
+      .from('pacientes')
+      .select('*')
+      .ilike('apellido_paciente', `%${valor}%`)
+
+    data = res.data
+    error = res.error
   }
 
-  const { data, error } = await query.order('apellido_paciente')
+  console.log('RESULTADOS:', data)
+  console.log('ERROR:', error)
 
   if (error) {
-    console.error(error)
     alert('Error buscando pacientes')
     return
   }
 
   if (!data || data.length === 0) {
-    const confirmar = confirm('Paciente no encontrado. ¿Querés crearlo?')
-    if (confirmar) {
-      window.location.href = `/pacientes?dni=${valor}&volver=ventas`
-    }
+    alert('NO ENCONTRÓ NADA')
     setResultados([])
     return
   }
