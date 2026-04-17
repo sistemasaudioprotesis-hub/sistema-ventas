@@ -81,36 +81,56 @@ export default function Pacientes() {
   }
 
   async function buscarPaciente() {
-    if (!busquedaDni) {
-      alert('Ingresar DNI')
-      return
-    }
+  if (!busquedaDni) {
+    alert('Ingresar DNI, apellido o nombre')
+    return
+  }
 
-    const { data } = await supabase
-      .from('pacientes')
-      .select('*')
-      .eq('dni', busquedaDni)
-      .maybeSingle()
+  let query = supabase
+    .from('pacientes')
+    .select('*')
 
-    if (!data) {
-      alert('No se encontró paciente')
-      return
-    }
+  // 🔍 si es número → busca por DNI
+  if (!isNaN(busquedaDni)) {
+    query = query.eq('dni', busquedaDni)
+  } else {
+    // 🔍 si es texto → busca por apellido o nombre
+    query = query.or(
+      `apellido_paciente.ilike.%${busquedaDni}%,nombres_paciente.ilike.%${busquedaDni}%`
+    )
+  }
 
-    setPacienteId(data.id)
+  const { data } = await query
+
+  if (!data || data.length === 0) {
+    alert('No se encontraron resultados')
+    return
+  }
+
+  // 👉 si hay uno solo → lo carga directo
+  if (data.length === 1) {
+    const p = data[0]
+
+    setPacienteId(p.id)
 
     setForm({
-      apellido_paciente: data.apellido_paciente || '',
-      nombres_paciente: data.nombres_paciente || '',
-      dni: data.dni || '',
-      telefono: data.telefono || '',
-      domicilio: data.domicilio || '',
-      localidad: data.localidad || '',
-      provincia_id: data.provincia_id ? String(data.provincia_id) : '',
-      mail: data.mail || '',
-      observaciones: data.observaciones || '',
+      apellido_paciente: p.apellido_paciente || '',
+      nombres_paciente: p.nombres_paciente || '',
+      dni: p.dni || '',
+      telefono: p.telefono || '',
+      domicilio: p.domicilio || '',
+      localidad: p.localidad || '',
+      provincia_id: p.provincia_id ? String(p.provincia_id) : '',
+      mail: p.mail || '',
+      observaciones: p.observaciones || '',
     })
+
+    return
   }
+
+  // 👉 si hay varios → los mostramos
+  setResultadosApellido(data)
+}
 
   async function cargarPacientePorDni(dni) {
     const { data } = await supabase
