@@ -300,8 +300,35 @@ export default function Ventas() {
     <div style={{ padding: '30px', maxWidth: '700px' }}>
       <h1>Ventas</h1>
 
-      <input value={dni} onChange={(e) => setDni(e.target.value)} placeholder="DNI" />
-      <button onClick={buscarPaciente}>Buscar</button>
+      <input
+  placeholder="Buscar por DNI o Apellido"
+  value={busqueda}
+  onChange={(e) => setBusqueda(e.target.value)}
+/>
+
+<button onClick={buscarPaciente}>Buscar</button>
+
+{resultados.length > 0 && (
+  <select
+    value=""
+    onChange={(e) => {
+      const p = resultados.find(x => x.id == e.target.value)
+      if (!p) return
+
+      setPaciente(p)
+      setDni(p.dni)
+      setResultados([])
+    }}
+  >
+    <option value="">Seleccionar paciente</option>
+
+    {resultados.map(p => (
+      <option key={p.id} value={p.id}>
+        {p.apellido_paciente} {p.nombres_paciente} - DNI: {p.dni}
+      </option>
+    ))}
+  </select>
+)}
 
       {paciente && (
         <div style={{ marginTop: '10px', border: '1px solid #ccc', padding: '10px' }}>
