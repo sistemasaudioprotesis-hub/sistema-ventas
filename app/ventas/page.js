@@ -339,25 +339,25 @@ onChange={(e) => setBusqueda(e.target.value)}
 <button onClick={buscarPaciente}>Buscar</button>
 
 {resultados.length > 0 && (
-<select
-value=""
-onChange={(e) => {
-const p = resultados.find(x => x.id == e.target.value)
-if (!p) return
+  <select
+    value=""
+    onChange={(e) => {
+      const p = resultados.find(x => x.id == e.target.value)
+      if (!p) return
 
-setPaciente(p)
-setDni(p.dni)
-setResultados([])
-}}
->
-<option value="">Seleccionar paciente</option>
+      setPaciente(p)
+      setDni(p.dni)
+      setResultados([])
+    }}
+  >
+    <option value="">Seleccionar paciente</option>
 
-{resultados.map(p => (
-<option key={p.id} value={p.id}>
-{p.apellido_paciente} {p.nombres_paciente} - DNI: {p.dni}
-</option>
-))}
-</select>
+    {resultados.map(p => (
+      <option key={p.id} value={p.id}>
+        {p.apellido_paciente} {p.nombres_paciente} - DNI: {p.dni}
+      </option>
+    ))}
+  </select>
 )}
 
 {paciente && (
