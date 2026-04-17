@@ -255,15 +255,40 @@ if (montoUsd > saldoUSD) {
     <div style={{ padding: '30px', maxWidth: '700px' }}>
       <h1>Pagos</h1>
 
-      <input
-  placeholder="Buscar por DNI o Apellido"
-  value={busqueda}
-  onChange={(e) => setBusqueda(e.target.value)}
-/>
+      <div>
+  <input
+    placeholder="Buscar por DNI o Apellido"
+    value={busqueda}
+    onChange={(e) => setBusqueda(e.target.value)}
+  />
 
-<button onClick={buscarPaciente}>
-  Buscar
-</button>
+  <button onClick={buscarPaciente}>
+    Buscar
+  </button>
+</div>
+
+{resultados.length > 0 && (
+  <select
+    value=""
+    onChange={(e) => {
+      const p = resultados.find(x => x.id == e.target.value)
+      if (!p) return
+
+      setPaciente(p)
+      setDni(p.dni)
+      setResultados([])
+      buscarPacienteAutomatico(p.dni)
+    }}
+  >
+    <option value="">Seleccionar paciente</option>
+
+    {resultados.map(p => (
+      <option key={p.id} value={p.id}>
+        {p.apellido_paciente} {p.nombres_paciente} - DNI: {p.dni}
+      </option>
+    ))}
+  </select>
+)}
 
 {resultados.length > 0 && (
   <select
