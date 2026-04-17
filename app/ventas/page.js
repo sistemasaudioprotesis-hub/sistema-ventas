@@ -11,14 +11,13 @@ export default function Ventas() {
   const searchParams = useSearchParams()
 
   const [dni, setDni] = useState('')
-const [paciente, setPaciente] = useState(null)
+  const [paciente, setPaciente] = useState(null)
 
-const [busqueda, setBusqueda] = useState('')
-const [resultados, setResultados] = useState([])
+  const [busqueda, setBusqueda] = useState('')
+  const [resultados, setResultados] = useState([])
 
   const [series, setSeries] = useState([])
   const [seriesFiltradas, setSeriesFiltradas] = useState([])
-
   const [productos, setProductos] = useState([])
 
   const [modoConSerie, setModoConSerie] = useState(true)
@@ -42,6 +41,7 @@ const [resultados, setResultados] = useState([])
 
     if (dniParam) {
       setDni(dniParam)
+      setBusqueda(dniParam)
 
       setTimeout(() => {
         buscarPacienteAutomatico(dniParam)
@@ -56,8 +56,7 @@ const [resultados, setResultados] = useState([])
         id,
         numero_serie,
         producto_id,
-        productos (producto),
-        depositos (deposito)
+        productos (producto)
       `)
       .eq('en_stock', true)
       .order('numero_serie')
@@ -88,21 +87,38 @@ const [resultados, setResultados] = useState([])
   }
 
   async function buscarPaciente() {
-    const { data } = await supabase
-      .from('pacientes')
-      .select('*')
-      .eq('dni', dni)
-      .maybeSingle()
+    const valor = busqueda.trim()
 
-    if (!data) {
-      const confirmar = confirm('Paciente no encontrado. ¿Querés crearlo?')
-      if (confirmar) {
-        window.location.href = `/pacientes?dni=${dni}&volver=ventas`
-      }
+    if (!valor) {
+      alert('Ingresar DNI o apellido')
       return
     }
 
-    setPaciente(data)
+    let query = supabase.from('pacientes').select('*')
+
+    if (/^\d+$/.test(valor)) {
+      query = query.eq('dni', valor)
+    } else {
+      query = query.ilike('apellido_paciente', `%${valor}%`)
+    }
+
+    const { data, error } = await query.order('apellido_paciente')
+
+    if (error) {
+      alert('Error buscando pacientes')
+      return
+    }
+
+    if (!data || data.length === 0) {
+      const confirmar = confirm('Paciente no encontrado. ¿Querés crearlo?')
+      if (confirmar) {
+        window.location.href = `/pacientes?dni=${valor}&volver=ventas`
+      }
+      setResultados([])
+      return
+    }
+
+    setResultados(data)
   }
 
   function handleChange(e) {
@@ -236,14 +252,13 @@ const [resultados, setResultados] = useState([])
     }
 
     setItems(items.filter(i => i.id !== item.id))
-
     obtenerSeries()
   }
 
   async function confirmarVenta() {
     if (!ventaId) return alert('No hay venta')
 
-    const { error } = await supabase
+    await supabase
       .from('ventas')
       .update({
         confirmada: true,
@@ -252,20 +267,12 @@ const [resultados, setResultados] = useState([])
       })
       .eq('id', ventaId)
 
-    if (error) {
-      alert('Error: ' + error.message)
-      return
-    }
-
     setVentaConfirmada(true)
     alert('Venta confirmada')
   }
 
   function irAPagos() {
-    if (!ventaConfirmada) {
-      alert('Debe confirmar la venta primero')
-      return
-    }
+    if (!ventaConfirmada) return alert('Debe confirmar la venta primero')
 
     window.location.href = `/pagos?venta_id=${ventaId}&dni=${dni}`
   }
@@ -273,7 +280,7 @@ const [resultados, setResultados] = useState([])
   async function finalizarVenta() {
     if (!ventaId) return alert('No hay venta')
 
-    const { error } = await supabase
+    await supabase
       .from('ventas')
       .update({
         confirmada: true,
@@ -281,11 +288,6 @@ const [resultados, setResultados] = useState([])
         total_dolares: totalUSD,
       })
       .eq('id', ventaId)
-
-    if (error) {
-      alert('Error: ' + error.message)
-      return
-    }
 
     alert('Venta finalizada sin pagos')
 
@@ -304,109 +306,41 @@ const [resultados, setResultados] = useState([])
       <h1>Ventas</h1>
 
       <input
-  placeholder="Buscar por DNI o Apellido"
-  value={busqueda}
-  onChange={(e) => setBusqueda(e.target.value)}
-/>
+        placeholder="Buscar por DNI o Apellido"
+        value={busqueda}
+        onChange={(e) => setBusqueda(e.target.value)}
+      />
 
-<button onClick={buscarPaciente}>Buscar</button>
+      <button onClick={buscarPaciente}>Buscar</button>
 
-{resultados.length > 0 && (
-  <select
-    value=""
-    onChange={(e) => {
-      const p = resultados.find(x => x.id == e.target.value)
-      if (!p) return
+      {resultados.length > 0 && (
+        <select
+          value=""
+          onChange={(e) => {
+            const p = resultados.find(x => x.id == e.target.value)
+            if (!p) return
 
-      setPaciente(p)
-      setDni(p.dni)
-      setResultados([])
-    }}
-  >
-    <option value="">Seleccionar paciente</option>
-
-    {resultados.map(p => (
-      <option key={p.id} value={p.id}>
-        {p.apellido_paciente} {p.nombres_paciente} - DNI: {p.dni}
-      </option>
-    ))}
-  </select>
-)}
-
-      {paciente && (
-        <div style={{ marginTop: '10px', border: '1px solid #ccc', padding: '10px' }}>
-          <strong>
-            {paciente.apellido_paciente} {paciente.nombres_paciente}
-          </strong>
-
-          <div>Tel: {paciente.telefono || '-'}</div>
-          <div>Mail: {paciente.mail || '-'}</div>
-
-          <button
-            onClick={() =>
-              (window.location.href = `/pacientes?dni=${paciente.dni}&volver=ventas`)
-            }
-          >
-            Editar paciente
-          </button>
-        </div>
-      )}
-
-      <hr />
-
-      <h3>Agregar producto</h3>
-
-      <select name="producto_id" value={form.producto_id} onChange={handleChange}>
-        <option value="">Seleccionar producto</option>
-        {productos.map(p => (
-          <option key={p.id} value={p.id}>
-            {p.producto}
-          </option>
-        ))}
-      </select>
-
-      {modoConSerie && (
-        <select name="numero_serie_id" value={form.numero_serie_id} onChange={handleChange}>
-          <option value="">Seleccionar serie</option>
-          {seriesFiltradas.map(s => (
-            <option key={s.id} value={s.id}>
-              {s.numero_serie} - {s.productos?.producto}
+            setPaciente(p)
+            setDni(p.dni)
+            setResultados([])
+          }}
+        >
+          <option value="">Seleccionar paciente</option>
+          {resultados.map(p => (
+            <option key={p.id} value={p.id}>
+              {p.apellido_paciente} {p.nombres_paciente} - DNI: {p.dni}
             </option>
           ))}
         </select>
       )}
 
-      <input name="precio_pesos" placeholder="Precio en pesos" value={form.precio_pesos} onChange={handleChange} />
-      <input name="precio_usd" placeholder="Precio en USD" value={form.precio_usd} onChange={handleChange} />
-
-      <button onClick={agregarItem}>Agregar a venta</button>
-
-      <hr />
-
-      <h3>Carrito</h3>
-
-      {items.map(item => (
-        <div key={item.id}>
-          {item.producto} | {item.serie} |{' '}
-          <>
-  <>
-  {item.precio_pesos && (
-    <span>{formatearPesos(item.precio_pesos)}</span>
-  )}
-  {item.precio_usd && (
-    <span> (USD {formatearUSD(item.precio_usd)})</span>
-  )}
-</>
-</>
-          <button onClick={() => eliminarItem(item)}>❌</button>
+      {paciente && (
+        <div>
+          <strong>{paciente.apellido_paciente} {paciente.nombres_paciente}</strong>
         </div>
-      ))}
+      )}
 
       <hr />
-
-      <h3>Totales</h3>
-      <div>Total Pesos: {formatearPesos(totalPesos)}</div>
-      <div>Total USD: {formatearUSD(totalUSD)}</div>
 
       <button onClick={confirmarVenta}>Confirmar venta</button>
       <button onClick={irAPagos}>Ingresar pago</button>
