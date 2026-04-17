@@ -18,6 +18,7 @@ export default function Ventas() {
 
   const [series, setSeries] = useState([])
   const [seriesFiltradas, setSeriesFiltradas] = useState([])
+
   const [productos, setProductos] = useState([])
 
   const [modoConSerie, setModoConSerie] = useState(true)
@@ -41,7 +42,6 @@ export default function Ventas() {
 
     if (dniParam) {
       setDni(dniParam)
-      setBusqueda(dniParam)
 
       setTimeout(() => {
         buscarPacienteAutomatico(dniParam)
@@ -56,7 +56,8 @@ export default function Ventas() {
         id,
         numero_serie,
         producto_id,
-        productos (producto)
+        productos (producto),
+        depositos (deposito)
       `)
       .eq('en_stock', true)
       .order('numero_serie')
@@ -86,6 +87,7 @@ export default function Ventas() {
     if (data) setPaciente(data)
   }
 
+  // 🔥 NUEVA BÚSQUEDA (DNI o APELLIDO)
   async function buscarPaciente() {
     const valor = busqueda.trim()
 
@@ -252,13 +254,14 @@ export default function Ventas() {
     }
 
     setItems(items.filter(i => i.id !== item.id))
+
     obtenerSeries()
   }
 
   async function confirmarVenta() {
     if (!ventaId) return alert('No hay venta')
 
-    await supabase
+    const { error } = await supabase
       .from('ventas')
       .update({
         confirmada: true,
@@ -267,12 +270,20 @@ export default function Ventas() {
       })
       .eq('id', ventaId)
 
+    if (error) {
+      alert('Error: ' + error.message)
+      return
+    }
+
     setVentaConfirmada(true)
     alert('Venta confirmada')
   }
 
   function irAPagos() {
-    if (!ventaConfirmada) return alert('Debe confirmar la venta primero')
+    if (!ventaConfirmada) {
+      alert('Debe confirmar la venta primero')
+      return
+    }
 
     window.location.href = `/pagos?venta_id=${ventaId}&dni=${dni}`
   }
@@ -280,7 +291,7 @@ export default function Ventas() {
   async function finalizarVenta() {
     if (!ventaId) return alert('No hay venta')
 
-    await supabase
+    const { error } = await supabase
       .from('ventas')
       .update({
         confirmada: true,
@@ -288,6 +299,11 @@ export default function Ventas() {
         total_dolares: totalUSD,
       })
       .eq('id', ventaId)
+
+    if (error) {
+      alert('Error: ' + error.message)
+      return
+    }
 
     alert('Venta finalizada sin pagos')
 
@@ -335,16 +351,24 @@ export default function Ventas() {
       )}
 
       {paciente && (
-        <div>
-          <strong>{paciente.apellido_paciente} {paciente.nombres_paciente}</strong>
+        <div style={{ marginTop: '10px', border: '1px solid #ccc', padding: '10px' }}>
+          <strong>
+            {paciente.apellido_paciente} {paciente.nombres_paciente}
+          </strong>
+
+          <div>Tel: {paciente.telefono || '-'}</div>
+          <div>Mail: {paciente.mail || '-'}</div>
+
+          <button
+            onClick={() =>
+              (window.location.href = `/pacientes?dni=${paciente.dni}&volver=ventas`)
+            }
+          >
+            Editar paciente
+          </button>
         </div>
       )}
 
       <hr />
 
-      <button onClick={confirmarVenta}>Confirmar venta</button>
-      <button onClick={irAPagos}>Ingresar pago</button>
-      <button onClick={finalizarVenta}>Finalizar venta sin pagos</button>
-    </div>
-  )
-}
+      <h3>Agregar producto</h3>
