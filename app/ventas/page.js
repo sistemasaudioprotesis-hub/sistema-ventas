@@ -129,24 +129,6 @@ async function buscarPaciente() {
   setResultados(data)
 }
 
-async function buscarPaciente() {
-const { data } = await supabase
-.from('pacientes')
-.select('*')
-.eq('dni', dni)
-.maybeSingle()
-
-if (!data) {
-const confirmar = confirm('Paciente no encontrado. ¿Querés crearlo?')
-if (confirmar) {
-window.location.href = `/pacientes?dni=${dni}&volver=ventas`
-}
-return
-}
-
-setPaciente(data)
-}
-
 function handleChange(e) {
 const { name, value } = e.target
 
