@@ -13,7 +13,8 @@ export default function Pacientes() {
   const dniParam = searchParams.get('dni')
 
   const [provincias, setProvincias] = useState([])
-  const [busquedaDni, setBusquedaDni] = useState('')
+  const [busqueda, setBusqueda] = useState('')
+  const [resultados, setResultados] = useState([])
   const [pacienteId, setPacienteId] = useState(null)
 
   const [form, setForm] = useState({
@@ -32,7 +33,7 @@ export default function Pacientes() {
     obtenerProvincias()
 
     if (dniParam) {
-      setBusquedaDni(dniParam)
+      setBusqueda(dniParam)
       cargarPacientePorDni(dniParam)
     }
   }, [])
@@ -66,7 +67,9 @@ export default function Pacientes() {
 
   function limpiarFormulario() {
     setPacienteId(null)
-    setBusquedaDni('')
+    setBusqueda('')
+    setResultados([])
+
     setForm({
       apellido_paciente: '',
       nombres_paciente: '',
@@ -81,59 +84,29 @@ export default function Pacientes() {
   }
 
   async function buscarPaciente() {
-  if (!busqueda) {
-    alert('Ingresar DNI o apellido')
-    return
+    if (!busqueda) {
+      alert('Ingresar DNI o apellido')
+      return
+    }
+
+    let query = supabase.from('pacientes').select('*')
+
+    if (!isNaN(busqueda)) {
+      query = query.eq('dni', busqueda)
+    } else {
+      query = query.ilike('apellido_paciente', `%${busqueda}%`)
+    }
+
+    const { data } = await query.order('apellido_paciente')
+
+    if (!data || data.length === 0) {
+      alert('No se encontraron resultados')
+      setResultados([])
+      return
+    }
+
+    setResultados(data)
   }
-
-  let query = supabase
-    .from('pacientes')
-    .select('*')
-
-  if (!isNaN(busqueda)) {
-    // 🔍 DNI exacto
-    query = query.eq('dni', busqueda)
-  } else {
-    // 🔍 APELLIDO parcial
-    query = query.ilike('apellido_paciente', `%${busqueda}%`)
-  }
-
-  const { data } = await query.order('apellido_paciente')
-
-  if (!data || data.length === 0) {
-    alert('No se encontraron resultados')
-    setResultados([])
-    return
-  }
-
-  // 🔥 SIEMPRE mostrar lista
-  setResultados(data)
-}
-
-  // 👉 si hay uno solo → lo carga directo
-  if (data.length === 1) {
-    const p = data[0]
-
-    setPacienteId(p.id)
-
-    setForm({
-      apellido_paciente: p.apellido_paciente || '',
-      nombres_paciente: p.nombres_paciente || '',
-      dni: p.dni || '',
-      telefono: p.telefono || '',
-      domicilio: p.domicilio || '',
-      localidad: p.localidad || '',
-      provincia_id: p.provincia_id ? String(p.provincia_id) : '',
-      mail: p.mail || '',
-      observaciones: p.observaciones || '',
-    })
-
-    return
-  }
-
-  // 👉 si hay varios → los mostramos
-  setResultadosApellido(data)
-}
 
   async function cargarPacientePorDni(dni) {
     const { data } = await supabase
@@ -156,11 +129,6 @@ export default function Pacientes() {
         mail: data.mail || '',
         observaciones: data.observaciones || '',
       })
-    } else {
-      setForm((prev) => ({
-        ...prev,
-        dni: dni,
-      }))
     }
   }
 
@@ -176,44 +144,28 @@ export default function Pacientes() {
     }
 
     if (pacienteId) {
-      // 🔥 1. traer estado actual (ANTES del cambio)
-      const { data: pacienteActual, error: errorFetch } = await supabase
+      const { data: pacienteActual } = await supabase
         .from('pacientes')
         .select('*')
         .eq('id', pacienteId)
         .single()
 
-      if (errorFetch) {
-        alert('Error obteniendo paciente')
-        return
-      }
+      await supabase.from('pacientes_historial').insert([
+        {
+          paciente_id: pacienteId,
+          apellido_paciente: pacienteActual.apellido_paciente,
+          nombres_paciente: pacienteActual.nombres_paciente,
+          telefono: pacienteActual.telefono,
+          domicilio: pacienteActual.domicilio,
+          localidad: pacienteActual.localidad,
+          provincia_id: pacienteActual.provincia_id,
+          mail: pacienteActual.mail,
+          observaciones: pacienteActual.observaciones,
+          creado_por: 1,
+        },
+      ])
 
-      // 🔥 2. guardar historial con datos ANTERIORES
-      const { error: errorHistorial } = await supabase
-        .from('pacientes_historial')
-        .insert([
-          {
-            paciente_id: pacienteId,
-            apellido_paciente: pacienteActual.apellido_paciente,
-            nombres_paciente: pacienteActual.nombres_paciente,
-            telefono: pacienteActual.telefono,
-            domicilio: pacienteActual.domicilio,
-            localidad: pacienteActual.localidad,
-            provincia_id: pacienteActual.provincia_id,
-            mail: pacienteActual.mail,
-            observaciones: pacienteActual.observaciones,
-            creado_por: 1,
-          },
-        ])
-
-      if (errorHistorial) {
-        alert('Error guardando historial')
-        console.error(errorHistorial)
-        return
-      }
-
-      // 🔥 3. actualizar con datos NUEVOS
-      const { error } = await supabase
+      await supabase
         .from('pacientes')
         .update({
           ...form,
@@ -221,25 +173,15 @@ export default function Pacientes() {
         })
         .eq('id', pacienteId)
 
-      if (error) {
-        alert('Error: ' + error.message)
-        return
-      }
-
       alert('Paciente actualizado')
     } else {
-      const { error } = await supabase.from('pacientes').insert([
+      await supabase.from('pacientes').insert([
         {
           ...form,
           provincia_id: Number(form.provincia_id),
           creado_por: 1,
         },
       ])
-
-      if (error) {
-        alert('Error: ' + error.message)
-        return
-      }
 
       alert('Paciente creado')
     }
@@ -251,9 +193,10 @@ export default function Pacientes() {
     if (destino === 'pagos') {
       window.location.href = `/pagos?dni=${form.dni}`
     }
+
     if (!destino) {
-  limpiarFormulario()
-}
+      limpiarFormulario()
+    }
   }
 
   return (
@@ -262,53 +205,49 @@ export default function Pacientes() {
 
       <h3>Buscar paciente</h3>
 
-<input
-  placeholder="Buscar por DNI o Apellido"
-  value={busqueda}
-  onChange={(e) => setBusqueda(e.target.value)}
-/>
+      <input
+        placeholder="Buscar por DNI o Apellido"
+        value={busqueda}
+        onChange={(e) => setBusqueda(e.target.value)}
+      />
 
-<button onClick={buscarPaciente}>Buscar</button>
+      <button onClick={buscarPaciente}>Buscar</button>
 
-{/* RESULTADOS */}
-{resultados.map(p => (
-  <div key={p.id}>
-    <div><strong>{p.apellido_paciente}</strong></div>
-    <div>{p.nombres_paciente}</div>
-    <div>DNI: {p.dni}</div>
-  </div>
-))}
-    style={{
-      border: '1px solid #ddd',
-      padding: '10px',
-      marginTop: '5px',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      background: '#fafafa'
-    }}
-    onClick={() => {
-      setPacienteId(p.id)
+      {resultados.map(p => (
+        <div
+          key={p.id}
+          style={{
+            border: '1px solid #ddd',
+            padding: '10px',
+            marginTop: '5px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            background: '#fafafa'
+          }}
+          onClick={() => {
+            setPacienteId(p.id)
 
-      setForm({
-        apellido_paciente: p.apellido_paciente || '',
-        nombres_paciente: p.nombres_paciente || '',
-        dni: p.dni || '',
-        telefono: p.telefono || '',
-        domicilio: p.domicilio || '',
-        localidad: p.localidad || '',
-        provincia_id: p.provincia_id ? String(p.provincia_id) : '',
-        mail: p.mail || '',
-        observaciones: p.observaciones || '',
-      })
+            setForm({
+              apellido_paciente: p.apellido_paciente || '',
+              nombres_paciente: p.nombres_paciente || '',
+              dni: p.dni || '',
+              telefono: p.telefono || '',
+              domicilio: p.domicilio || '',
+              localidad: p.localidad || '',
+              provincia_id: p.provincia_id ? String(p.provincia_id) : '',
+              mail: p.mail || '',
+              observaciones: p.observaciones || '',
+            })
 
-      setResultados([])
-    }}
-  >
-    <div><strong>{p.apellido_paciente}</strong></div>
-    <div>{p.nombres_paciente}</div>
-    <div>DNI: {p.dni}</div>
-  </div>
-))}
+            setResultados([])
+          }}
+        >
+          <div><strong>{p.apellido_paciente}</strong></div>
+          <div>{p.nombres_paciente}</div>
+          <div>DNI: {p.dni}</div>
+        </div>
+      ))}
+
       <button onClick={limpiarFormulario}>Nuevo paciente</button>
 
       <hr style={{ margin: '20px 0' }} />
@@ -344,20 +283,18 @@ export default function Pacientes() {
         <textarea name="observaciones" placeholder="Observaciones" value={form.observaciones} onChange={handleChange} />
 
         <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={() => guardar('')}>
+            Guardar
+          </button>
 
-  <button onClick={() => guardar('')}>
-    Guardar
-  </button>
+          <button onClick={() => guardar('ventas')}>
+            Guardar y volver a ventas
+          </button>
 
-  <button onClick={() => guardar('ventas')}>
-    Guardar y volver a ventas
-  </button>
-
-  <button onClick={() => guardar('pagos')}>
-    Guardar y volver a pagos
-  </button>
-
-</div>
+          <button onClick={() => guardar('pagos')}>
+            Guardar y volver a pagos
+          </button>
+        </div>
       </div>
     </div>
   )
