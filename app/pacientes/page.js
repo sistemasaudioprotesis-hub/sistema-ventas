@@ -260,13 +260,15 @@ export default function Pacientes() {
     <div style={{ padding: '30px', maxWidth: '600px' }}>
       <h1>Pacientes</h1>
 
-      <h3>Buscar por DNI</h3>
-      <input
-        placeholder="Ingresar DNI"
-        value={busquedaDni}
-        onChange={(e) => setBusquedaDni(e.target.value)}
-      />
-      <button onClick={buscarPaciente}>Buscar</button>
+      <h3>Buscar paciente</h3>
+
+<input
+  placeholder="Buscar por DNI o Apellido"
+  value={busqueda}
+  onChange={(e) => setBusqueda(e.target.value)}
+/>
+
+<button onClick={buscarPaciente}>Buscar</button>
       <button onClick={limpiarFormulario}>Nuevo paciente</button>
 
       <hr style={{ margin: '20px 0' }} />
