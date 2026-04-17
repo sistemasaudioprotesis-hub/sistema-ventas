@@ -11,7 +11,6 @@ export default function Ventas() {
 const searchParams = useSearchParams()
 
 const [dni, setDni] = useState('')
-  const [paciente, setPaciente] = useState(null)
 const [paciente, setPaciente] = useState(null)
 
 const [busqueda, setBusqueda] = useState('')
