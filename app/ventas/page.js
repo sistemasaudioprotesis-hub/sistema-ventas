@@ -121,7 +121,7 @@ async function buscarPaciente() {
   }
 
   if (!data || data.length === 0) {
-    alert('NO ENCONTRÓ NADA')
+  alert('RESULTADO: ' + JSON.stringify(data))
     setResultados([])
     return
   }
