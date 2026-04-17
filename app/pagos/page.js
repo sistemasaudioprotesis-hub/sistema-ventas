@@ -83,23 +83,36 @@ const [resultados, setResultados] = useState([])
   }
 
   async function buscarPaciente() {
-    if (!dni) {
-      alert('Ingresar DNI')
-      return
-    }
+  const valor = busqueda.trim()
 
-    const { data } = await supabase
-      .from('pacientes')
-      .select('*')
-      .eq('dni', dni)
-      .maybeSingle()
+  if (!valor) {
+    alert('Ingresar DNI o apellido')
+    return
+  }
 
-    if (!data) {
-      alert('Paciente no encontrado')
-      return
-    }
+  let query = supabase.from('pacientes').select('*')
 
-    setPaciente(data)
+  if (/^\d+$/.test(valor)) {
+    query = query.eq('dni', Number(valor))
+  } else {
+    query = query.ilike('apellido_paciente', `%${valor}%`)
+  }
+
+  const { data, error } = await query.order('apellido_paciente')
+
+  if (error) {
+    alert('Error buscando pacientes')
+    return
+  }
+
+  if (!data || data.length === 0) {
+    alert('No se encontraron resultados')
+    setResultados([])
+    return
+  }
+
+  setResultados(data)
+}
 
     const { data: ventasData } = await supabase
       .from('ventas')
