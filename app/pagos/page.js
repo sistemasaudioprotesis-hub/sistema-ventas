@@ -17,6 +17,9 @@ export default function Pagos() {
   const [dni, setDni] = useState(dniParam || '')
   const [paciente, setPaciente] = useState(null)
 
+   const [busqueda, setBusqueda] = useState('')
+const [resultados, setResultados] = useState([])
+  
   const [ventas, setVentas] = useState([])
   const [ventaSeleccionada, setVentaSeleccionada] = useState(ventaIdParam || '')
 
