@@ -78,14 +78,40 @@ const { data } = await supabase
 setProductos(data || [])
 }
 
-async function buscarPacienteAutomatico(dniValor) {
-const { data } = await supabase
-.from('pacientes')
-.select('*')
-.eq('dni', dniValor)
-.maybeSingle()
+async function buscarPaciente() {
+  const valor = busqueda.trim()
 
-if (data) setPaciente(data)
+  if (!valor) {
+    alert('Ingresar DNI o apellido')
+    return
+  }
+
+  let query = supabase.from('pacientes').select('*')
+
+  if (/^\d+$/.test(valor)) {
+    query = query.eq('dni', valor)
+  } else {
+    query = query.ilike('apellido_paciente', `%${valor}%`)
+  }
+
+  const { data, error } = await query.order('apellido_paciente')
+
+  if (error) {
+    console.error(error)
+    alert('Error buscando pacientes')
+    return
+  }
+
+  if (!data || data.length === 0) {
+    const confirmar = confirm('Paciente no encontrado. ¿Querés crearlo?')
+    if (confirmar) {
+      window.location.href = `/pacientes?dni=${valor}&volver=ventas`
+    }
+    setResultados([])
+    return
+  }
+
+  setResultados(data)
 }
 
 async function buscarPaciente() {
