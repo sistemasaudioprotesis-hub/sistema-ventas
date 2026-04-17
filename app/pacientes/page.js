@@ -81,8 +81,8 @@ export default function Pacientes() {
   }
 
   async function buscarPaciente() {
-  if (!busquedaDni) {
-    alert('Ingresar DNI, apellido o nombre')
+  if (!busqueda) {
+    alert('Ingresar DNI o apellido')
     return
   }
 
@@ -90,22 +90,25 @@ export default function Pacientes() {
     .from('pacientes')
     .select('*')
 
-  // 🔍 si es número → busca por DNI
-  if (!isNaN(busquedaDni)) {
-    query = query.eq('dni', busquedaDni)
+  if (!isNaN(busqueda)) {
+    // 🔍 DNI exacto
+    query = query.eq('dni', busqueda)
   } else {
-    // 🔍 si es texto → busca por apellido o nombre
-    query = query.or(
-      `apellido_paciente.ilike.%${busquedaDni}%,nombres_paciente.ilike.%${busquedaDni}%`
-    )
+    // 🔍 APELLIDO parcial
+    query = query.ilike('apellido_paciente', `%${busqueda}%`)
   }
 
-  const { data } = await query
+  const { data } = await query.order('apellido_paciente')
 
   if (!data || data.length === 0) {
     alert('No se encontraron resultados')
+    setResultados([])
     return
   }
+
+  // 🔥 SIEMPRE mostrar lista
+  setResultados(data)
+}
 
   // 👉 si hay uno solo → lo carga directo
   if (data.length === 1) {
