@@ -270,10 +270,14 @@ export default function Pacientes() {
 
 <button onClick={buscarPaciente}>Buscar</button>
 
-{/* 👇 ACÁ PEGÁS EL BLOQUE 4 */}
+{/* RESULTADOS */}
 {resultados.map(p => (
-  <div
-    key={p.id}
+  <div key={p.id}>
+    <div><strong>{p.apellido_paciente}</strong></div>
+    <div>{p.nombres_paciente}</div>
+    <div>DNI: {p.dni}</div>
+  </div>
+))}
     style={{
       border: '1px solid #ddd',
       padding: '10px',
