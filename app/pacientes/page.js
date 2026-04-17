@@ -9,7 +9,6 @@ import { normalizarTexto } from '../../lib/formatText'
 
 export default function Pacientes() {
   const searchParams = useSearchParams()
-
   const dniParam = searchParams.get('dni')
 
   const [provincias, setProvincias] = useState([])
@@ -84,39 +83,37 @@ export default function Pacientes() {
   }
 
   async function buscarPaciente() {
-  const valor = busqueda.trim()
+    const valor = busqueda.trim()
 
-  if (!valor) {
-    alert('Ingresar DNI o apellido')
-    return
+    if (!valor) {
+      alert('Ingresar DNI o apellido')
+      return
+    }
+
+    let query = supabase.from('pacientes').select('*')
+
+    if (/^\d+$/.test(valor)) {
+      query = query.eq('dni', valor)
+    } else {
+      query = query.ilike('apellido_paciente', `%${valor}%`)
+    }
+
+    const { data, error } = await query.order('apellido_paciente')
+
+    if (error) {
+      console.error(error)
+      alert('Error buscando pacientes')
+      return
+    }
+
+    if (!data || data.length === 0) {
+      alert('No se encontraron resultados')
+      setResultados([])
+      return
+    }
+
+    setResultados(data)
   }
-
-  let query = supabase.from('pacientes').select('*')
-
-  // 🔍 DNI → solo si es número REAL
-  if (/^\d+$/.test(valor)) {
-    query = query.eq('dni', valor)
-  } else {
-    // 🔍 APELLIDO → búsqueda parcial
-    query = query.ilike('apellido_paciente', `%${valor}%`)
-  }
-
-  const { data, error } = await query.order('apellido_paciente')
-
-  if (error) {
-    console.error(error)
-    alert('Error buscando pacientes')
-    return
-  }
-
-  if (!data || data.length === 0) {
-    alert('No se encontraron resultados')
-    setResultados([])
-    return
-  }
-
-  setResultados(data)
-}
 
   async function cargarPacientePorDni(dni) {
     const { data } = await supabase
@@ -223,38 +220,39 @@ export default function Pacientes() {
 
       <button onClick={buscarPaciente}>Buscar</button>
 
-      <select
-  value=""
-  onChange={(e) => {
-    const p = resultados.find(x => x.id == e.target.value)
+      {resultados.length > 0 && (
+        <select
+          value=""
+          onChange={(e) => {
+            const p = resultados.find(x => x.id == e.target.value)
+            if (!p) return
 
-    if (!p) return
+            setPacienteId(p.id)
 
-    setPacienteId(p.id)
+            setForm({
+              apellido_paciente: p.apellido_paciente || '',
+              nombres_paciente: p.nombres_paciente || '',
+              dni: p.dni || '',
+              telefono: p.telefono || '',
+              domicilio: p.domicilio || '',
+              localidad: p.localidad || '',
+              provincia_id: p.provincia_id ? String(p.provincia_id) : '',
+              mail: p.mail || '',
+              observaciones: p.observaciones || '',
+            })
 
-    setForm({
-      apellido_paciente: p.apellido_paciente || '',
-      nombres_paciente: p.nombres_paciente || '',
-      dni: p.dni || '',
-      telefono: p.telefono || '',
-      domicilio: p.domicilio || '',
-      localidad: p.localidad || '',
-      provincia_id: p.provincia_id ? String(p.provincia_id) : '',
-      mail: p.mail || '',
-      observaciones: p.observaciones || '',
-    })
+            setResultados([])
+          }}
+        >
+          <option value="">Seleccionar paciente</option>
 
-    setResultados([])
-  }}
->
-  <option value="">Seleccionar paciente</option>
-
-  {resultados.map(p => (
-    <option key={p.id} value={p.id}>
-      {p.apellido_paciente} {p.nombres_paciente} - DNI: {p.dni}
-    </option>
-  ))}
-</select>
+          {resultados.map(p => (
+            <option key={p.id} value={p.id}>
+              {p.apellido_paciente} {p.nombres_paciente} - DNI: {p.dni}
+            </option>
+          ))}
+        </select>
+      )}
 
       <button onClick={limpiarFormulario}>Nuevo paciente</button>
 
