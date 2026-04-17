@@ -88,7 +88,7 @@ async function buscarPaciente() {
   let query = supabase.from('pacientes').select('*')
 
   if (/^\d+$/.test(valor)) {
-    query = query.eq('dni', valor)
+    query = query.eq('dni', Number(valor))
   } else {
     query = query.ilike('apellido_paciente', `%${valor}%`)
   }
