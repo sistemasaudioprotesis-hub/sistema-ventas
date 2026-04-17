@@ -265,6 +265,31 @@ if (montoUsd > saldoUSD) {
   Buscar
 </button>
 
+{resultados.length > 0 && (
+  <select
+    value=""
+    onChange={(e) => {
+      const p = resultados.find(x => x.id == e.target.value)
+      if (!p) return
+
+      setPaciente(p)
+      setDni(p.dni)
+      setResultados([])
+
+      // 🔥 cargar ventas automáticamente
+      buscarPacienteAutomatico(p.dni)
+    }}
+  >
+    <option value="">Seleccionar paciente</option>
+
+    {resultados.map(p => (
+      <option key={p.id} value={p.id}>
+        {p.apellido_paciente} {p.nombres_paciente} - DNI: {p.dni}
+      </option>
+    ))}
+  </select>
+)}
+
       {paciente && (
         <div style={{ marginTop: '10px', border: '1px solid #ccc', padding: '10px' }}>
           <strong>
