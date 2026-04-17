@@ -358,13 +358,15 @@ onChange={(e) => setBusqueda(e.target.value)}
 )}
 
 {paciente && (
-<div style={{ marginTop: '10px', border: '1px solid #ccc', padding: '10px' }}>
-<strong>
-{paciente.apellido_paciente} {paciente.nombres_paciente}
-</strong>
+  <div style={{ marginTop: '10px', border: '1px solid #ccc', padding: '10px' }}>
+    <strong>
+      {paciente.apellido_paciente} {paciente.nombres_paciente}
+    </strong>
 
-<div>Tel: {paciente.telefono || '-'}</div>
-<div>Mail: {paciente.mail || '-'}</div>
+    <div><strong>DNI:</strong> {paciente.dni}</div>
+
+    <div>Tel: {paciente.telefono || '-'}</div>
+    <div>Mail: {paciente.mail || '-'}</div>
 
 <button
 onClick={() =>
