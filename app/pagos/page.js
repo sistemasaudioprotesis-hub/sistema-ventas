@@ -114,14 +114,7 @@ const [resultados, setResultados] = useState([])
   setResultados(data)
 }
 
-    const { data: ventasData } = await supabase
-      .from('ventas')
-      .select('*')
-      .eq('paciente_id', data.id)
-      .order('fecha', { ascending: false })
-
-    setVentas(ventasData || [])
-  }
+    
 
   async function cargarDetalleVenta(ventaId) {
     const { data: detalle } = await supabase
