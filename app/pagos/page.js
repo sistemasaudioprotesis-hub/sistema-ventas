@@ -256,14 +256,14 @@ if (montoUsd > saldoUSD) {
       <h1>Pagos</h1>
 
       <input
-        placeholder="DNI"
-        value={dni}
-        onChange={(e) => setDni(e.target.value)}
-      />
+  placeholder="Buscar por DNI o Apellido"
+  value={busqueda}
+  onChange={(e) => setBusqueda(e.target.value)}
+/>
 
-      <button onClick={buscarPaciente}>
-        Buscar
-      </button>
+<button onClick={buscarPaciente}>
+  Buscar
+</button>
 
       {paciente && (
         <div style={{ marginTop: '10px', border: '1px solid #ccc', padding: '10px' }}>
