@@ -84,29 +84,39 @@ export default function Pacientes() {
   }
 
   async function buscarPaciente() {
-    if (!busqueda) {
-      alert('Ingresar DNI o apellido')
-      return
-    }
+  const valor = busqueda.trim()
 
-    let query = supabase.from('pacientes').select('*')
-
-    if (!isNaN(busqueda)) {
-      query = query.eq('dni', busqueda)
-    } else {
-      query = query.ilike('apellido_paciente', `%${busqueda}%`)
-    }
-
-    const { data } = await query.order('apellido_paciente')
-
-    if (!data || data.length === 0) {
-      alert('No se encontraron resultados')
-      setResultados([])
-      return
-    }
-
-    setResultados(data)
+  if (!valor) {
+    alert('Ingresar DNI o apellido')
+    return
   }
+
+  let query = supabase.from('pacientes').select('*')
+
+  // 🔍 DNI → solo si es número REAL
+  if (/^\d+$/.test(valor)) {
+    query = query.eq('dni', valor)
+  } else {
+    // 🔍 APELLIDO → búsqueda parcial
+    query = query.ilike('apellido_paciente', `%${valor}%`)
+  }
+
+  const { data, error } = await query.order('apellido_paciente')
+
+  if (error) {
+    console.error(error)
+    alert('Error buscando pacientes')
+    return
+  }
+
+  if (!data || data.length === 0) {
+    alert('No se encontraron resultados')
+    setResultados([])
+    return
+  }
+
+  setResultados(data)
+}
 
   async function cargarPacientePorDni(dni) {
     const { data } = await supabase
