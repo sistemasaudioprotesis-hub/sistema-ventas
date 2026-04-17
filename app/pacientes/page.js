@@ -269,6 +269,42 @@ export default function Pacientes() {
 />
 
 <button onClick={buscarPaciente}>Buscar</button>
+
+{/* 👇 ACÁ PEGÁS EL BLOQUE 4 */}
+{resultados.map(p => (
+  <div
+    key={p.id}
+    style={{
+      border: '1px solid #ddd',
+      padding: '10px',
+      marginTop: '5px',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      background: '#fafafa'
+    }}
+    onClick={() => {
+      setPacienteId(p.id)
+
+      setForm({
+        apellido_paciente: p.apellido_paciente || '',
+        nombres_paciente: p.nombres_paciente || '',
+        dni: p.dni || '',
+        telefono: p.telefono || '',
+        domicilio: p.domicilio || '',
+        localidad: p.localidad || '',
+        provincia_id: p.provincia_id ? String(p.provincia_id) : '',
+        mail: p.mail || '',
+        observaciones: p.observaciones || '',
+      })
+
+      setResultados([])
+    }}
+  >
+    <div><strong>{p.apellido_paciente}</strong></div>
+    <div>{p.nombres_paciente}</div>
+    <div>DNI: {p.dni}</div>
+  </div>
+))}
       <button onClick={limpiarFormulario}>Nuevo paciente</button>
 
       <hr style={{ margin: '20px 0' }} />
