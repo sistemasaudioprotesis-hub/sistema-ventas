@@ -31,9 +31,12 @@ export default function NumerosSerie() {
         productos (id, producto),
         depositos (id, deposito)
       `).order('created_at', { ascending: false }),
-      supabase.from('productos').select('id, producto').eq('activo', true).order('producto'),
+      supabase.from('productos').select('id, producto').order('producto'),
       supabase.from('depositos').select('id, deposito').order('deposito'),
     ])
+
+    console.log('series:', seriesData)  // 👈 acá
+    console.log('productos:', productosData)  // 👈 y acá
 
     setSeries(seriesData || [])
     setProductos(productosData || [])
