@@ -92,6 +92,8 @@ export default function NumerosSerie() {
     en_stock: true,
     creado_por: 1,
   }])
+    console.log('ERROR:', error)
+console.log('DATA:', insertData)
 
   if (error) {
   if (error.message.includes('duplicate') || error.code === '23505') {
