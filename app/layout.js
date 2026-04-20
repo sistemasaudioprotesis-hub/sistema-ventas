@@ -61,8 +61,11 @@ export default function RootLayout({ children }) {
                   <img src="/logo.jpeg" alt="logo" style={{ width: '44px', height: '44px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)' }} />
                   <div>
                     <div style={{ fontWeight: '700', fontSize: '17px', lineHeight: 1.2 }}>AudioProtesis</div>
-                    <div style={{ fontSize: '11px', opacity: 0.6, marginTop: '2px' }}>Quilmes, Bs As</div>
-                  </div>
+                    <a href="/mi-perfil" style={{ textDecoration: 'none' }}>
+  <div style={{ fontSize: '13px', fontWeight: '600', color: 'white', marginBottom: '2px' }}>
+    {usuario.nombre}
+  </div>
+</a>
                 </a>
               </div>
 
