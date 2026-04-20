@@ -94,9 +94,13 @@ export default function NumerosSerie() {
   }])
 
   if (error) {
+  if (error.message.includes('duplicate') || error.code === '23505') {
+    alert('❌ Ese número de serie ya existe en el sistema')
+  } else {
     alert('Error al guardar: ' + error.message)
-    return
   }
+  return
+}
 
   alert('✅ Número de serie guardado')
   setForm({ tipo_id: '', producto_id: '', numero_serie: '', costo_usd: '', deposito_id: '' })
