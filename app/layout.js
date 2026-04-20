@@ -65,7 +65,6 @@ export default function RootLayout({ children }) {
   <div style={{ fontSize: '13px', fontWeight: '600', color: 'white', marginBottom: '2px' }}>
     {usuario.nombre}
   </div>
-</a>
                 </a>
               </div>
 
