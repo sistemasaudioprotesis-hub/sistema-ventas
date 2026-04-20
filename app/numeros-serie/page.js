@@ -70,11 +70,18 @@ export default function NumerosSerie() {
       return
     }
 
-    const { data: existe } = await supabase
-      .from('numeros_serie')
-      .select('id')
-      .eq('numero_serie', form.numero_serie)
-      .maybeSingle()
+    const numeroNormalizado = normalizarTexto(form.numero_serie)
+
+if (!numeroNormalizado) {
+  alert('Ingresar número de serie')
+  return
+}
+
+const { data: existe } = await supabase
+  .from('numeros_serie')
+  .select('id')
+  .eq('numero_serie', numeroNormalizado)
+  .maybeSingle()
 
     if (existe) {
       alert('Ese número de serie ya existe')
@@ -83,7 +90,7 @@ export default function NumerosSerie() {
 
     const { error } = await supabase.from('numeros_serie').insert([{
       producto_id: Number(form.producto_id),
-      numero_serie: form.numero_serie,
+      numero_serie: numeroNormalizado,
       costo_usd: form.costo_usd ? Number(form.costo_usd) : null,
       deposito_id: Number(form.deposito_id),
       en_stock: true,
