@@ -177,12 +177,12 @@ console.log('DATA:', insertData)
 
             <Field label="Número de serie *">
               <input
-                name="numero_serie"
-                placeholder="Ej: SN-12345"
-                value={form.numero_serie}
-                onChange={handleChange}
-                style={inputStyle}
-              />
+  name="numero_serie"
+  placeholder="Ej: SN-12345"
+  value={form.numero_serie}
+  onChange={handleChange}
+  style={{ ...inputStyle, textTransform: 'uppercase' }}
+/>
             </Field>
 
             <Field label="Costo USD">
