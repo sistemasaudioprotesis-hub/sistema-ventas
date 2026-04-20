@@ -74,10 +74,10 @@ export default function NumerosSerie() {
 
   // Verificar duplicado ANTES de insertar
   const { data: existe } = await supabase
-    .from('numeros_serie')
-    .select('id')
-    .eq('numero_serie', numeroNormalizado)
-    .maybeSingle()
+  .from('numeros_serie')
+  .select('id')
+  .ilike('numero_serie', numeroNormalizado)
+  .maybeSingle()
 
   if (existe) {
     alert('❌ Ese número de serie ya existe en el sistema')
