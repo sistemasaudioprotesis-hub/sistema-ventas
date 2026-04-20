@@ -134,13 +134,13 @@ export default function RootLayout({ children }) {
                   borderTop: '1px solid rgba(255,255,255,0.15)',
                 }}>
                   <a href="/mi-perfil" style={{ textDecoration: 'none' }}>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: 'white', marginBottom: '2px' }}>
-                      {usuario.nombre}
-                    </div>
-                    <div style={{ fontSize: '11px', opacity: 0.5, marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      {usuario.rol} · Mi perfil →
-                    </div>
-                  </a>
+  <div style={{ fontSize: '15px', fontWeight: '700', color: 'white', marginBottom: '3px' }}>
+    {usuario.nombre}
+  </div>
+  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '10px', letterSpacing: '0.3px' }}>
+    {usuario.rol} · Mi perfil →
+  </div>
+</a>
                   <button onClick={cerrarSesion} style={{
                     background: 'rgba(255,255,255,0.1)',
                     border: '1px solid rgba(255,255,255,0.2)',
