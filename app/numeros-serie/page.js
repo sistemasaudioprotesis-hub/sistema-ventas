@@ -89,15 +89,15 @@ const { data: existe } = await supabase
     }
 
     const { error } = await supabase.from('numeros_serie').insert([{
-      producto_id: Number(form.producto_id),
-      numero_serie: numeroNormalizado,
-      costo_usd: form.costo_usd ? Number(form.costo_usd) : null,
-      deposito_id: Number(form.deposito_id),
-      en_stock: true,
-      creado_por: 1,
-    }])
+  producto_id: Number(form.producto_id),
+  numero_serie: numeroNormalizado,
+  costo_usd: form.costo_usd ? Number(form.costo_usd) : null,
+  deposito_id: Number(form.deposito_id),
+  en_stock: true,
+  creado_por: 1,
+}])
 
-    if (error) {
+if (error) {
   if (error.code === '23505') {
     alert('❌ Ese número de serie ya existe en el sistema')
   } else {
