@@ -99,7 +99,11 @@ console.log('DATA:', insertData)
   if (error.message.includes('duplicate') || error.code === '23505') {
     alert('❌ Ese número de serie ya existe en el sistema')
   } else {
-    alert('Error al guardar: ' + error.message)
+    if (error.message.includes('duplicate') || error.code === '23505') {
+  alert('❌ Ese número de serie ya existe en el sistema')
+} else {
+  alert('Error al guardar: ' + error.message)
+}
   }
   return
 }
