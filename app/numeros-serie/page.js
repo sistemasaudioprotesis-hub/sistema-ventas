@@ -47,24 +47,19 @@ export default function NumerosSerie() {
   }
 
   function handleChange(e) {
-    const { name, value } = e.target
+  const { name, value } = e.target
 
-    if (name === 'tipo_id') {
-      const filtrados = productos.filter(p => p.tipo_id === Number(value))
-      setProductosFiltrados(filtrados)
-      setForm({ ...form, tipo_id: value, producto_id: '' })
-      return
-    }
-
-    if (name === 'numero_serie') {
-  console.log('valor original:', value)
-  console.log('normalizado:', normalizarTexto(value))
-  setForm({ ...form, numero_serie: normalizarTexto(value) })
-  return
-}
-
-    setForm({ ...form, [name]: value })
+  if (name === 'tipo_id') {
+    const filtrados = productos.filter(p => p.tipo_id === Number(value))
+    setProductosFiltrados(filtrados)
+    setForm({ ...form, tipo_id: value, producto_id: '' })
+    return
   }
+
+  const camposTexto = ['numero_serie']
+  const nuevoValor = camposTexto.includes(name) ? normalizarTexto(value) : value
+  setForm({ ...form, [name]: nuevoValor })
+}
 
   async function guardar() {
   if (!form.producto_id || !form.numero_serie || !form.deposito_id) {
