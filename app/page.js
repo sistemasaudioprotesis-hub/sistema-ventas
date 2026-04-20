@@ -1,42 +1,100 @@
 'use client'
 
 export default function Home() {
+
   const sections = [
     {
       title: 'Pacientes',
-      icon: '👤',
-      cards: [
-        { title: 'Gestión de Pacientes', desc: 'Alta, búsqueda y edición de pacientes', href: '/pacientes' },
-      ]
+      items: [
+        {
+          href: '/pacientes',
+          label: 'Gestión de Pacientes',
+          desc: 'Alta, búsqueda y edición',
+          icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          ),
+        },
+        {
+          href: '/historial-pacientes',
+          label: 'Historial',
+          desc: 'Cambios en datos de pacientes',
+          icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          ),
+        },
+      ],
     },
     {
       title: 'Operaciones',
-      icon: '💼',
-      cards: [
-        { title: 'Ventas', desc: 'Registrar nuevas ventas y ver historial', href: '/ventas' },
-        { title: 'Pagos', desc: 'Gestionar pagos y saldos pendientes', href: '/pagos' },
-      ]
+      items: [
+        {
+          href: '/ventas',
+          label: 'Ventas',
+          desc: 'Registrar y ver ventas',
+          icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+          ),
+        },
+        {
+          href: '/pagos',
+          label: 'Pagos',
+          desc: 'Gestionar pagos y saldos',
+          icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+              <line x1="1" y1="10" x2="23" y2="10"/>
+            </svg>
+          ),
+        },
+      ],
     },
     {
       title: 'Stock',
-      icon: '📦',
-      cards: [
-        { title: 'Números de Serie', desc: 'Control de stock por número de serie', href: '/numeros_serie' },
-      ]
+      items: [
+        {
+          href: '/numeros_serie',
+          label: 'Números de Serie',
+          desc: 'Control de stock',
+          icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+          ),
+        },
+      ],
     },
   ]
 
   return (
     <div>
 
-      {/* Header */}
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>
-          Panel Principal
-        </h1>
-        <p style={{ color: '#6b7280', marginTop: '6px', fontSize: '14px' }}>
-          Bienvenido al sistema de gestión de Audioprotesis
-        </p>
+      {/* Header bienvenida */}
+      <div style={{
+        marginBottom: '36px',
+        padding: '28px 32px',
+        background: 'linear-gradient(135deg, #8B1E2D 0%, #b02038 100%)',
+        borderRadius: '16px',
+        color: 'white',
+      }}>
+        <div style={{ fontSize: '13px', fontWeight: '600', opacity: 0.7, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>
+          Sistema de Gestión
+        </div>
+        <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
+          AudioProtesis
+        </div>
+        <div style={{ fontSize: '14px', opacity: 0.75 }}>
+          Quilmes, Buenos Aires
+        </div>
       </div>
 
       {/* Secciones */}
@@ -45,42 +103,40 @@ export default function Home() {
 
           {/* Título sección */}
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
+            fontSize: '11px',
+            fontWeight: '700',
+            color: '#9ca3af',
+            letterSpacing: '1.5px',
+            textTransform: 'uppercase',
             marginBottom: '14px',
+            paddingLeft: '4px',
           }}>
-            <span style={{ fontSize: '18px' }}>{section.icon}</span>
-            <h2 style={{
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#374151',
-              margin: 0,
-            }}>
-              {section.title}
-            </h2>
+            {section.title}
           </div>
 
-          {/* Cards */}
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-            {section.cards.map(card => (
-              <a key={card.href} href={card.href} style={{ textDecoration: 'none' }}>
+          {/* Grid de items */}
+          <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+            {section.items.map(item => (
+              <a key={item.href} href={item.href} style={{ textDecoration: 'none' }}>
                 <div
                   style={{
                     background: 'white',
                     border: '1px solid #e5e7eb',
-                    borderRadius: '12px',
-                    padding: '20px 24px',
-                    minWidth: '220px',
-                    maxWidth: '280px',
+                    borderRadius: '14px',
+                    padding: '22px 24px',
+                    minWidth: '190px',
+                    maxWidth: '220px',
                     cursor: 'pointer',
-                    transition: '0.2s',
+                    transition: 'all 0.2s',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '14px',
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.borderColor = '#8B1E2D'
-                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(139,30,45,0.12)'
-                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(139,30,45,0.12)'
+                    e.currentTarget.style.transform = 'translateY(-3px)'
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.borderColor = '#e5e7eb'
@@ -88,21 +144,29 @@ export default function Home() {
                     e.currentTarget.style.transform = 'translateY(0)'
                   }}
                 >
+                  {/* Ícono circular estilo Instagram */}
                   <div style={{
-                    fontWeight: '600',
-                    fontSize: '15px',
-                    color: '#8B1E2D',
-                    marginBottom: '6px',
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '50%',
+                    background: '#8B1E2D',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
                   }}>
-                    {card.title}
+                    {item.icon}
                   </div>
-                  <div style={{
-                    fontSize: '13px',
-                    color: '#6b7280',
-                    lineHeight: '1.4',
-                  }}>
-                    {card.desc}
+
+                  <div>
+                    <div style={{ fontWeight: '700', fontSize: '15px', color: '#1a1a1a', marginBottom: '3px' }}>
+                      {item.label}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#9ca3af' }}>
+                      {item.desc}
+                    </div>
                   </div>
+
                 </div>
               </a>
             ))}
