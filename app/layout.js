@@ -61,10 +61,8 @@ export default function RootLayout({ children }) {
                   <img src="/logo.jpeg" alt="logo" style={{ width: '44px', height: '44px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)' }} />
                   <div>
                     <div style={{ fontWeight: '700', fontSize: '17px', lineHeight: 1.2 }}>AudioProtesis</div>
-                    <a href="/mi-perfil" style={{ textDecoration: 'none' }}>
-  <div style={{ fontSize: '13px', fontWeight: '600', color: 'white', marginBottom: '2px' }}>
-    {usuario.nombre}
-  </div>
+                    <div style={{ fontSize: '11px', opacity: 0.6, marginTop: '2px' }}>Quilmes, Bs As</div>
+                  </div>
                 </a>
               </div>
 
@@ -135,12 +133,14 @@ export default function RootLayout({ children }) {
                   padding: '14px 20px',
                   borderTop: '1px solid rgba(255,255,255,0.15)',
                 }}>
-                  <div style={{ fontSize: '13px', fontWeight: '600', color: 'white', marginBottom: '2px' }}>
-                    {usuario.nombre}
-                  </div>
-                  <div style={{ fontSize: '11px', opacity: 0.5, marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    {usuario.rol}
-                  </div>
+                  <a href="/mi-perfil" style={{ textDecoration: 'none' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: 'white', marginBottom: '2px' }}>
+                      {usuario.nombre}
+                    </div>
+                    <div style={{ fontSize: '11px', opacity: 0.5, marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      {usuario.rol} · Mi perfil →
+                    </div>
+                  </a>
                   <button onClick={cerrarSesion} style={{
                     background: 'rgba(255,255,255,0.1)',
                     border: '1px solid rgba(255,255,255,0.2)',
