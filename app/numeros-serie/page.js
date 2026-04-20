@@ -97,7 +97,14 @@ const { data: existe } = await supabase
       creado_por: 1,
     }])
 
-    if (error) { alert('Error al guardar'); return }
+    if (error) {
+  if (error.code === '23505') {
+    alert('❌ Ese número de serie ya existe en el sistema')
+  } else {
+    alert('Error al guardar: ' + error.message)
+  }
+  return
+}
 
     alert('Número de serie guardado')
     setForm({ tipo_id: '', producto_id: '', numero_serie: '', costo_usd: '', deposito_id: '' })
