@@ -57,9 +57,11 @@ export default function NumerosSerie() {
     }
 
     if (name === 'numero_serie') {
-      setForm({ ...form, numero_serie: normalizarTexto(value) })
-      return
-    }
+  console.log('valor original:', value)
+  console.log('normalizado:', normalizarTexto(value))
+  setForm({ ...form, numero_serie: normalizarTexto(value) })
+  return
+}
 
     setForm({ ...form, [name]: value })
   }
