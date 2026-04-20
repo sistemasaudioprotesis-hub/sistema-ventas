@@ -47,8 +47,9 @@ export default function RootLayout({ children }) {
             <nav style={{ padding: '20px 12px', flex: 1 }}>
 
               <NavSection label="Pacientes">
-                <NavItem href="/pacientes" icon="👤" label="Gestión de Pacientes" />
-              </NavSection>
+  <NavItem href="/pacientes" icon="👤" label="Gestión de Pacientes" />
+  <NavItem href="/historial-pacientes" icon="🕓" label="Historial" />
+</NavSection>
 
               <NavSection label="Operaciones">
                 <NavItem href="/ventas" icon="💰" label="Ventas" />
