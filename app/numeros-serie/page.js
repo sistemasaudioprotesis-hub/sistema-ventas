@@ -72,34 +72,37 @@ export default function NumerosSerie() {
 
   const numeroNormalizado = normalizarTexto(form.numero_serie)
 
-  try {
-    const { error } = await supabase.from('numeros_serie').insert([{
-      producto_id: Number(form.producto_id),
-      numero_serie: numeroNormalizado,
-      costo_usd: form.costo_usd ? Number(form.costo_usd) : null,
-      deposito_id: Number(form.deposito_id),
-      en_stock: true,
-      creado_por: 1,
-    }])
+  // Verificar duplicado ANTES de insertar
+  const { data: existe } = await supabase
+    .from('numeros_serie')
+    .select('id')
+    .eq('numero_serie', numeroNormalizado)
+    .maybeSingle()
 
-    if (error) {
-      if (error.code === '23505') {
-        alert('❌ Ese número de serie ya existe en el sistema')
-      } else {
-        alert('Error al guardar: ' + error.message)
-      }
-      return
-    }
-
-    alert('✅ Número de serie guardado')
-    setForm({ tipo_id: '', producto_id: '', numero_serie: '', costo_usd: '', deposito_id: '' })
-    setProductosFiltrados([])
-    setMostrarFormulario(false)
-    obtenerDatos()
-
-  } catch (e) {
-    alert('Error inesperado: ' + e.message)
+  if (existe) {
+    alert('❌ Ese número de serie ya existe en el sistema')
+    return
   }
+
+  const { error } = await supabase.from('numeros_serie').insert([{
+    producto_id: Number(form.producto_id),
+    numero_serie: numeroNormalizado,
+    costo_usd: form.costo_usd ? Number(form.costo_usd) : null,
+    deposito_id: Number(form.deposito_id),
+    en_stock: true,
+    creado_por: 1,
+  }])
+
+  if (error) {
+    alert('Error al guardar: ' + error.message)
+    return
+  }
+
+  alert('✅ Número de serie guardado')
+  setForm({ tipo_id: '', producto_id: '', numero_serie: '', costo_usd: '', deposito_id: '' })
+  setProductosFiltrados([])
+  setMostrarFormulario(false)
+  obtenerDatos()
 }
 
   // Filtros
