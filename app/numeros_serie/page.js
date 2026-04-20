@@ -4,18 +4,22 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { normalizarTexto } from '../../lib/formatText'
 
 export default function NumerosSerie() {
   const [series, setSeries] = useState([])
+  const [tipos, setTipos] = useState([])
   const [productos, setProductos] = useState([])
+  const [productosFiltrados, setProductosFiltrados] = useState([])
   const [depositos, setDepositos] = useState([])
-  const [filtroEstado, setFiltroEstado] = useState('stock') // 'stock' | 'vendido' | 'todos'
+  const [filtroEstado, setFiltroEstado] = useState('stock')
   const [filtroProducto, setFiltroProducto] = useState('')
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
 
   const [form, setForm] = useState({
-    numero_serie: '',
+    tipo_id: '',
     producto_id: '',
+    numero_serie: '',
     costo_usd: '',
     deposito_id: '',
   })
@@ -25,58 +29,81 @@ export default function NumerosSerie() {
   }, [])
 
   async function obtenerDatos() {
-    const [{ data: seriesData }, { data: productosData }, { data: depositosData }] = await Promise.all([
+    const [{ data: seriesData }, { data: tiposData }, { data: productosData }, { data: depositosData }] = await Promise.all([
       supabase.from('numeros_serie').select(`
         id, numero_serie, costo_usd, en_stock, fecha_salida, created_at,
         productos (id, producto),
         depositos (id, deposito)
       `).order('created_at', { ascending: false }),
-      supabase.from('productos').select('id, producto').order('producto'),
-      supabase.from('depositos').select('id, deposito').order('deposito'),
+      supabase.from('tipo_producto').select('*').order('tipo'),
+      supabase.from('productos').select('*').order('producto'),
+      supabase.from('depositos').select('*').order('deposito'),
     ])
 
-    console.log('series:', seriesData)  // 👈 acá
-    console.log('productos:', productosData)  // 👈 y acá
-
     setSeries(seriesData || [])
+    setTipos(tiposData || [])
     setProductos(productosData || [])
     setDepositos(depositosData || [])
   }
 
   function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+
+    if (name === 'tipo_id') {
+      const filtrados = productos.filter(p => p.tipo_id === Number(value))
+      setProductosFiltrados(filtrados)
+      setForm({ ...form, tipo_id: value, producto_id: '' })
+      return
+    }
+
+    const camposTexto = ['numero_serie']
+    const nuevoValor = camposTexto.includes(name) ? normalizarTexto(value) : value
+    setForm({ ...form, [name]: nuevoValor })
   }
 
   async function guardar() {
-    if (!form.numero_serie) { alert('Ingresar número de serie'); return }
-    if (!form.producto_id) { alert('Seleccionar producto'); return }
+    if (!form.producto_id || !form.numero_serie || !form.deposito_id) {
+      alert('Completar campos obligatorios')
+      return
+    }
+
+    const numeroNormalizado = normalizarTexto(form.numero_serie)
+
+    const { data: existe } = await supabase
+      .from('numeros_serie')
+      .select('id')
+      .ilike('numero_serie', numeroNormalizado)
+      .maybeSingle()
+
+    if (existe) {
+      alert('❌ Ese número de serie ya existe en el sistema')
+      return
+    }
 
     const { error } = await supabase.from('numeros_serie').insert([{
-      numero_serie: form.numero_serie.trim(),
       producto_id: Number(form.producto_id),
+      numero_serie: numeroNormalizado,
       costo_usd: form.costo_usd ? Number(form.costo_usd) : null,
-      deposito_id: form.deposito_id ? Number(form.deposito_id) : null,
+      deposito_id: Number(form.deposito_id),
       en_stock: true,
       creado_por: 1,
     }])
 
-    if (error) { alert('Error: ' + error.message); return }
+    if (error) {
+      alert('❌ Ese número de serie ya existe en el sistema')
+      return
+    }
 
-    alert('Número de serie agregado')
-    setForm({ numero_serie: '', producto_id: '', costo_usd: '', deposito_id: '' })
+    alert('✅ Número de serie guardado')
+    setForm({ tipo_id: '', producto_id: '', numero_serie: '', costo_usd: '', deposito_id: '' })
+    setProductosFiltrados([])
     setMostrarFormulario(false)
     obtenerDatos()
   }
 
-  // Filtros
   const seriesFiltradas = series.filter(s => {
-    const estadoOk =
-      filtroEstado === 'todos' ? true :
-      filtroEstado === 'stock' ? s.en_stock :
-      !s.en_stock
-
+    const estadoOk = filtroEstado === 'todos' ? true : filtroEstado === 'stock' ? s.en_stock : !s.en_stock
     const productoOk = filtroProducto ? s.productos?.id == filtroProducto : true
-
     return estadoOk && productoOk
   })
 
@@ -86,11 +113,11 @@ export default function NumerosSerie() {
   return (
     <div style={{ maxWidth: '850px' }}>
 
-      {/* Título */}
+      {/* Header */}
       <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>Números de Serie</h1>
-          <p style={{ color: '#6b7280', marginTop: '6px', fontSize: '14px' }}>Control de stock por número de serie</p>
+          <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '14px' }}>Control de stock por número de serie</p>
         </div>
         <button onClick={() => setMostrarFormulario(!mostrarFormulario)} style={btnPrimario}>
           {mostrarFormulario ? '✕ Cancelar' : '+ Agregar serie'}
@@ -113,37 +140,53 @@ export default function NumerosSerie() {
         </div>
       </div>
 
-      {/* Formulario nuevo */}
+      {/* Formulario */}
       {mostrarFormulario && (
         <div style={card}>
           <div style={cardTitle}>➕ Nueva serie</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
 
-            <div>
-              <label style={labelStyle}>Número de serie *</label>
-              <input name="numero_serie" placeholder="Ej: SN-12345" value={form.numero_serie} onChange={handleChange} style={inputStyle} />
-            </div>
-
-            <div>
-              <label style={labelStyle}>Producto *</label>
-              <select name="producto_id" value={form.producto_id} onChange={handleChange} style={inputStyle}>
-                <option value="">Seleccionar producto</option>
-                {productos.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
+            <Field label="Tipo de producto *">
+              <select name="tipo_id" value={form.tipo_id} onChange={handleChange} style={inputStyle}>
+                <option value="">Seleccionar tipo</option>
+                {tipos.map(t => <option key={t.id} value={t.id}>{t.tipo}</option>)}
               </select>
-            </div>
+            </Field>
 
-            <div>
-              <label style={labelStyle}>Costo USD</label>
-              <input name="costo_usd" placeholder="0.00" value={form.costo_usd} onChange={handleChange} style={inputStyle} />
-            </div>
+            <Field label="Producto *">
+              <select name="producto_id" value={form.producto_id} onChange={handleChange} style={inputStyle} disabled={!form.tipo_id}>
+                <option value="">Seleccionar producto</option>
+                {productosFiltrados.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
+              </select>
+            </Field>
 
-            <div>
-              <label style={labelStyle}>Depósito</label>
+            <Field label="Número de serie *">
+              <input
+                name="numero_serie"
+                placeholder="Ej: SN-12345"
+                value={form.numero_serie}
+                onChange={handleChange}
+                style={{ ...inputStyle, textTransform: 'uppercase' }}
+              />
+            </Field>
+
+            <Field label="Costo USD">
+              <input
+                type="number"
+                name="costo_usd"
+                placeholder="0.00"
+                value={form.costo_usd}
+                onChange={handleChange}
+                style={inputStyle}
+              />
+            </Field>
+
+            <Field label="Depósito *">
               <select name="deposito_id" value={form.deposito_id} onChange={handleChange} style={inputStyle}>
-                <option value="">Sin depósito</option>
+                <option value="">Seleccionar depósito</option>
                 {depositos.map(d => <option key={d.id} value={d.id}>{d.deposito}</option>)}
               </select>
-            </div>
+            </Field>
 
           </div>
           <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
@@ -155,7 +198,6 @@ export default function NumerosSerie() {
       {/* Filtros */}
       <div style={{ ...card, padding: '14px 20px' }}>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-
           <div style={{ display: 'flex', gap: '6px' }}>
             {[['stock', '✅ En stock'], ['vendido', '📦 Vendidos'], ['todos', 'Todos']].map(([val, label]) => (
               <button key={val} onClick={() => setFiltroEstado(val)} style={{
@@ -173,16 +215,14 @@ export default function NumerosSerie() {
               </button>
             ))}
           </div>
-
           <select value={filtroProducto} onChange={(e) => setFiltroProducto(e.target.value)} style={{ ...inputStyle, width: 'auto', flex: 1, minWidth: '180px' }}>
             <option value="">Todos los productos</option>
             {productos.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
           </select>
-
         </div>
       </div>
 
-      {/* Tabla */}
+      {/* Lista */}
       <div style={card}>
         <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>
           {seriesFiltradas.length} resultado{seriesFiltradas.length !== 1 ? 's' : ''}
@@ -207,16 +247,13 @@ export default function NumerosSerie() {
                 gap: '8px',
               }}>
                 <div>
-                  <div style={{ fontWeight: '600', fontSize: '15px', color: '#1a1a1a' }}>
-                    {s.numero_serie}
-                  </div>
+                  <div style={{ fontWeight: '600', fontSize: '15px', color: '#1a1a1a' }}>{s.numero_serie}</div>
                   <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
                     {s.productos?.producto || '-'}
                     {s.depositos?.deposito ? ` · ${s.depositos.deposito}` : ''}
                     {s.costo_usd ? ` · Costo: U$S ${s.costo_usd}` : ''}
                   </div>
                 </div>
-
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   {s.fecha_salida && (
                     <span style={{ fontSize: '12px', color: '#9ca3af' }}>
@@ -234,13 +271,21 @@ export default function NumerosSerie() {
                     {s.en_stock ? 'En stock' : 'Vendido'}
                   </span>
                 </div>
-
               </div>
             ))}
           </div>
         )}
       </div>
 
+    </div>
+  )
+}
+
+function Field({ label, children }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <label style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>{label}</label>
+      {children}
     </div>
   )
 }
@@ -258,14 +303,6 @@ const inputStyle = {
   boxSizing: 'border-box',
 }
 
-const labelStyle = {
-  fontSize: '13px',
-  fontWeight: '600',
-  color: '#6b7280',
-  marginBottom: '4px',
-  display: 'block',
-}
-
 const card = {
   background: 'white',
   border: '1px solid #e5e7eb',
@@ -279,7 +316,7 @@ const cardTitle = {
   fontSize: '14px',
   fontWeight: '600',
   color: '#374151',
-  marginBottom: '14px',
+  marginBottom: '16px',
 }
 
 const statCard = {
