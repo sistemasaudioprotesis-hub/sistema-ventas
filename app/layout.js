@@ -37,8 +37,10 @@ export default function RootLayout({ children }) {
               alignItems: 'center',
               gap: '14px',
             }}>
-              <img src="/logo.jpeg" alt="logo" style={{ width: '48px', height: '48px', borderRadius: '10px' }} />
-              <span style={{ fontWeight: '700', fontSize: '20px', letterSpacing: '0.2px' }}>Audioprotesis</span>
+<a href="/" style={{ textDecoration: 'none', color: 'white', display: 'flex', alignItems: 'center', gap: '14px' }}>
+  <img src="/logo.jpeg" alt="logo" style={{ width: '48px', height: '48px', borderRadius: '10px' }} />
+  <span style={{ fontWeight: '700', fontSize: '20px', letterSpacing: '0.2px' }}>Audioprotesis</span>
+</a>
             </div>
 
             {/* Navegación */}
