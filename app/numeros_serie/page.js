@@ -488,7 +488,7 @@ export default function NumerosSerie() {
                           color: s.cantidad > 0 ? '#16a34a' : '#dc2626',
                           fontWeight: '700', fontSize: '16px',
                         }}>
-                          {s.cantidad} ud{s.cantidad !== 1 ? 's' : ''}
+                          {s.cantidad} {s.cantidad !== 1 ? 'unidades' : 'unidad'}
                         </div>
                         <button onClick={() => setMostrarMovimiento(mostrarMovimiento === s.id ? null : s.id)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px' }}>
                           {mostrarMovimiento === s.id ? '✕' : '± Movimiento'}
