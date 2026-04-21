@@ -13,6 +13,7 @@ export default function Pacientes() {
   const dniParam = searchParams.get('dni')
 
   const [provincias, setProvincias] = useState([])
+  const [obrasSociales, setObrasSociales] = useState([])
   const [busqueda, setBusqueda] = useState('')
   const [resultados, setResultados] = useState([])
   const [pacienteId, setPacienteId] = useState(null)
@@ -28,10 +29,12 @@ export default function Pacientes() {
     provincia_id: '',
     mail: '',
     observaciones: '',
+    obra_social_id: '',
   })
 
   useEffect(() => {
     obtenerProvincias()
+    obtenerObrasSociales()
     if (dniParam) {
       setBusqueda(dniParam)
       cargarPacientePorDni(dniParam)
@@ -41,6 +44,11 @@ export default function Pacientes() {
   async function obtenerProvincias() {
     const { data } = await supabase.from('provincias').select('*')
     setProvincias(data || [])
+  }
+
+  async function obtenerObrasSociales() {
+    const { data } = await supabase.from('obras_sociales').select('*').order('obra_social')
+    setObrasSociales(data || [])
   }
 
   function handleChange(e) {
@@ -56,7 +64,7 @@ export default function Pacientes() {
     setBusqueda('')
     setResultados([])
     setGuardado(false)
-    setForm({ apellido_paciente: '', nombres_paciente: '', dni: '', telefono: '', domicilio: '', localidad: '', provincia_id: '', mail: '', observaciones: '' })
+    setForm({ apellido_paciente: '', nombres_paciente: '', dni: '', telefono: '', domicilio: '', localidad: '', provincia_id: '', mail: '', observaciones: '', obra_social_id: '' })
   }
 
   async function buscarPaciente() {
@@ -90,6 +98,7 @@ export default function Pacientes() {
         provincia_id: data.provincia_id ? String(data.provincia_id) : '',
         mail: data.mail || '',
         observaciones: data.observaciones || '',
+        obra_social_id: data.obra_social_id ? String(data.obra_social_id) : '',
       })
       setGuardado(true)
     }
@@ -98,6 +107,12 @@ export default function Pacientes() {
   async function guardar(destino) {
     if (!form.apellido_paciente || !form.nombres_paciente || !form.dni) { alert('Completar campos obligatorios'); return }
     if (!form.provincia_id) { alert('Seleccionar provincia'); return }
+
+    const dataGuardar = {
+      ...form,
+      provincia_id: Number(form.provincia_id),
+      obra_social_id: form.obra_social_id ? Number(form.obra_social_id) : null,
+    }
 
     if (pacienteId) {
       const { data: pacienteActual } = await supabase.from('pacientes').select('*').eq('id', pacienteId).single()
@@ -113,10 +128,10 @@ export default function Pacientes() {
         observaciones: pacienteActual.observaciones,
         creado_por: getUsuarioId(),
       }])
-      await supabase.from('pacientes').update({ ...form, provincia_id: Number(form.provincia_id) }).eq('id', pacienteId)
+      await supabase.from('pacientes').update(dataGuardar).eq('id', pacienteId)
       alert('Paciente actualizado')
     } else {
-      await supabase.from('pacientes').insert([{ ...form, provincia_id: Number(form.provincia_id), creado_por: getUsuarioId() }])
+      await supabase.from('pacientes').insert([{ ...dataGuardar, creado_por: getUsuarioId() }])
       alert('Paciente creado')
     }
 
@@ -173,6 +188,7 @@ export default function Pacientes() {
               provincia_id: p.provincia_id ? String(p.provincia_id) : '',
               mail: p.mail || '',
               observaciones: p.observaciones || '',
+              obra_social_id: p.obra_social_id ? String(p.obra_social_id) : '',
             })
             setResultados([])
             setGuardado(true)
@@ -232,9 +248,17 @@ export default function Pacientes() {
             </Field>
           </div>
 
-          <Field label="Mail">
-            <input name="mail" placeholder="correo@ejemplo.com" value={form.mail} onChange={handleChange} style={inputStyle} />
-          </Field>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            <Field label="Mail">
+              <input name="mail" placeholder="correo@ejemplo.com" value={form.mail} onChange={handleChange} style={inputStyle} />
+            </Field>
+            <Field label="Obra Social">
+              <select name="obra_social_id" value={form.obra_social_id} onChange={handleChange} style={inputStyle}>
+                <option value="">Sin obra social</option>
+                {obrasSociales.map(o => <option key={o.id} value={o.id}>{o.obra_social}</option>)}
+              </select>
+            </Field>
+          </div>
 
           <Field label="Observaciones">
             <textarea name="observaciones" placeholder="Observaciones..." value={form.observaciones} onChange={handleChange} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
@@ -242,15 +266,12 @@ export default function Pacientes() {
 
           {/* Botones */}
           <div style={{ paddingTop: '12px', borderTop: '1px solid #f3f4f6' }}>
-
-            {/* Guardar */}
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
               <button onClick={() => guardar('')} style={btnPrimario}>💾 Guardar</button>
               <button onClick={() => guardar('ventas')} style={btnSecundario}>Guardar e ir a Ventas</button>
               <button onClick={() => guardar('pagos')} style={btnSecundario}>Guardar e ir a Pagos</button>
             </div>
 
-            {/* Ir sin guardar — solo si hay paciente cargado */}
             {pacienteId && guardado && (
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <button onClick={() => window.location.href = `/ventas?dni=${form.dni}`} style={btnFantasma}>
@@ -261,7 +282,6 @@ export default function Pacientes() {
                 </button>
               </div>
             )}
-
           </div>
         </div>
       </div>
@@ -280,66 +300,34 @@ function Field({ label, children }) {
 }
 
 const inputStyle = {
-  width: '100%',
-  padding: '10px 14px',
-  borderRadius: '8px',
-  border: '1px solid #e5e7eb',
-  fontSize: '15px',
-  fontFamily: "'Outfit', sans-serif",
-  background: 'white',
-  color: '#1a1a1a',
-  outline: 'none',
-  boxSizing: 'border-box',
+  width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb',
+  fontSize: '15px', fontFamily: "'Outfit', sans-serif", background: 'white',
+  color: '#1a1a1a', outline: 'none', boxSizing: 'border-box',
 }
 
 const card = {
-  background: 'white',
-  border: '1px solid #e5e7eb',
-  borderRadius: '12px',
-  padding: '20px 24px',
-  marginBottom: '20px',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+  background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px',
+  padding: '20px 24px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
 }
 
 const cardTitle = {
-  fontSize: '14px',
-  fontWeight: '600',
-  color: '#374151',
-  marginBottom: '0',
+  fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '0',
 }
 
 const btnPrimario = {
-  padding: '10px 20px',
-  background: '#8B1E2D',
-  color: 'white',
-  border: 'none',
-  borderRadius: '8px',
-  fontSize: '15px',
-  fontWeight: '600',
-  cursor: 'pointer',
+  padding: '10px 20px', background: '#8B1E2D', color: 'white', border: 'none',
+  borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer',
   fontFamily: "'Outfit', sans-serif",
 }
 
 const btnSecundario = {
-  padding: '10px 20px',
-  background: 'white',
-  color: '#374151',
-  border: '1px solid #e5e7eb',
-  borderRadius: '8px',
-  fontSize: '15px',
-  fontWeight: '500',
-  cursor: 'pointer',
+  padding: '10px 20px', background: 'white', color: '#374151', border: '1px solid #e5e7eb',
+  borderRadius: '8px', fontSize: '15px', fontWeight: '500', cursor: 'pointer',
   fontFamily: "'Outfit', sans-serif",
 }
 
 const btnFantasma = {
-  padding: '8px 16px',
-  background: 'transparent',
-  color: '#8B1E2D',
-  border: '1px dashed #8B1E2D',
-  borderRadius: '8px',
-  fontSize: '13px',
-  fontWeight: '500',
-  cursor: 'pointer',
-  fontFamily: "'Outfit', sans-serif",
+  padding: '8px 16px', background: 'transparent', color: '#8B1E2D',
+  border: '1px dashed #8B1E2D', borderRadius: '8px', fontSize: '13px',
+  fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
 }
