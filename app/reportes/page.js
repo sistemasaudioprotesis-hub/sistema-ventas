@@ -169,7 +169,9 @@ export default function Reportes() {
           main { margin-left: 0 !important; padding: 20px !important; }
           body { background: white; }
           tr { page-break-inside: avoid; }
-          table { font-size: 11px; }
+          table { font-size: 10px; }
+body { font-size: 12px; }
+td, th { padding: 6px 8px !important; }
         }
         .print-only { display: none; }
       `}</style>
