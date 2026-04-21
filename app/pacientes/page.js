@@ -123,19 +123,18 @@ export default function Pacientes() {
   }
 
   async function cargarVisitas(pid) {
-    const { data } = await supabase
-      .from('visitas')
-      .select(`
-        id, fecha, observaciones, created_at,
-        visita_motivos (motivo),
-        usuarios (nombre),
-        ventas (id, fecha, total_pesos, total_dolares)
-      `)
-      .eq('paciente_id', pid)
-      .order('fecha', { ascending: false })
-    console.log('visitas:', data)
-setVisitas(data || [])
-  }
+  const { data } = await supabase
+    .from('visitas')
+    .select(`
+      id, fecha, observaciones, created_at, atendido_por,
+      visita_motivos (motivo),
+      ventas (id, fecha, total_pesos, total_dolares)
+    `)
+    .eq('paciente_id', pid)
+    .order('fecha', { ascending: false })
+  console.log('visitas:', data)
+  setVisitas(data || [])
+}
 
   async function cargarVentasPaciente(pid) {
     const { data } = await supabase
