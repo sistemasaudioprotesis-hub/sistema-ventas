@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
+import { getUsuarioId } from '../../lib/getUsuario'
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
@@ -123,7 +124,7 @@ export default function Pagos() {
       forma_pago_id: Number(form.forma_pago_id),
       monto_pesos: montoPesos || null,
       monto_usd: montoUsd || null,
-      creado_por: 1,
+      creado_por: getUsuarioId(),
     }])
 
     if (error) { alert('Error: ' + error.message); return }
