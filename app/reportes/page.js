@@ -18,7 +18,6 @@ export default function Reportes() {
   const [tab, setTab] = useState('ventas')
   const [cargando, setCargando] = useState(false)
 
-  // Filtro paciente con dropdown
   const [busquedaPaciente, setBusquedaPaciente] = useState('')
   const [resultadosPaciente, setResultadosPaciente] = useState([])
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null)
@@ -156,23 +155,50 @@ export default function Reportes() {
   const fmtFecha = (f) => new Date(f).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
   const fmtHora = (f) => new Date(f).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
 
+  const tabLabels = { ventas: 'Ventas', pagos: 'Pagos', caja: 'Caja', visitas: 'Visitas' }
+
   return (
     <div style={{ maxWidth: '960px' }}>
 
       {/* Estilos de impresión */}
       <style>{`
-  @media print {
-    .no-print { display: none !important; }
-    .print-title { display: block !important; }
-    aside { display: none !important; }
-    main { margin-left: 0 !important; padding: 20px !important; }
-    body { background: white; }
-    tr { page-break-inside: avoid; }
-  }
-  .print-title { display: none; }
-`}</style>
+        @media print {
+          .no-print { display: none !important; }
+          .print-only { display: block !important; }
+          aside { display: none !important; }
+          main { margin-left: 0 !important; padding: 20px !important; }
+          body { background: white; }
+          tr { page-break-inside: avoid; }
+          table { font-size: 11px; }
+        }
+        .print-only { display: none; }
+      `}</style>
 
-      {/* Header */}
+      {/* Header de impresión — visible solo al imprimir */}
+      <div className="print-only" style={{
+        marginBottom: '20px', paddingBottom: '14px',
+        borderBottom: '2px solid #8B1E2D',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <img src="/logo.jpeg" style={{ width: '48px', height: '48px', borderRadius: '50%' }} alt="logo" />
+            <div>
+              <div style={{ fontWeight: '700', fontSize: '18px', color: '#8B1E2D' }}>AudioProtesis</div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>Quilmes, Buenos Aires</div>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a' }}>
+              Reporte de {tabLabels[tab]} — {fmtFecha(desde)} al {fmtFecha(hasta)}
+            </div>
+            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+              Impreso: {new Date().toLocaleDateString('es-AR')} {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Header pantalla */}
       <div style={{ marginBottom: '28px' }} className="no-print">
         <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>Reportes</h1>
         <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '14px' }}>Ventas, pagos, caja y visitas por período</p>
@@ -277,9 +303,6 @@ export default function Reportes() {
             </div>
             <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
           </div>
-          <div className="print-title" style={{ marginBottom: '12px' }}>
-            <strong>Reporte de Ventas</strong> — {fmtFecha(desde)} al {fmtFecha(hasta)}
-          </div>
           <div style={card}>
             {ventas.length === 0 ? (
               <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay ventas para el período seleccionado</div>
@@ -325,7 +348,7 @@ export default function Reportes() {
                       </td>
                     </tr>
                   ))}
-                  <tr style={{ background: '#1a1a1a', color: 'white' }}>
+                  <tr style={{ background: '#1a1a1a' }}>
                     <td colSpan={5} style={{ ...tdStyle, color: 'white', fontWeight: '700' }}>TOTAL ({ventas.length} ventas)</td>
                     <td style={{ ...tdStyle, textAlign: 'right', color: '#86efac', fontWeight: '700' }}>{fmt(totalVentasPesos)}</td>
                     <td style={{ ...tdStyle, textAlign: 'right', color: '#93c5fd', fontWeight: '700' }}>{fmtUSD(totalVentasUSD)}</td>
@@ -346,9 +369,6 @@ export default function Reportes() {
               {pagos.length} pagos · {fmt(totalPagadoPesos)} · {fmtUSD(totalPagadoUSD)}
             </div>
             <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
-          </div>
-          <div className="print-title" style={{ marginBottom: '12px' }}>
-            <strong>Reporte de Pagos</strong> — {fmtFecha(desde)} al {fmtFecha(hasta)}
           </div>
           <div style={card}>
             {pagos.length === 0 ? (
@@ -382,7 +402,7 @@ export default function Reportes() {
                       </td>
                     </tr>
                   ))}
-                  <tr style={{ background: '#1a1a1a', color: 'white' }}>
+                  <tr style={{ background: '#1a1a1a' }}>
                     <td colSpan={5} style={{ ...tdStyle, color: 'white', fontWeight: '700' }}>TOTAL ({pagos.length} pagos)</td>
                     <td style={{ ...tdStyle, textAlign: 'right', color: '#86efac', fontWeight: '700' }}>{fmt(totalPagadoPesos)}</td>
                     <td style={{ ...tdStyle, textAlign: 'right', color: '#93c5fd', fontWeight: '700' }}>{fmtUSD(totalPagadoUSD)}</td>
@@ -398,15 +418,9 @@ export default function Reportes() {
       {tab === 'caja' && (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <div style={{ fontSize: '14px', color: '#6b7280' }}>
-              {movimientosCaja.length} movimientos
-            </div>
+            <div style={{ fontSize: '14px', color: '#6b7280' }}>{movimientosCaja.length} movimientos</div>
             <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
           </div>
-          <div className="print-title" style={{ marginBottom: '12px' }}>
-            <strong>Reporte de Caja</strong> — {fmtFecha(desde)} al {fmtFecha(hasta)}
-          </div>
-          {/* Resumen */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '20px' }}>
             {[
               { label: 'Caja Pesos', ingresos: ingresosPesos, egresos: egresosPesos, fmt: fmt },
@@ -449,7 +463,7 @@ export default function Reportes() {
                     <tr key={m.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
                       <td style={tdStyle}>{fmtFecha(m.created_at)}</td>
                       <td style={tdStyle}>{m.concepto}</td>
-                      <td style={tdStyle}>{m.origen === 'pago' ? '🔗 Pago' : '✏️ Manual'}</td>
+                      <td style={tdStyle}>{m.origen === 'pago' ? 'Pago' : 'Manual'}</td>
                       <td style={tdStyle}>
                         <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: m.tipo === 'ingreso' ? '#dcfce7' : '#fef2f2', color: m.tipo === 'ingreso' ? '#16a34a' : '#dc2626' }}>
                           {m.tipo}
@@ -486,9 +500,6 @@ export default function Reportes() {
               ))}
             </div>
             <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
-          </div>
-          <div className="print-title" style={{ marginBottom: '12px' }}>
-            <strong>Reporte de Visitas</strong> — {fmtFecha(desde)} al {fmtFecha(hasta)}
           </div>
           <div style={card}>
             {visitas.length === 0 ? (
@@ -543,9 +554,6 @@ function Field({ label, children }) {
 const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '15px', fontFamily: "'Outfit', sans-serif", background: 'white', color: '#1a1a1a', outline: 'none', boxSizing: 'border-box' }
 const card = { background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px 24px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }
 const cardTitle = { fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '16px' }
-const statCard = { background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }
-const statLabel = { fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }
-const statNum = { fontSize: '24px', fontWeight: '700', color: '#1a1a1a' }
 const btnPrimario = { padding: '10px 20px', background: '#8B1E2D', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
 const btnImprimir = { padding: '8px 16px', background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
 const tableStyle = { width: '100%', borderCollapse: 'collapse', fontSize: '13px' }
