@@ -188,7 +188,6 @@ setVisitas(data || [])
   if (!pacienteId) { alert('Primero seleccioná un paciente'); return }
   if (!formVisita.motivo_id) { alert('Seleccionar motivo'); return }
 
-  const usuario = getUsuario()
   const { error } = await supabase.from('visitas').insert([{
     paciente_id: pacienteId,
     fecha: new Date().toISOString(),
@@ -199,6 +198,18 @@ setVisitas(data || [])
     creado_por: getUsuarioId(),
   }])
 
+  if (error) { alert('Error: ' + error.message); return }
+
+  alert('✅ Visita registrada')
+  setFormVisita({ motivo_id: '', observaciones: '', venta_id: '' })
+  setMostrarFormVisita(false)
+  setBusquedaMotivo('')
+
+  const pid = pacienteId
+  const { data: nuevasVisitas, error: errorVisitas } = await supabase
+    .from('visitas')
+    .select('*')
+    .e
   if (error) { alert('Error: ' + error.message); return }
 
   alert('✅ Visita registrada')
