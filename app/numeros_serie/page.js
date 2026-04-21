@@ -183,11 +183,11 @@ export default function NumerosSerie() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <Field label="Nombre del tipo *">
                 <input
-                  placeholder="Ej: AUDIFONOS"
-                  value={formTipo.tipo}
-                  onChange={(e) => setFormTipo({ ...formTipo, tipo: e.target.value })}
-                  style={inputStyle}
-                />
+  placeholder="Ej: AUDIFONOS"
+  value={formTipo.tipo}
+  onChange={(e) => setFormTipo({ ...formTipo, tipo: e.target.value })}
+  style={{ ...inputStyle, textTransform: 'uppercase' }}
+/>
               </Field>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
@@ -217,11 +217,11 @@ export default function NumerosSerie() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <Field label="Nombre del producto *">
                 <input
-                  placeholder="Ej: INTRACANAL"
-                  value={formProducto.producto}
-                  onChange={(e) => setFormProducto({ ...formProducto, producto: e.target.value })}
-                  style={inputStyle}
-                />
+  placeholder="Ej: INTRACANAL"
+  value={formProducto.producto}
+  onChange={(e) => setFormProducto({ ...formProducto, producto: e.target.value })}
+  style={{ ...inputStyle, textTransform: 'uppercase' }}
+/>
               </Field>
               <Field label="Tipo de producto *">
                 <select
@@ -250,11 +250,11 @@ export default function NumerosSerie() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <Field label="Nombre del depósito *">
                 <input
-                  placeholder="Ej: LOCAL QUILMES"
-                  value={formDeposito.deposito}
-                  onChange={(e) => setFormDeposito({ ...formDeposito, deposito: e.target.value })}
-                  style={inputStyle}
-                />
+  placeholder="Ej: LOCAL QUILMES"
+  value={formDeposito.deposito}
+  onChange={(e) => setFormDeposito({ ...formDeposito, deposito: e.target.value })}
+  style={{ ...inputStyle, textTransform: 'uppercase' }}
+/>
               </Field>
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
