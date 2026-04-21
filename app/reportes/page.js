@@ -318,7 +318,7 @@ export default function Reportes() {
                     <th style={thStyle}>DNI</th>
                     <th style={thStyle}>Productos</th>
                     <th style={{ ...thStyle, textAlign: 'right' }}>Total $</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>U$S</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Total U$S</th>
                     <th style={thStyle}>Estado</th>
                   </tr>
                 </thead>
