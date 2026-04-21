@@ -128,10 +128,10 @@ export default function Pagos() {
     }])
 
     if (error) { alert('Error: ' + error.message); return }
-    alert('Pago registrado')
-    router.replace(`/ventas?dni=${dni}`)
+alert('✅ Pago registrado')
+setForm({ forma_pago_id: '', monto_pesos: '', monto_usd: '' })
+cargarDetalleVenta(ventaSeleccionada)
   }
-
   const saldoPesos = totalPesos - pagadoPesos
   const saldoUSD = totalUSD - pagadoUSD
 
