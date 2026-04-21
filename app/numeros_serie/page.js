@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
+import { getUsuarioId } from '../../lib/getUsuario'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { normalizarTexto } from '../../lib/formatText'
@@ -90,7 +91,7 @@ export default function NumerosSerie() {
       costo_usd: form.costo_usd ? Number(form.costo_usd) : null,
       deposito_id: Number(form.deposito_id),
       en_stock: true,
-      creado_por: 1,
+      creado_por: getUsuarioId(),
     }])
 
     if (error) {
@@ -111,7 +112,7 @@ export default function NumerosSerie() {
   const nombre = normalizarTexto(formTipo.tipo)
   const { data: existe } = await supabase.from('tipo_producto').select('id').ilike('tipo', nombre).maybeSingle()
   if (existe) { alert('❌ Ese tipo ya existe'); return }
-  const { error } = await supabase.from('tipo_producto').insert([{ tipo: nombre, requiere_serie: formTipo.requiere_serie, creado_por: 1 }])
+  const { error } = await supabase.from('tipo_producto').insert([{ tipo: nombre, requiere_serie: formTipo.requiere_serie, creado_por: getUsuarioId()}])
   if (error) { alert('Error: ' + error.message); return }
   alert('✅ Tipo creado')
   setFormTipo({ tipo: '', requiere_serie: true })
@@ -125,7 +126,7 @@ export default function NumerosSerie() {
   const nombre = normalizarTexto(formProducto.producto)
   const { data: existe } = await supabase.from('productos').select('id').ilike('producto', nombre).maybeSingle()
   if (existe) { alert('❌ Ese producto ya existe'); return }
-  const { error } = await supabase.from('productos').insert([{ producto: nombre, tipo_id: Number(formProducto.tipo_id), activo: true, creado_por: 1 }])
+  const { error } = await supabase.from('productos').insert([{ producto: nombre, tipo_id: Number(formProducto.tipo_id), activo: true, creado_por: getUsuarioId() }])
   if (error) { alert('Error: ' + error.message); return }
   alert('✅ Producto creado')
   setFormProducto({ producto: '', tipo_id: '' })
@@ -139,7 +140,7 @@ export default function NumerosSerie() {
   const nombre = normalizarTexto(formDeposito.deposito)
   const { data: existe } = await supabase.from('depositos').select('id').ilike('deposito', nombre).maybeSingle()
   if (existe) { alert('❌ Ese depósito ya existe'); return }
-  const { error } = await supabase.from('depositos').insert([{ deposito: nombre, creado_por: 1 }])
+  const { error } = await supabase.from('depositos').insert([{ deposito: nombre, creado_por: getUsuarioId() }])
   if (error) { alert('Error: ' + error.message); return }
   alert('✅ Depósito creado')
   setFormDeposito({ deposito: '' })
