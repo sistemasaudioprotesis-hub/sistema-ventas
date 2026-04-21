@@ -16,9 +16,11 @@ export default function Ventas() {
   const [busqueda, setBusqueda] = useState('')
   const [resultados, setResultados] = useState([])
   const [series, setSeries] = useState([])
-  const [seriesAll, setSeriesAll] = useState([]) // todas incluyendo vendidas para edición
+  const [seriesAll, setSeriesAll] = useState([])
   const [seriesFiltradas, setSeriesFiltradas] = useState([])
   const [productos, setProductos] = useState([])
+  const [obrasSociales, setObrasSociales] = useState([])
+  const [obraSocialId, setObraSocialId] = useState('')
   const [modoConSerie, setModoConSerie] = useState(true)
   const [ventaId, setVentaId] = useState(null)
   const [ventaConfirmada, setVentaConfirmada] = useState(false)
@@ -43,6 +45,7 @@ export default function Ventas() {
   useEffect(() => {
     obtenerSeries()
     obtenerProductos()
+    obtenerObrasSociales()
     const dniParam = searchParams.get('dni')
     if (dniParam) {
       setDni(dniParam)
@@ -66,10 +69,17 @@ export default function Ventas() {
     setProductos(data || [])
   }
 
+  async function obtenerObrasSociales() {
+    const { data } = await supabase.from('obras_sociales').select('*').order('obra_social')
+    setObrasSociales(data || [])
+  }
+
   async function buscarPacienteAutomatico(dniParam) {
     const { data } = await supabase.from('pacientes').select('*').eq('dni', Number(dniParam))
     if (data && data.length === 1) {
-      setPaciente(data[0]); setDni(data[0].dni)
+      setPaciente(data[0])
+      setDni(data[0].dni)
+      setObraSocialId(data[0].obra_social_id ? String(data[0].obra_social_id) : '')
       cargarVentasPaciente(data[0].id)
     } else if (data && data.length > 1) setResultados(data)
   }
@@ -78,7 +88,8 @@ export default function Ventas() {
     const { data } = await supabase
       .from('ventas')
       .select(`
-        id, fecha, confirmada, total_pesos, total_dolares,
+        id, fecha, confirmada, total_pesos, total_dolares, obra_social_id,
+        obras_sociales (obra_social),
         venta_detalle (
           id, precio_venta_pesos, precio_venta_usd, numero_serie_id, producto_id,
           numeros_serie (id, numero_serie, productos (producto)),
@@ -139,7 +150,11 @@ export default function Ventas() {
 
     if (!ventaActualId) {
       const { data: venta } = await supabase.from('ventas').insert([{
-        paciente_id: paciente.id, fecha, creado_por: getUsuarioId(), confirmada: false
+        paciente_id: paciente.id,
+        fecha,
+        creado_por: getUsuarioId(),
+        confirmada: false,
+        obra_social_id: obraSocialId ? Number(obraSocialId) : null,
       }]).select().single()
       ventaActualId = venta.id
       setVentaId(ventaActualId)
@@ -185,7 +200,10 @@ export default function Ventas() {
   async function confirmarVenta() {
     if (!ventaId) return alert('No hay venta')
     const { error } = await supabase.from('ventas').update({
-      confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD
+      confirmada: true,
+      total_pesos: totalPesos,
+      total_dolares: totalUSD,
+      obra_social_id: obraSocialId ? Number(obraSocialId) : null,
     }).eq('id', ventaId)
     if (error) { alert('Error: ' + error.message); return }
     setVentaConfirmada(true)
@@ -201,12 +219,16 @@ export default function Ventas() {
   async function finalizarVenta() {
     if (!ventaId) return alert('No hay venta')
     const { error } = await supabase.from('ventas').update({
-      confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD
+      confirmada: true,
+      total_pesos: totalPesos,
+      total_dolares: totalUSD,
+      obra_social_id: obraSocialId ? Number(obraSocialId) : null,
     }).eq('id', ventaId)
     if (error) { alert('Error: ' + error.message); return }
     alert('✅ Venta finalizada sin pagos')
     setVentaId(null); setPaciente(null); setDni(''); setItems([])
     setVentaConfirmada(false); setBusqueda(''); setVentasPaciente([])
+    setObraSocialId('')
   }
 
   // ---- EDICIÓN ----
@@ -226,8 +248,7 @@ export default function Ventas() {
     if (name === 'producto_id') {
       const prod = productos.find(p => p.id === Number(value))
       setModoConSerieEdicion(prod?.tipo_producto?.requiere_serie)
-      // Para edición mostramos todas las series en stock + la que ya tiene ese item
-      setSeriesFiltradasEdicion(seriesAll.filter(s => s.producto_id === Number(value) && (s.en_stock)))
+      setSeriesFiltradasEdicion(seriesAll.filter(s => s.producto_id === Number(value) && s.en_stock))
       setFormEdicion({ ...formEdicion, producto_id: value, numero_serie_id: '' })
       return
     }
@@ -235,44 +256,6 @@ export default function Ventas() {
   }
 
   async function guardarCambioItem(item, campo, valor) {
-  await supabase.from('venta_detalle_historial').insert([{
-    venta_detalle_id: item.id,
-    venta_id: ventaEditando.id,
-    numero_serie_id: item.numero_serie_id,
-    producto_id: item.producto_id,
-    precio_venta_pesos: item.precio_venta_pesos,
-    precio_venta_usd: item.precio_venta_usd,
-    modificado_por: getUsuarioId(),
-  }])
-
-  const updateData = { [campo]: valor }
-
-  if (campo === 'numero_serie_id') {
-    if (item.numero_serie_id) {
-      await supabase.from('numeros_serie').update({ en_stock: true, fecha_salida: null }).eq('id', item.numero_serie_id)
-    }
-    if (valor) {
-      await supabase.from('numeros_serie').update({ en_stock: false, fecha_salida: new Date().toISOString() }).eq('id', valor)
-    }
-    // Actualizar info de la serie en el estado local
-    const nuevaSerie = seriesAll.find(s => s.id === valor)
-    setItemsEdicion(itemsEdicion.map(i => i.id === item.id ? {
-      ...i,
-      numero_serie_id: valor,
-      numeros_serie: nuevaSerie ? { id: nuevaSerie.id, numero_serie: nuevaSerie.numero_serie, productos: nuevaSerie.productos } : null
-    } : i))
-  } else {
-    setItemsEdicion(itemsEdicion.map(i => i.id === item.id ? { ...i, [campo]: valor } : i))
-  }
-
-  await supabase.from('venta_detalle').update(updateData).eq('id', item.id)
-  obtenerSeries()
-}
-
-  async function eliminarItemEdicion(item) {
-    if (!confirm('¿Eliminar este producto de la venta?')) return
-
-    // Guardar historial
     await supabase.from('venta_detalle_historial').insert([{
       venta_detalle_id: item.id,
       venta_id: ventaEditando.id,
@@ -283,12 +266,39 @@ export default function Ventas() {
       modificado_por: getUsuarioId(),
     }])
 
-    await supabase.from('venta_detalle').delete().eq('id', item.id)
+    if (campo === 'numero_serie_id') {
+      if (item.numero_serie_id) {
+        await supabase.from('numeros_serie').update({ en_stock: true, fecha_salida: null }).eq('id', item.numero_serie_id)
+      }
+      if (valor) {
+        await supabase.from('numeros_serie').update({ en_stock: false, fecha_salida: new Date().toISOString() }).eq('id', valor)
+      }
+      const nuevaSerie = seriesAll.find(s => s.id === valor)
+      setItemsEdicion(itemsEdicion.map(i => i.id === item.id ? {
+        ...i,
+        numero_serie_id: valor,
+        numeros_serie: nuevaSerie ? { id: nuevaSerie.id, numero_serie: nuevaSerie.numero_serie, productos: nuevaSerie.productos } : null
+      } : i))
+    } else {
+      setItemsEdicion(itemsEdicion.map(i => i.id === item.id ? { ...i, [campo]: valor } : i))
+    }
 
+    await supabase.from('venta_detalle').update({ [campo]: valor }).eq('id', item.id)
+    obtenerSeries()
+  }
+
+  async function eliminarItemEdicion(item) {
+    if (!confirm('¿Eliminar este producto de la venta?')) return
+    await supabase.from('venta_detalle_historial').insert([{
+      venta_detalle_id: item.id, venta_id: ventaEditando.id,
+      numero_serie_id: item.numero_serie_id, producto_id: item.producto_id,
+      precio_venta_pesos: item.precio_venta_pesos, precio_venta_usd: item.precio_venta_usd,
+      modificado_por: getUsuarioId(),
+    }])
+    await supabase.from('venta_detalle').delete().eq('id', item.id)
     if (item.numero_serie_id) {
       await supabase.from('numeros_serie').update({ en_stock: true, fecha_salida: null }).eq('id', item.numero_serie_id)
     }
-
     setItemsEdicion(itemsEdicion.filter(i => i.id !== item.id))
     obtenerSeries()
   }
@@ -299,7 +309,6 @@ export default function Ventas() {
     if (!modoConSerieEdicion && !formEdicion.producto_id) return alert('Seleccionar producto')
 
     const fecha = new Date().toISOString()
-
     const { data: detalle } = await supabase.from('venta_detalle').insert([{
       venta_id: ventaEditando.id,
       numero_serie_id: modoConSerieEdicion ? Number(formEdicion.numero_serie_id) : null,
@@ -334,7 +343,6 @@ export default function Ventas() {
     const nuevoTotalPesos = itemsEdicion.reduce((acc, i) => acc + (Number(i.precio_venta_pesos) || 0), 0)
     const nuevoTotalUSD = itemsEdicion.reduce((acc, i) => acc + (Number(i.precio_venta_usd) || 0), 0)
 
-    // Guardar historial de la venta
     await supabase.from('ventas_historial').insert([{
       venta_id: ventaEditando.id,
       total_pesos: ventaEditando.total_pesos,
@@ -386,6 +394,7 @@ export default function Ventas() {
             const p = resultados.find(x => x.id == e.target.value)
             if (!p) return
             setPaciente(p); setDni(p.dni); setResultados([])
+            setObraSocialId(p.obra_social_id ? String(p.obra_social_id) : '')
             cargarVentasPaciente(p.id)
           }} style={{ ...inputStyle, marginTop: '10px' }}>
             <option value="">Seleccionar paciente ({resultados.length} encontrados)</option>
@@ -435,6 +444,23 @@ export default function Ventas() {
       {/* TAB NUEVA VENTA */}
       {tab === 'nueva' && (
         <>
+          {/* Obra social */}
+          {paciente && (
+            <div style={{ ...card, padding: '14px 20px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                <label style={{ ...labelStyle, marginBottom: 0, whiteSpace: 'nowrap' }}>🏥 Obra social para esta venta:</label>
+                <select
+                  value={obraSocialId}
+                  onChange={(e) => setObraSocialId(e.target.value)}
+                  style={{ ...inputStyle, flex: 1, minWidth: '200px' }}
+                >
+                  <option value="">Sin obra social</option>
+                  {obrasSociales.map(o => <option key={o.id} value={o.id}>{o.obra_social}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
           <div style={card}>
             <div style={cardTitle}>➕ Agregar producto</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -541,6 +567,7 @@ export default function Ventas() {
                         <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
                           {v.total_pesos > 0 && `Total: ${fmt(v.total_pesos)}`}
                           {v.total_dolares > 0 && ` · U$S ${v.total_dolares}`}
+                          {v.obras_sociales?.obra_social && ` · ${v.obras_sociales.obra_social}`}
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -587,7 +614,6 @@ export default function Ventas() {
             <button onClick={cerrarEdicion} style={{ ...btnSecundario, fontSize: '13px', padding: '6px 12px' }}>← Volver</button>
           </div>
 
-          {/* Items actuales */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
             {itemsEdicion.map(item => (
               <div key={item.id} style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
@@ -597,7 +623,6 @@ export default function Ventas() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  {/* Cambiar serie */}
                   {item.numero_serie_id && (
                     <div>
                       <label style={labelStyle}>Cambiar número de serie</label>
@@ -606,34 +631,25 @@ export default function Ventas() {
                         onChange={(e) => guardarCambioItem(item, 'numero_serie_id', Number(e.target.value))}
                         style={inputStyle}
                       >
-                        <option value={item.numero_serie_id}>
-                          {item.numeros_serie?.numero_serie} (actual)
-                        </option>
-                        {seriesAll.filter(s => s.en_stock && s.producto_id === (item.numeros_serie?.productos ? seriesAll.find(x => x.id === item.numero_serie_id)?.producto_id : null)).map(s => (
+                        <option value={item.numero_serie_id}>{item.numeros_serie?.numero_serie} (actual)</option>
+                        {seriesAll.filter(s => s.en_stock && s.producto_id === seriesAll.find(x => x.id === item.numero_serie_id)?.producto_id).map(s => (
                           <option key={s.id} value={s.id}>{s.numero_serie}</option>
                         ))}
                       </select>
                     </div>
                   )}
-
-                  {/* Cambiar precio pesos */}
                   <div>
                     <label style={labelStyle}>Precio pesos</label>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <input
-                        defaultValue={item.precio_venta_pesos || ''}
-                        onBlur={(e) => {
-                          if (e.target.value !== String(item.precio_venta_pesos || '')) {
-                            guardarCambioItem(item, 'precio_venta_pesos', e.target.value ? Number(e.target.value) : null)
-                          }
-                        }}
-                        placeholder="$0"
-                        style={inputStyle}
-                      />
-                    </div>
+                    <input
+                      defaultValue={item.precio_venta_pesos || ''}
+                      onBlur={(e) => {
+                        if (e.target.value !== String(item.precio_venta_pesos || '')) {
+                          guardarCambioItem(item, 'precio_venta_pesos', e.target.value ? Number(e.target.value) : null)
+                        }
+                      }}
+                      placeholder="$0" style={inputStyle}
+                    />
                   </div>
-
-                  {/* Cambiar precio USD */}
                   <div>
                     <label style={labelStyle}>Precio USD</label>
                     <input
@@ -643,8 +659,7 @@ export default function Ventas() {
                           guardarCambioItem(item, 'precio_venta_usd', e.target.value ? Number(e.target.value) : null)
                         }
                       }}
-                      placeholder="U$S 0"
-                      style={inputStyle}
+                      placeholder="U$S 0" style={inputStyle}
                     />
                   </div>
                 </div>
@@ -658,7 +673,6 @@ export default function Ventas() {
             ))}
           </div>
 
-          {/* Agregar nuevo producto a la venta */}
           <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '10px', border: '1px dashed #e5e7eb', marginBottom: '16px' }}>
             <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>➕ Agregar producto a esta venta</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -692,7 +706,6 @@ export default function Ventas() {
             </div>
           </div>
 
-          {/* Guardar cambios */}
           <div style={{ display: 'flex', gap: '10px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
             <button onClick={guardarTotalesVenta} style={btnPrimario}>💾 Guardar cambios</button>
             <button onClick={cerrarEdicion} style={btnSecundario}>Cancelar</button>
