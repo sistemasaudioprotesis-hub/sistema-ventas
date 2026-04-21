@@ -185,35 +185,43 @@ setVisitas(data || [])
 
   // Visitas
   async function guardarVisita() {
-    if (!formVisita.motivo_id) { alert('Seleccionar motivo'); return }
+  if (!pacienteId) { alert('Primero seleccioná un paciente'); return }
+  if (!formVisita.motivo_id) { alert('Seleccionar motivo'); return }
 
-    const usuario = getUsuario()
-    await supabase.from('visitas').insert([{
-      paciente_id: pacienteId,
-      fecha: new Date().toISOString(),
-      motivo_id: Number(formVisita.motivo_id),
-      observaciones: formVisita.observaciones || null,
-      venta_id: formVisita.venta_id ? Number(formVisita.venta_id) : null,
-      atendido_por: getUsuarioId(),
-      creado_por: getUsuarioId(),
-    }])
+  const usuario = getUsuario()
+  const { error } = await supabase.from('visitas').insert([{
+    paciente_id: pacienteId,
+    fecha: new Date().toISOString(),
+    motivo_id: Number(formVisita.motivo_id),
+    observaciones: formVisita.observaciones || null,
+    venta_id: formVisita.venta_id ? Number(formVisita.venta_id) : null,
+    atendido_por: getUsuarioId(),
+    creado_por: getUsuarioId(),
+  }])
 
-    alert('✅ Visita registrada')
-setFormVisita({ motivo_id: '', observaciones: '', venta_id: '' })
-setMostrarFormVisita(false)
-setBusquedaMotivo('')
-const { data: nuevasVisitas } = await supabase
-  .from('visitas')
-  .select(`
-    id, fecha, observaciones, created_at,
-    visita_motivos (motivo),
-    usuarios (nombre),
-    ventas (id, fecha, total_pesos, total_dolares)
-  `)
-  .eq('paciente_id', pacienteId)
-  .order('fecha', { ascending: false })
-setVisitas(nuevasVisitas || [])
-  }
+  if (error) { alert('Error: ' + error.message); return }
+
+  alert('✅ Visita registrada')
+  setFormVisita({ motivo_id: '', observaciones: '', venta_id: '' })
+  setMostrarFormVisita(false)
+  setBusquedaMotivo('')
+
+  // Recargar visitas directo
+  const pid = pacienteId
+  const { data: nuevasVisitas } = await supabase
+    .from('visitas')
+    .select(`
+      id, fecha, observaciones, created_at,
+      visita_motivos (motivo),
+      usuarios (nombre),
+      ventas (id, fecha, total_pesos, total_dolares)
+    `)
+    .eq('paciente_id', pid)
+    .order('fecha', { ascending: false })
+
+  console.log('pid:', pid, 'visitas:', nuevasVisitas)
+  setVisitas(nuevasVisitas || [])
+}
 
   async function eliminarVisita(id) {
     if (!confirm('¿Eliminar esta visita?')) return
