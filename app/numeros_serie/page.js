@@ -107,48 +107,45 @@ export default function NumerosSerie() {
 
   // Alta tipo
   async function guardarTipo() {
-    if (!formTipo.tipo) { alert('Ingresar nombre del tipo'); return }
-    const { error } = await supabase.from('tipo_producto').insert([{
-      tipo: normalizarTexto(formTipo.tipo),
-      requiere_serie: formTipo.requiere_serie,
-      creado_por: 1,
-    }])
-    if (error) { alert('Error: ' + error.message); return }
-    alert('✅ Tipo creado')
-    setFormTipo({ tipo: '', requiere_serie: true })
-    setModal(null)
-    obtenerDatos()
-  }
+  if (!formTipo.tipo) { alert('Ingresar nombre del tipo'); return }
+  const nombre = normalizarTexto(formTipo.tipo)
+  const { data: existe } = await supabase.from('tipo_producto').select('id').ilike('tipo', nombre).maybeSingle()
+  if (existe) { alert('❌ Ese tipo ya existe'); return }
+  const { error } = await supabase.from('tipo_producto').insert([{ tipo: nombre, requiere_serie: formTipo.requiere_serie, creado_por: 1 }])
+  if (error) { alert('Error: ' + error.message); return }
+  alert('✅ Tipo creado')
+  setFormTipo({ tipo: '', requiere_serie: true })
+  setModal(null)
+  obtenerDatos()
+}
 
   // Alta producto
   async function guardarProducto() {
-    if (!formProducto.producto || !formProducto.tipo_id) { alert('Completar campos obligatorios'); return }
-    const { error } = await supabase.from('productos').insert([{
-      producto: normalizarTexto(formProducto.producto),
-      tipo_id: Number(formProducto.tipo_id),
-      activo: true,
-      creado_por: 1,
-    }])
-    if (error) { alert('Error: ' + error.message); return }
-    alert('✅ Producto creado')
-    setFormProducto({ producto: '', tipo_id: '' })
-    setModal(null)
-    obtenerDatos()
-  }
+  if (!formProducto.producto || !formProducto.tipo_id) { alert('Completar campos obligatorios'); return }
+  const nombre = normalizarTexto(formProducto.producto)
+  const { data: existe } = await supabase.from('productos').select('id').ilike('producto', nombre).maybeSingle()
+  if (existe) { alert('❌ Ese producto ya existe'); return }
+  const { error } = await supabase.from('productos').insert([{ producto: nombre, tipo_id: Number(formProducto.tipo_id), activo: true, creado_por: 1 }])
+  if (error) { alert('Error: ' + error.message); return }
+  alert('✅ Producto creado')
+  setFormProducto({ producto: '', tipo_id: '' })
+  setModal(null)
+  obtenerDatos()
+}
 
   // Alta depósito
   async function guardarDeposito() {
-    if (!formDeposito.deposito) { alert('Ingresar nombre del depósito'); return }
-    const { error } = await supabase.from('depositos').insert([{
-      deposito: normalizarTexto(formDeposito.deposito),
-      creado_por: 1,
-    }])
-    if (error) { alert('Error: ' + error.message); return }
-    alert('✅ Depósito creado')
-    setFormDeposito({ deposito: '' })
-    setModal(null)
-    obtenerDatos()
-  }
+  if (!formDeposito.deposito) { alert('Ingresar nombre del depósito'); return }
+  const nombre = normalizarTexto(formDeposito.deposito)
+  const { data: existe } = await supabase.from('depositos').select('id').ilike('deposito', nombre).maybeSingle()
+  if (existe) { alert('❌ Ese depósito ya existe'); return }
+  const { error } = await supabase.from('depositos').insert([{ deposito: nombre, creado_por: 1 }])
+  if (error) { alert('Error: ' + error.message); return }
+  alert('✅ Depósito creado')
+  setFormDeposito({ deposito: '' })
+  setModal(null)
+  obtenerDatos()
+}
 
   const seriesFiltradas = series.filter(s => {
     const estadoOk = filtroEstado === 'todos' ? true : filtroEstado === 'stock' ? s.en_stock : !s.en_stock
