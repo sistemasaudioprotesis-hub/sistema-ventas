@@ -235,37 +235,39 @@ export default function Ventas() {
   }
 
   async function guardarCambioItem(item, campo, valor) {
-    // Guardar historial antes de modificar
-    await supabase.from('venta_detalle_historial').insert([{
-      venta_detalle_id: item.id,
-      venta_id: ventaEditando.id,
-      numero_serie_id: item.numero_serie_id,
-      producto_id: item.producto_id,
-      precio_venta_pesos: item.precio_venta_pesos,
-      precio_venta_usd: item.precio_venta_usd,
-      modificado_por: getUsuarioId(),
-    }])
+  await supabase.from('venta_detalle_historial').insert([{
+    venta_detalle_id: item.id,
+    venta_id: ventaEditando.id,
+    numero_serie_id: item.numero_serie_id,
+    producto_id: item.producto_id,
+    precio_venta_pesos: item.precio_venta_pesos,
+    precio_venta_usd: item.precio_venta_usd,
+    modificado_por: getUsuarioId(),
+  }])
 
-    const updateData = { [campo]: valor }
+  const updateData = { [campo]: valor }
 
-    // Si cambia el número de serie
-    if (campo === 'numero_serie_id') {
-      // Devolver el serie anterior al stock
-      if (item.numero_serie_id) {
-        await supabase.from('numeros_serie').update({ en_stock: true, fecha_salida: null }).eq('id', item.numero_serie_id)
-      }
-      // Marcar el nuevo serie como vendido
-      if (valor) {
-        await supabase.from('numeros_serie').update({ en_stock: false, fecha_salida: new Date().toISOString() }).eq('id', valor)
-      }
+  if (campo === 'numero_serie_id') {
+    if (item.numero_serie_id) {
+      await supabase.from('numeros_serie').update({ en_stock: true, fecha_salida: null }).eq('id', item.numero_serie_id)
     }
-
-    await supabase.from('venta_detalle').update(updateData).eq('id', item.id)
-
-    // Actualizar items en estado
+    if (valor) {
+      await supabase.from('numeros_serie').update({ en_stock: false, fecha_salida: new Date().toISOString() }).eq('id', valor)
+    }
+    // Actualizar info de la serie en el estado local
+    const nuevaSerie = seriesAll.find(s => s.id === valor)
+    setItemsEdicion(itemsEdicion.map(i => i.id === item.id ? {
+      ...i,
+      numero_serie_id: valor,
+      numeros_serie: nuevaSerie ? { id: nuevaSerie.id, numero_serie: nuevaSerie.numero_serie, productos: nuevaSerie.productos } : null
+    } : i))
+  } else {
     setItemsEdicion(itemsEdicion.map(i => i.id === item.id ? { ...i, [campo]: valor } : i))
-    obtenerSeries()
   }
+
+  await supabase.from('venta_detalle').update(updateData).eq('id', item.id)
+  obtenerSeries()
+}
 
   async function eliminarItemEdicion(item) {
     if (!confirm('¿Eliminar este producto de la venta?')) return
