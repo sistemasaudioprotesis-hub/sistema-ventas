@@ -43,8 +43,8 @@ export default function RootLayout({ children }) {
 
           {/* SIDEBAR — solo si no es login */}
           {!esLogin && (
-            <aside style={{
-              width: '250px',
+            <aside className="no-print" style={{
+  width: '250px',
               minHeight: '100vh',
               background: '#8B1E2D',
               color: 'white',
