@@ -14,10 +14,14 @@ export default function Reportes() {
   const [obrasSociales, setObrasSociales] = useState([])
   const [obraSocialId, setObraSocialId] = useState('')
   const [motivoId, setMotivoId] = useState('')
-  const [busquedaPaciente, setBusquedaPaciente] = useState('')
   const [motivos, setMotivos] = useState([])
   const [tab, setTab] = useState('ventas')
   const [cargando, setCargando] = useState(false)
+
+  // Filtro paciente con dropdown
+  const [busquedaPaciente, setBusquedaPaciente] = useState('')
+  const [resultadosPaciente, setResultadosPaciente] = useState([])
+  const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null)
 
   const [ventas, setVentas] = useState([])
   const [pagos, setPagos] = useState([])
@@ -35,6 +39,19 @@ export default function Reportes() {
     setObrasSociales(os || [])
     const { data: mv } = await supabase.from('visita_motivos').select('*').eq('activo', true).order('motivo')
     setMotivos(mv || [])
+  }
+
+  async function buscarPacientes() {
+    const termino = busquedaPaciente.trim()
+    if (!termino) return
+    let query = supabase.from('pacientes').select('id, apellido_paciente, nombres_paciente, dni')
+    if (/^\d+$/.test(termino)) {
+      query = query.eq('dni', termino)
+    } else {
+      query = query.ilike('apellido_paciente', `%${termino}%`)
+    }
+    const { data } = await query.order('apellido_paciente').limit(10)
+    setResultadosPaciente(data || [])
   }
 
   async function buscar() {
@@ -61,6 +78,7 @@ export default function Reportes() {
 
     if (operadorId) query = query.eq('creado_por', operadorId)
     if (obraSocialId) query = query.eq('obra_social_id', obraSocialId)
+    if (pacienteSeleccionado) query = query.eq('paciente_id', pacienteSeleccionado.id)
 
     const { data } = await query
     setVentas(data || [])
@@ -90,111 +108,79 @@ export default function Reportes() {
   async function cargarCaja() {
     const { data: pagosData } = await supabase
       .from('pagos')
-      .select(`
-        id, monto_pesos, monto_usd, fecha_pago,
-        formas_pago (forma_pago),
-        ventas (pacientes (apellido_paciente, nombres_paciente))
-      `)
+      .select(`id, monto_pesos, monto_usd, fecha_pago, formas_pago (forma_pago), ventas (pacientes (apellido_paciente, nombres_paciente))`)
       .gte('fecha_pago', `${desde}T00:00:00`)
       .lte('fecha_pago', `${hasta}T23:59:59`)
 
     const { data: manuales } = await supabase
-      .from('caja_movimientos')
-      .select('*')
-      .gte('fecha', desde)
-      .lte('fecha', hasta)
+      .from('caja_movimientos').select('*')
+      .gte('fecha', desde).lte('fecha', hasta)
 
     const pagosComoMovimientos = (pagosData || []).map(p => ({
-      id: `pago-${p.id}`,
-      tipo: 'ingreso',
-      origen: 'pago',
+      id: `pago-${p.id}`, tipo: 'ingreso', origen: 'pago',
       concepto: `Pago - ${p.ventas?.pacientes?.apellido_paciente || ''} ${p.ventas?.pacientes?.nombres_paciente || ''} (${p.formas_pago?.forma_pago || ''})`,
-      monto_pesos: p.monto_pesos,
-      monto_usd: p.monto_usd,
-      created_at: p.fecha_pago,
+      monto_pesos: p.monto_pesos, monto_usd: p.monto_usd, created_at: p.fecha_pago,
     }))
 
-    const todos = [...pagosComoMovimientos, ...(manuales || [])]
-      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-
-    setMovimientosCaja(todos)
+    setMovimientosCaja([...pagosComoMovimientos, ...(manuales || [])].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)))
   }
 
   async function cargarVisitas() {
-  let pacienteIds = null
+    let query = supabase
+      .from('visitas')
+      .select(`id, fecha, observaciones, visita_motivos (motivo), pacientes (apellido_paciente, nombres_paciente, dni), ventas (id)`)
+      .gte('fecha', `${desde}T00:00:00`)
+      .lte('fecha', `${hasta}T23:59:59`)
+      .order('fecha', { ascending: false })
 
-  if (busquedaPaciente.trim()) {
-    const termino = busquedaPaciente.trim()
-    let queryPac = supabase.from('pacientes').select('id')
-    if (/^\d+$/.test(termino)) {
-      queryPac = queryPac.eq('dni', termino)
-    } else {
-      queryPac = queryPac.ilike('apellido_paciente', `%${termino}%`)
-    }
-    const { data: pacs } = await queryPac
-    pacienteIds = (pacs || []).map(p => p.id)
-    if (pacienteIds.length === 0) {
-      setVisitas([])
-      return
-    }
+    if (motivoId) query = query.eq('motivo_id', motivoId)
+    if (operadorId) query = query.eq('creado_por', operadorId)
+    if (pacienteSeleccionado) query = query.eq('paciente_id', pacienteSeleccionado.id)
+
+    const { data } = await query
+    setVisitas(data || [])
   }
-
-  let query = supabase
-    .from('visitas')
-    .select(`
-      id, fecha, observaciones,
-      visita_motivos (motivo),
-      pacientes (apellido_paciente, nombres_paciente, dni),
-      ventas (id)
-    `)
-    .gte('fecha', `${desde}T00:00:00`)
-    .lte('fecha', `${hasta}T23:59:59`)
-    .order('fecha', { ascending: false })
-
-  if (motivoId) query = query.eq('motivo_id', motivoId)
-  if (operadorId) query = query.eq('creado_por', operadorId)
-  if (pacienteIds) query = query.in('paciente_id', pacienteIds)
-
-  const { data } = await query
-  setVisitas(data || [])
-}
 
   const totalVentasPesos = ventas.reduce((acc, v) => acc + (Number(v.total_pesos) || 0), 0)
   const totalVentasUSD = ventas.reduce((acc, v) => acc + (Number(v.total_dolares) || 0), 0)
   const totalPagadoPesos = pagos.reduce((acc, p) => acc + (Number(p.monto_pesos) || 0), 0)
   const totalPagadoUSD = pagos.reduce((acc, p) => acc + (Number(p.monto_usd) || 0), 0)
-  const saldoPendientePesos = totalVentasPesos - totalPagadoPesos
-  const saldoPendienteUSD = totalVentasUSD - totalPagadoUSD
   const ingresosPesos = movimientosCaja.filter(m => m.tipo === 'ingreso').reduce((acc, m) => acc + (Number(m.monto_pesos) || 0), 0)
   const egresosPesos = movimientosCaja.filter(m => m.tipo === 'egreso').reduce((acc, m) => acc + (Number(m.monto_pesos) || 0), 0)
   const ingresosUSD = movimientosCaja.filter(m => m.tipo === 'ingreso').reduce((acc, m) => acc + (Number(m.monto_usd) || 0), 0)
   const egresosUSD = movimientosCaja.filter(m => m.tipo === 'egreso').reduce((acc, m) => acc + (Number(m.monto_usd) || 0), 0)
+  const visitasPorMotivo = visitas.reduce((acc, v) => { const m = v.visita_motivos?.motivo || 'Sin motivo'; acc[m] = (acc[m] || 0) + 1; return acc }, {})
 
   const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0)
   const fmtUSD = (n) => `U$S ${Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   const fmtFecha = (f) => new Date(f).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
   const fmtHora = (f) => new Date(f).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
 
-  // Contar visitas por motivo para el resumen
-  const visitasPorMotivo = visitas.reduce((acc, v) => {
-    const motivo = v.visita_motivos?.motivo || 'Sin motivo'
-    acc[motivo] = (acc[motivo] || 0) + 1
-    return acc
-  }, {})
-
   return (
-    <div style={{ maxWidth: '900px' }}>
+    <div style={{ maxWidth: '960px' }}>
+
+      {/* Estilos de impresión */}
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          .print-title { display: block !important; }
+          body { background: white; }
+          table { page-break-inside: auto; }
+          tr { page-break-inside: avoid; }
+        }
+        .print-title { display: none; }
+      `}</style>
 
       {/* Header */}
-      <div style={{ marginBottom: '28px' }}>
+      <div style={{ marginBottom: '28px' }} className="no-print">
         <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>Reportes</h1>
         <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '14px' }}>Ventas, pagos, caja y visitas por período</p>
       </div>
 
       {/* Filtros */}
-      <div style={card}>
+      <div style={card} className="no-print">
         <div style={cardTitle}>🔍 Filtros</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '14px' }}>
           <Field label="Desde">
             <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} style={inputStyle} />
           </Field>
@@ -208,38 +194,65 @@ export default function Reportes() {
             </select>
           </Field>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', alignItems: 'end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '14px' }}>
           <Field label="Obra social">
             <select value={obraSocialId} onChange={(e) => setObraSocialId(e.target.value)} style={inputStyle}>
               <option value="">Todas</option>
               {obrasSociales.map(o => <option key={o.id} value={o.id}>{o.obra_social}</option>)}
             </select>
           </Field>
-                <Field label="Paciente (DNI o apellido)">
-  <input
-    placeholder="DNI o apellido..."
-    value={busquedaPaciente}
-    onChange={(e) => setBusquedaPaciente(e.target.value)}
-    style={inputStyle}
-  />
-</Field>
           <Field label="Motivo de visita">
             <select value={motivoId} onChange={(e) => setMotivoId(e.target.value)} style={inputStyle}>
               <option value="">Todos</option>
               {motivos.map(m => <option key={m.id} value={m.id}>{m.motivo}</option>)}
             </select>
           </Field>
-          <button onClick={buscar} disabled={cargando} style={{ ...btnPrimario, height: '42px', opacity: cargando ? 0.7 : 1 }}>
-            {cargando ? 'Buscando...' : '🔍 Buscar'}
-          </button>
+          <Field label="Paciente">
+            {pacienteSeleccionado ? (
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <div style={{ ...inputStyle, padding: '10px 14px', background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600', fontSize: '13px' }}>
+                  {pacienteSeleccionado.apellido_paciente} {pacienteSeleccionado.nombres_paciente}
+                </div>
+                <button onClick={() => { setPacienteSeleccionado(null); setBusquedaPaciente(''); setResultadosPaciente([]) }} style={{ padding: '10px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>✕</button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <input
+                  placeholder="DNI o apellido..."
+                  value={busquedaPaciente}
+                  onChange={(e) => setBusquedaPaciente(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && buscarPacientes()}
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <button onClick={buscarPacientes} style={{ padding: '10px 14px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>Buscar</button>
+              </div>
+            )}
+            {resultadosPaciente.length > 0 && !pacienteSeleccionado && (
+              <select value="" onChange={(e) => {
+                const p = resultadosPaciente.find(x => x.id == e.target.value)
+                if (!p) return
+                setPacienteSeleccionado(p)
+                setResultadosPaciente([])
+                setBusquedaPaciente('')
+              }} style={{ ...inputStyle, marginTop: '6px' }}>
+                <option value="">Seleccionar ({resultadosPaciente.length} encontrados)</option>
+                {resultadosPaciente.map(p => (
+                  <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>
+                ))}
+              </select>
+            )}
+          </Field>
         </div>
+        <button onClick={buscar} disabled={cargando} style={{ ...btnPrimario, opacity: cargando ? 0.7 : 1 }}>
+          {cargando ? 'Buscando...' : '🔍 Buscar'}
+        </button>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }} className="no-print">
         {[
-          ['ventas', '📊 Ventas'],
-          ['pagos', '💳 Pagos'],
+          ['ventas', `📊 Ventas${ventas.length > 0 ? ` (${ventas.length})` : ''}`],
+          ['pagos', `💳 Pagos${pagos.length > 0 ? ` (${pagos.length})` : ''}`],
           ['caja', '💰 Caja'],
           ['visitas', `🏥 Visitas${visitas.length > 0 ? ` (${visitas.length})` : ''}`],
         ].map(([val, label]) => (
@@ -257,60 +270,68 @@ export default function Reportes() {
       {/* REPORTE VENTAS */}
       {tab === 'ventas' && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '20px' }}>
-            <div style={{ ...statCard, borderLeft: '4px solid #8B1E2D' }}>
-              <div style={statLabel}>Ventas</div>
-              <div style={statNum}>{ventas.length}</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ fontSize: '14px', color: '#6b7280' }}>
+              {ventas.length} ventas · {fmt(totalVentasPesos)} · {fmtUSD(totalVentasUSD)}
             </div>
-            <div style={{ ...statCard, borderLeft: '4px solid #16a34a' }}>
-              <div style={statLabel}>Total pesos</div>
-              <div style={{ ...statNum, fontSize: '20px' }}>{fmt(totalVentasPesos)}</div>
-            </div>
-            <div style={{ ...statCard, borderLeft: '4px solid #2563eb' }}>
-              <div style={statLabel}>Total USD</div>
-              <div style={{ ...statNum, fontSize: '20px' }}>{fmtUSD(totalVentasUSD)}</div>
-            </div>
+            <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
+          </div>
+          <div className="print-title" style={{ marginBottom: '12px' }}>
+            <strong>Reporte de Ventas</strong> — {fmtFecha(desde)} al {fmtFecha(hasta)}
           </div>
           <div style={card}>
-            <div style={cardTitle}>Detalle de ventas ({ventas.length})</div>
             {ventas.length === 0 ? (
               <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay ventas para el período seleccionado</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {ventas.map(v => (
-                  <div key={v.id} style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                      <div>
-                        <div style={{ fontWeight: '700', fontSize: '15px', color: '#1a1a1a' }}>
-                          {v.pacientes?.apellido_paciente} {v.pacientes?.nombres_paciente}
-                        </div>
-                        <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
-                          DNI: {v.pacientes?.dni} · {fmtFecha(v.fecha)} · Venta #{v.id}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        {v.total_pesos > 0 && <div style={{ fontWeight: '700', color: '#16a34a' }}>{fmt(v.total_pesos)}</div>}
-                        {v.total_dolares > 0 && <div style={{ fontWeight: '700', color: '#2563eb' }}>{fmtUSD(v.total_dolares)}</div>}
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>#</th>
+                    <th style={thStyle}>Fecha</th>
+                    <th style={thStyle}>Paciente</th>
+                    <th style={thStyle}>DNI</th>
+                    <th style={thStyle}>Productos</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Total $</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Total U$S</th>
+                    <th style={thStyle}>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ventas.map((v, i) => (
+                    <tr key={v.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
+                      <td style={tdStyle}>{v.id}</td>
+                      <td style={tdStyle}>{fmtFecha(v.fecha)}</td>
+                      <td style={{ ...tdStyle, fontWeight: '600' }}>{v.pacientes?.apellido_paciente} {v.pacientes?.nombres_paciente}</td>
+                      <td style={tdStyle}>{v.pacientes?.dni}</td>
+                      <td style={tdStyle}>
+                        {v.venta_detalle?.map(d => (
+                          <div key={d.id} style={{ fontSize: '12px', color: '#6b7280' }}>
+                            {d.numeros_serie?.productos?.producto || d.productos?.producto || '-'}
+                            {d.numeros_serie?.numero_serie ? ` (${d.numeros_serie.numero_serie})` : ''}
+                          </div>
+                        ))}
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#16a34a', fontWeight: '600' }}>
+                        {v.total_pesos > 0 ? fmt(v.total_pesos) : '-'}
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#2563eb', fontWeight: '600' }}>
+                        {v.total_dolares > 0 ? fmtUSD(v.total_dolares) : '-'}
+                      </td>
+                      <td style={tdStyle}>
                         <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: v.confirmada ? '#dcfce7' : '#fef9c3', color: v.confirmada ? '#16a34a' : '#ca8a04' }}>
                           {v.confirmada ? 'Confirmada' : 'Pendiente'}
                         </span>
-                      </div>
-                    </div>
-                    {v.venta_detalle?.length > 0 && (
-                      <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e5e7eb' }}>
-                        {v.venta_detalle.map(d => (
-                          <div key={d.id} style={{ fontSize: '13px', color: '#6b7280', marginBottom: '2px' }}>
-                            · {d.numeros_serie?.productos?.producto || d.productos?.producto || '-'}
-                            {d.numeros_serie?.numero_serie ? ` (${d.numeros_serie.numero_serie})` : ''}
-                            {d.precio_venta_pesos ? ` — ${fmt(d.precio_venta_pesos)}` : ''}
-                            {d.precio_venta_usd ? ` — ${fmtUSD(d.precio_venta_usd)}` : ''}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                      </td>
+                    </tr>
+                  ))}
+                  <tr style={{ background: '#1a1a1a', color: 'white' }}>
+                    <td colSpan={5} style={{ ...tdStyle, color: 'white', fontWeight: '700' }}>TOTAL ({ventas.length} ventas)</td>
+                    <td style={{ ...tdStyle, textAlign: 'right', color: '#86efac', fontWeight: '700' }}>{fmt(totalVentasPesos)}</td>
+                    <td style={{ ...tdStyle, textAlign: 'right', color: '#93c5fd', fontWeight: '700' }}>{fmtUSD(totalVentasUSD)}</td>
+                    <td style={tdStyle}></td>
+                  </tr>
+                </tbody>
+              </table>
             )}
           </div>
         </>
@@ -319,45 +340,54 @@ export default function Reportes() {
       {/* REPORTE PAGOS */}
       {tab === 'pagos' && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '20px' }}>
-            <div style={{ ...statCard, borderLeft: '4px solid #16a34a' }}>
-              <div style={statLabel}>Cobrado pesos</div>
-              <div style={{ ...statNum, fontSize: '18px', color: '#16a34a' }}>{fmt(totalPagadoPesos)}</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ fontSize: '14px', color: '#6b7280' }}>
+              {pagos.length} pagos · {fmt(totalPagadoPesos)} · {fmtUSD(totalPagadoUSD)}
             </div>
-            <div style={{ ...statCard, borderLeft: '4px solid #2563eb' }}>
-              <div style={statLabel}>Cobrado USD</div>
-              <div style={{ ...statNum, fontSize: '18px', color: '#2563eb' }}>{fmtUSD(totalPagadoUSD)}</div>
-            </div>
-            <div style={{ ...statCard, borderLeft: '4px solid #dc2626' }}>
-              <div style={statLabel}>Saldo pendiente</div>
-              <div style={{ ...statNum, fontSize: '16px', color: '#dc2626' }}>
-                {fmt(saldoPendientePesos)}
-                {saldoPendienteUSD > 0 && <div style={{ fontSize: '13px' }}>{fmtUSD(saldoPendienteUSD)}</div>}
-              </div>
-            </div>
+            <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
+          </div>
+          <div className="print-title" style={{ marginBottom: '12px' }}>
+            <strong>Reporte de Pagos</strong> — {fmtFecha(desde)} al {fmtFecha(hasta)}
           </div>
           <div style={card}>
-            <div style={cardTitle}>Detalle de pagos ({pagos.length})</div>
             {pagos.length === 0 ? (
               <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay pagos para el período seleccionado</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {pagos.map(p => (
-                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', flexWrap: 'wrap', gap: '8px' }}>
-                    <div>
-                      <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a' }}>
-                        {p.ventas?.pacientes?.apellido_paciente} {p.ventas?.pacientes?.nombres_paciente}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
-                        {fmtFecha(p.fecha_pago)} · {p.formas_pago?.forma_pago} · Venta #{p.ventas?.id}
-                      </div>
-                    </div>
-                    <div style={{ fontWeight: '700', fontSize: '15px', color: '#16a34a' }}>
-                      {p.monto_pesos ? fmt(p.monto_pesos) : fmtUSD(p.monto_usd)}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Fecha</th>
+                    <th style={thStyle}>Paciente</th>
+                    <th style={thStyle}>DNI</th>
+                    <th style={thStyle}>Venta #</th>
+                    <th style={thStyle}>Forma de pago</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Monto $</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Monto U$S</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagos.map((p, i) => (
+                    <tr key={p.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
+                      <td style={tdStyle}>{fmtFecha(p.fecha_pago)}</td>
+                      <td style={{ ...tdStyle, fontWeight: '600' }}>{p.ventas?.pacientes?.apellido_paciente} {p.ventas?.pacientes?.nombres_paciente}</td>
+                      <td style={tdStyle}>{p.ventas?.pacientes?.dni}</td>
+                      <td style={tdStyle}>#{p.ventas?.id}</td>
+                      <td style={tdStyle}>{p.formas_pago?.forma_pago}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#16a34a', fontWeight: '600' }}>
+                        {p.monto_pesos ? fmt(p.monto_pesos) : '-'}
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#2563eb', fontWeight: '600' }}>
+                        {p.monto_usd ? fmtUSD(p.monto_usd) : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr style={{ background: '#1a1a1a', color: 'white' }}>
+                    <td colSpan={5} style={{ ...tdStyle, color: 'white', fontWeight: '700' }}>TOTAL ({pagos.length} pagos)</td>
+                    <td style={{ ...tdStyle, textAlign: 'right', color: '#86efac', fontWeight: '700' }}>{fmt(totalPagadoPesos)}</td>
+                    <td style={{ ...tdStyle, textAlign: 'right', color: '#93c5fd', fontWeight: '700' }}>{fmtUSD(totalPagadoUSD)}</td>
+                  </tr>
+                </tbody>
+              </table>
             )}
           </div>
         </>
@@ -366,58 +396,79 @@ export default function Reportes() {
       {/* REPORTE CAJA */}
       {tab === 'caja' && (
         <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ fontSize: '14px', color: '#6b7280' }}>
+              {movimientosCaja.length} movimientos
+            </div>
+            <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
+          </div>
+          <div className="print-title" style={{ marginBottom: '12px' }}>
+            <strong>Reporte de Caja</strong> — {fmtFecha(desde)} al {fmtFecha(hasta)}
+          </div>
+          {/* Resumen */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '20px' }}>
-            <div style={card}>
-              <div style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Caja en Pesos</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '6px' }}>
-                <span style={{ color: '#6b7280' }}>Ingresos</span>
-                <span style={{ color: '#16a34a', fontWeight: '600' }}>{fmt(ingresosPesos)}</span>
+            {[
+              { label: 'Caja Pesos', ingresos: ingresosPesos, egresos: egresosPesos, fmt: fmt },
+              { label: 'Caja USD', ingresos: ingresosUSD, egresos: egresosUSD, fmt: fmtUSD },
+            ].map(({ label, ingresos, egresos, fmt: f }) => (
+              <div key={label} style={card}>
+                <div style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{label}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '4px' }}>
+                  <span style={{ color: '#6b7280' }}>Ingresos</span>
+                  <span style={{ color: '#16a34a', fontWeight: '600' }}>{f(ingresos)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
+                  <span style={{ color: '#6b7280' }}>Egresos</span>
+                  <span style={{ color: '#dc2626', fontWeight: '600' }}>{f(egresos)}</span>
+                </div>
+                <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: '700' }}>Saldo</span>
+                  <span style={{ fontWeight: '700', fontSize: '18px', color: (ingresos - egresos) >= 0 ? '#16a34a' : '#dc2626' }}>{f(ingresos - egresos)}</span>
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '10px' }}>
-                <span style={{ color: '#6b7280' }}>Egresos</span>
-                <span style={{ color: '#dc2626', fontWeight: '600' }}>{fmt(egresosPesos)}</span>
-              </div>
-              <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '10px', display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: '700' }}>Saldo</span>
-                <span style={{ fontWeight: '700', fontSize: '18px', color: (ingresosPesos - egresosPesos) >= 0 ? '#16a34a' : '#dc2626' }}>{fmt(ingresosPesos - egresosPesos)}</span>
-              </div>
-            </div>
-            <div style={card}>
-              <div style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Caja en USD</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '6px' }}>
-                <span style={{ color: '#6b7280' }}>Ingresos</span>
-                <span style={{ color: '#16a34a', fontWeight: '600' }}>{fmtUSD(ingresosUSD)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '10px' }}>
-                <span style={{ color: '#6b7280' }}>Egresos</span>
-                <span style={{ color: '#dc2626', fontWeight: '600' }}>{fmtUSD(egresosUSD)}</span>
-              </div>
-              <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '10px', display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: '700' }}>Saldo</span>
-                <span style={{ fontWeight: '700', fontSize: '18px', color: (ingresosUSD - egresosUSD) >= 0 ? '#16a34a' : '#dc2626' }}>{fmtUSD(ingresosUSD - egresosUSD)}</span>
-              </div>
-            </div>
+            ))}
           </div>
           <div style={card}>
-            <div style={cardTitle}>Movimientos ({movimientosCaja.length})</div>
             {movimientosCaja.length === 0 ? (
               <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay movimientos para el período seleccionado</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {movimientosCaja.map(m => (
-                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: m.tipo === 'ingreso' ? '#f0fdf4' : '#fef2f2', borderRadius: '8px', border: `1px solid ${m.tipo === 'ingreso' ? '#bbf7d0' : '#fecaca'}`, flexWrap: 'wrap', gap: '8px' }}>
-                    <div>
-                      <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a' }}>{m.concepto}</div>
-                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
-                        {fmtFecha(m.created_at)} · {m.origen === 'pago' ? '🔗 Pago' : '✏️ Manual'}
-                      </div>
-                    </div>
-                    <div style={{ fontWeight: '700', fontSize: '14px', color: m.tipo === 'ingreso' ? '#16a34a' : '#dc2626' }}>
-                      {m.tipo === 'egreso' ? '-' : ''}{m.monto_pesos ? fmt(m.monto_pesos) : fmtUSD(m.monto_usd)}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Fecha</th>
+                    <th style={thStyle}>Concepto</th>
+                    <th style={thStyle}>Origen</th>
+                    <th style={thStyle}>Tipo</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Monto $</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Monto U$S</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {movimientosCaja.map((m, i) => (
+                    <tr key={m.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
+                      <td style={tdStyle}>{fmtFecha(m.created_at)}</td>
+                      <td style={tdStyle}>{m.concepto}</td>
+                      <td style={tdStyle}>{m.origen === 'pago' ? '🔗 Pago' : '✏️ Manual'}</td>
+                      <td style={tdStyle}>
+                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: m.tipo === 'ingreso' ? '#dcfce7' : '#fef2f2', color: m.tipo === 'ingreso' ? '#16a34a' : '#dc2626' }}>
+                          {m.tipo}
+                        </span>
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: m.tipo === 'ingreso' ? '#16a34a' : '#dc2626', fontWeight: '600' }}>
+                        {m.monto_pesos ? `${m.tipo === 'egreso' ? '-' : ''}${fmt(m.monto_pesos)}` : '-'}
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: m.tipo === 'ingreso' ? '#2563eb' : '#dc2626', fontWeight: '600' }}>
+                        {m.monto_usd ? `${m.tipo === 'egreso' ? '-' : ''}${fmtUSD(m.monto_usd)}` : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr style={{ background: '#1a1a1a' }}>
+                    <td colSpan={4} style={{ ...tdStyle, color: 'white', fontWeight: '700' }}>SALDO</td>
+                    <td style={{ ...tdStyle, textAlign: 'right', color: (ingresosPesos - egresosPesos) >= 0 ? '#86efac' : '#fca5a5', fontWeight: '700' }}>{fmt(ingresosPesos - egresosPesos)}</td>
+                    <td style={{ ...tdStyle, textAlign: 'right', color: (ingresosUSD - egresosUSD) >= 0 ? '#93c5fd' : '#fca5a5', fontWeight: '700' }}>{fmtUSD(ingresosUSD - egresosUSD)}</td>
+                  </tr>
+                </tbody>
+              </table>
             )}
           </div>
         </>
@@ -426,56 +477,50 @@ export default function Reportes() {
       {/* REPORTE VISITAS */}
       {tab === 'visitas' && (
         <>
-          {/* Resumen por motivo */}
-          {visitas.length > 0 && (
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '20px' }}>
-              <div style={{ ...statCard, borderLeft: '4px solid #8B1E2D', minWidth: '120px' }}>
-                <div style={statLabel}>Total</div>
-                <div style={statNum}>{visitas.length}</div>
-              </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ fontSize: '14px', color: '#6b7280', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <span><strong>{visitas.length}</strong> visitas</span>
               {Object.entries(visitasPorMotivo).map(([motivo, cant]) => (
-                <div key={motivo} style={{ ...statCard, borderLeft: '4px solid #6b7280', minWidth: '120px' }}>
-                  <div style={statLabel}>{motivo}</div>
-                  <div style={statNum}>{cant}</div>
-                </div>
+                <span key={motivo}>{motivo}: <strong>{cant}</strong></span>
               ))}
             </div>
-          )}
-
-          {/* Lista visitas */}
+            <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
+          </div>
+          <div className="print-title" style={{ marginBottom: '12px' }}>
+            <strong>Reporte de Visitas</strong> — {fmtFecha(desde)} al {fmtFecha(hasta)}
+          </div>
           <div style={card}>
-            <div style={cardTitle}>Detalle de visitas ({visitas.length})</div>
             {visitas.length === 0 ? (
-              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>
-                No hay visitas para el período seleccionado
-              </div>
+              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay visitas para el período seleccionado</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {visitas.map(v => (
-                  <div key={v.id} style={{ padding: '12px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                      <div>
-                        <div style={{ fontWeight: '700', fontSize: '14px', color: '#8B1E2D' }}>
-                          {v.visita_motivos?.motivo || '-'}
-                        </div>
-                        <div style={{ fontSize: '13px', color: '#1a1a1a', marginTop: '2px', fontWeight: '500' }}>
-                          {v.pacientes?.apellido_paciente} {v.pacientes?.nombres_paciente}
-                          {v.pacientes?.dni ? ` · DNI: ${v.pacientes.dni}` : ''}
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
-                          {fmtFecha(v.fecha)} {fmtHora(v.fecha)}
-                          {v.ventas?.id ? ` · 🔗 Venta #${v.ventas.id}` : ''}
-                        </div>
-                        {v.observaciones && (
-                          <div style={{ fontSize: '13px', color: '#374151', marginTop: '6px', padding: '6px 10px', background: 'white', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                            {v.observaciones}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Fecha</th>
+                    <th style={thStyle}>Hora</th>
+                    <th style={thStyle}>Paciente</th>
+                    <th style={thStyle}>DNI</th>
+                    <th style={thStyle}>Motivo</th>
+                    <th style={thStyle}>Venta</th>
+                    <th style={thStyle}>Observaciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visitas.map((v, i) => (
+                    <tr key={v.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
+                      <td style={tdStyle}>{fmtFecha(v.fecha)}</td>
+                      <td style={tdStyle}>{fmtHora(v.fecha)}</td>
+                      <td style={{ ...tdStyle, fontWeight: '600' }}>{v.pacientes?.apellido_paciente} {v.pacientes?.nombres_paciente}</td>
+                      <td style={tdStyle}>{v.pacientes?.dni}</td>
+                      <td style={tdStyle}>
+                        <span style={{ color: '#8B1E2D', fontWeight: '600' }}>{v.visita_motivos?.motivo || '-'}</span>
+                      </td>
+                      <td style={tdStyle}>{v.ventas?.id ? `#${v.ventas.id}` : '-'}</td>
+                      <td style={{ ...tdStyle, fontSize: '12px', color: '#6b7280' }}>{v.observaciones || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </>
@@ -501,3 +546,7 @@ const statCard = { background: 'white', border: '1px solid #e5e7eb', borderRadiu
 const statLabel = { fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }
 const statNum = { fontSize: '24px', fontWeight: '700', color: '#1a1a1a' }
 const btnPrimario = { padding: '10px 20px', background: '#8B1E2D', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
+const btnImprimir = { padding: '8px 16px', background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
+const tableStyle = { width: '100%', borderCollapse: 'collapse', fontSize: '13px' }
+const thStyle = { padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#6b7280', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '2px solid #e5e7eb', background: '#f9fafb' }
+const tdStyle = { padding: '10px 12px', borderBottom: '1px solid #f3f4f6', color: '#1a1a1a', verticalAlign: 'top' }
