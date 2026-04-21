@@ -22,6 +22,8 @@ export default function Ventas() {
   const [ventaId, setVentaId] = useState(null)
   const [ventaConfirmada, setVentaConfirmada] = useState(false)
   const [items, setItems] = useState([])
+  const [ventasPaciente, setVentasPaciente] = useState([])
+  const [tab, setTab] = useState('nueva')
 
   const [form, setForm] = useState({
     numero_serie_id: '',
@@ -58,8 +60,34 @@ export default function Ventas() {
 
   async function buscarPacienteAutomatico(dniParam) {
     const { data } = await supabase.from('pacientes').select('*').eq('dni', Number(dniParam))
-    if (data && data.length === 1) { setPaciente(data[0]); setDni(data[0].dni) }
-    else if (data && data.length > 1) setResultados(data)
+    if (data && data.length === 1) {
+      setPaciente(data[0]); setDni(data[0].dni)
+      cargarVentasPaciente(data[0].id)
+    } else if (data && data.length > 1) setResultados(data)
+  }
+
+  async function cargarVentasPaciente(pacienteId) {
+    const { data } = await supabase
+      .from('ventas')
+      .select(`
+        id, fecha, confirmada, total_pesos, total_dolares,
+        venta_detalle (
+          id, precio_venta_pesos, precio_venta_usd,
+          numeros_serie (numero_serie, productos (producto)),
+          productos (producto)
+        )
+      `)
+      .eq('paciente_id', pacienteId)
+      .order('fecha', { ascending: false })
+
+    const ventasConSaldo = await Promise.all((data || []).map(async v => {
+      const { data: pagos } = await supabase.from('pagos').select('monto_pesos, monto_usd').eq('venta_id', v.id)
+      const pagadoP = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_pesos) || 0), 0)
+      const pagadoU = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_usd) || 0), 0)
+      return { ...v, pagadoPesos: pagadoP, pagadoUSD: pagadoU }
+    }))
+
+    setVentasPaciente(ventasConSaldo)
   }
 
   async function buscarPaciente() {
@@ -103,7 +131,9 @@ export default function Ventas() {
     let ventaActualId = ventaId
 
     if (!ventaActualId) {
-      const { data: venta } = await supabase.from('ventas').insert([{ paciente_id: paciente.id, fecha, creado_por: getUsuarioId(), confirmada: false }]).select().single()
+      const { data: venta } = await supabase.from('ventas').insert([{
+        paciente_id: paciente.id, fecha, creado_por: getUsuarioId(), confirmada: false
+      }]).select().single()
       ventaActualId = venta.id
       setVentaId(ventaActualId)
     }
@@ -147,10 +177,13 @@ export default function Ventas() {
 
   async function confirmarVenta() {
     if (!ventaId) return alert('No hay venta')
-    const { error } = await supabase.from('ventas').update({ confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD }).eq('id', ventaId)
+    const { error } = await supabase.from('ventas').update({
+      confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD
+    }).eq('id', ventaId)
     if (error) { alert('Error: ' + error.message); return }
     setVentaConfirmada(true)
-    alert('Venta confirmada')
+    alert('✅ Venta confirmada')
+    if (paciente) cargarVentasPaciente(paciente.id)
   }
 
   function irAPagos() {
@@ -160,14 +193,18 @@ export default function Ventas() {
 
   async function finalizarVenta() {
     if (!ventaId) return alert('No hay venta')
-    const { error } = await supabase.from('ventas').update({ confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD }).eq('id', ventaId)
+    const { error } = await supabase.from('ventas').update({
+      confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD
+    }).eq('id', ventaId)
     if (error) { alert('Error: ' + error.message); return }
-    alert('Venta finalizada sin pagos')
-    setVentaId(null); setPaciente(null); setDni(''); setItems([]); setVentaConfirmada(false)
+    alert('✅ Venta finalizada sin pagos')
+    setVentaId(null); setPaciente(null); setDni(''); setItems([])
+    setVentaConfirmada(false); setBusqueda(''); setVentasPaciente([])
   }
 
   const totalPesos = items.reduce((acc, i) => acc + (Number(i.precio_pesos) || 0), 0)
   const totalUSD = items.reduce((acc, i) => acc + (Number(i.precio_usd) || 0), 0)
+  const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0)
 
   return (
     <div style={{ maxWidth: '750px' }}>
@@ -175,10 +212,10 @@ export default function Ventas() {
       {/* Título */}
       <div style={{ marginBottom: '28px' }}>
         <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>Ventas</h1>
-        <p style={{ color: '#6b7280', marginTop: '6px', fontSize: '14px' }}>Registrar nueva venta</p>
+        <p style={{ color: '#6b7280', marginTop: '6px', fontSize: '14px' }}>Registrar y gestionar ventas</p>
       </div>
 
-      {/* Buscador de paciente */}
+      {/* Buscador */}
       <div style={card}>
         <div style={cardTitle}>🔍 Buscar paciente</div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -197,6 +234,7 @@ export default function Ventas() {
             const p = resultados.find(x => x.id == e.target.value)
             if (!p) return
             setPaciente(p); setDni(p.dni); setResultados([])
+            cargarVentasPaciente(p.id)
           }} style={{ ...inputStyle, marginTop: '10px' }}>
             <option value="">Seleccionar paciente ({resultados.length} encontrados)</option>
             {resultados.map(p => (
@@ -205,204 +243,227 @@ export default function Ventas() {
           </select>
         )}
 
-        {/* Info paciente seleccionado */}
         {paciente && (
           <div style={{
-            marginTop: '14px',
-            padding: '14px 16px',
-            background: '#fdf2f4',
-            borderRadius: '8px',
-            border: '1px solid #f5c2c9',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '10px',
+            marginTop: '14px', padding: '14px 16px', background: '#fdf2f4',
+            borderRadius: '8px', border: '1px solid #f5c2c9',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px',
           }}>
             <div>
               <div style={{ fontWeight: '700', fontSize: '16px', color: '#8B1E2D' }}>
                 {paciente.apellido_paciente} {paciente.nombres_paciente}
               </div>
               <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
-                DNI: {paciente.dni} {paciente.telefono ? `· Tel: ${paciente.telefono}` : ''} {paciente.mail ? `· ${paciente.mail}` : ''}
+                DNI: {paciente.dni} {paciente.telefono ? `· Tel: ${paciente.telefono}` : ''}
               </div>
             </div>
-            <button onClick={() => window.location.href = `/pacientes?dni=${paciente.dni}&volver=ventas`} style={btnSecundario}>
+            <button onClick={() => window.location.href = `/pacientes?dni=${paciente.dni}`} style={btnSecundario}>
               ✏️ Editar
             </button>
           </div>
         )}
       </div>
 
-      {/* Agregar producto */}
-      <div style={card}>
-        <div style={cardTitle}>➕ Agregar producto</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      {/* Tabs */}
+      {paciente && (
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+          {[['nueva', '➕ Nueva venta'], ['historial', `📋 Historial (${ventasPaciente.length})`]].map(([val, label]) => (
+            <button key={val} onClick={() => setTab(val)} style={{
+              padding: '9px 20px', borderRadius: '8px', border: '1px solid #e5e7eb',
+              background: tab === val ? '#8B1E2D' : 'white',
+              color: tab === val ? 'white' : '#374151',
+              fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
+            }}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
-          <div>
-            <label style={labelStyle}>Producto</label>
-            <select name="producto_id" value={form.producto_id} onChange={handleChange} style={inputStyle}>
-              <option value="">Seleccionar producto</option>
-              {productos.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
-            </select>
-          </div>
-
-          {modoConSerie && (
-            <div>
-              <label style={labelStyle}>Número de serie</label>
-              <select name="numero_serie_id" value={form.numero_serie_id} onChange={handleChange} style={inputStyle}>
-                <option value="">Seleccionar serie</option>
-                {seriesFiltradas.map(s => <option key={s.id} value={s.id}>{s.numero_serie} — {s.productos?.producto}</option>)}
-              </select>
+      {/* TAB NUEVA VENTA */}
+      {tab === 'nueva' && (
+        <>
+          <div style={card}>
+            <div style={cardTitle}>➕ Agregar producto</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={labelStyle}>Producto</label>
+                <select name="producto_id" value={form.producto_id} onChange={handleChange} style={inputStyle}>
+                  <option value="">Seleccionar producto</option>
+                  {productos.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
+                </select>
+              </div>
+              {modoConSerie && (
+                <div>
+                  <label style={labelStyle}>Número de serie</label>
+                  <select name="numero_serie_id" value={form.numero_serie_id} onChange={handleChange} style={inputStyle}>
+                    <option value="">Seleccionar serie</option>
+                    {seriesFiltradas.map(s => <option key={s.id} value={s.id}>{s.numero_serie} — {s.productos?.producto}</option>)}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label style={labelStyle}>Precio en pesos</label>
+                <input name="precio_pesos" placeholder="$0" value={form.precio_pesos} onChange={handleChange} style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Precio en USD</label>
+                <input name="precio_usd" placeholder="USD 0" value={form.precio_usd} onChange={handleChange} style={inputStyle} />
+              </div>
             </div>
-          )}
-
-          <div>
-            <label style={labelStyle}>Precio en pesos</label>
-            <input name="precio_pesos" placeholder="$0" value={form.precio_pesos} onChange={handleChange} style={inputStyle} />
+            <div style={{ marginTop: '14px' }}>
+              <button onClick={agregarItem} style={btnPrimario}>+ Agregar al carrito</button>
+            </div>
           </div>
 
-          <div>
-            <label style={labelStyle}>Precio en USD</label>
-            <input name="precio_usd" placeholder="USD 0" value={form.precio_usd} onChange={handleChange} style={inputStyle} />
-          </div>
+          <div style={card}>
+            <div style={cardTitle}>🛒 Carrito</div>
+            {items.length === 0 ? (
+              <div style={{ color: '#9ca3af', fontSize: '14px', padding: '10px 0' }}>No hay productos agregados</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {items.map(item => (
+                  <div key={item.id} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '12px 14px', background: '#f9fafb',
+                    borderRadius: '8px', border: '1px solid #e5e7eb', flexWrap: 'wrap', gap: '8px',
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: '600', fontSize: '15px', color: '#1a1a1a' }}>{item.producto}</div>
+                      <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                        Serie: {item.serie}
+                        {item.precio_pesos && ` · ${formatearPesos(item.precio_pesos)}`}
+                        {item.precio_usd && ` · USD ${formatearUSD(item.precio_usd)}`}
+                      </div>
+                    </div>
+                    <button onClick={() => eliminarItem(item)} style={{
+                      background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ef4444'
+                    }}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
 
-        </div>
-        <div style={{ marginTop: '14px' }}>
-          <button onClick={agregarItem} style={btnPrimario}>+ Agregar al carrito</button>
-        </div>
-      </div>
-
-      {/* Carrito */}
-      <div style={card}>
-        <div style={cardTitle}>🛒 Carrito</div>
-
-        {items.length === 0 ? (
-          <div style={{ color: '#9ca3af', fontSize: '14px', padding: '10px 0' }}>No hay productos agregados</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {items.map(item => (
-              <div key={item.id} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px 14px',
-                background: '#f9fafb',
-                borderRadius: '8px',
-                border: '1px solid #e5e7eb',
-                flexWrap: 'wrap',
-                gap: '8px',
+            {items.length > 0 && (
+              <div style={{
+                marginTop: '16px', padding: '14px 16px', background: '#1a1a1a',
+                borderRadius: '10px', color: 'white', display: 'flex', gap: '24px', flexWrap: 'wrap',
               }}>
                 <div>
-                  <div style={{ fontWeight: '600', fontSize: '15px', color: '#1a1a1a' }}>{item.producto}</div>
-                  <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                    Serie: {item.serie}
-                    {item.precio_pesos && ` · ${formatearPesos(item.precio_pesos)}`}
-                    {item.precio_usd && ` · USD ${formatearUSD(item.precio_usd)}`}
-                  </div>
+                  <div style={{ fontSize: '11px', opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Pesos</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700' }}>{formatearPesos(totalPesos)}</div>
                 </div>
-                <button onClick={() => eliminarItem(item)} style={{
-                  background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ef4444'
-                }}>✕</button>
+                <div>
+                  <div style={{ fontSize: '11px', opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total USD</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700' }}>{formatearUSD(totalUSD)}</div>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        {/* Totales */}
-        {items.length > 0 && (
-          <div style={{
-            marginTop: '16px',
-            padding: '14px 16px',
-            background: '#1a1a1a',
-            borderRadius: '10px',
-            color: 'white',
-            display: 'flex',
-            gap: '24px',
-            flexWrap: 'wrap',
-          }}>
-            <div>
-              <div style={{ fontSize: '11px', opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Pesos</div>
-              <div style={{ fontSize: '20px', fontWeight: '700' }}>{formatearPesos(totalPesos)}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '11px', opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total USD</div>
-              <div style={{ fontSize: '20px', fontWeight: '700' }}>{formatearUSD(totalUSD)}</div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
+              <button onClick={confirmarVenta} style={btnPrimario}>✅ Confirmar venta</button>
+              <button onClick={irAPagos} style={btnSecundario}>💳 Ingresar pago</button>
+              <button onClick={finalizarVenta} style={btnSecundario}>Finalizar sin pagos</button>
             </div>
           </div>
-        )}
+        </>
+      )}
 
-        {/* Botones de acción */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
-          <button onClick={confirmarVenta} style={btnPrimario}>✅ Confirmar venta</button>
-          <button onClick={irAPagos} style={btnSecundario}>💳 Ingresar pago</button>
-          <button onClick={finalizarVenta} style={btnSecundario}>Finalizar sin pagos</button>
+      {/* TAB HISTORIAL */}
+      {tab === 'historial' && (
+        <div style={card}>
+          <div style={cardTitle}>📋 Historial de ventas</div>
+          {ventasPaciente.length === 0 ? (
+            <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>
+              No hay ventas registradas para este paciente
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {ventasPaciente.map(v => {
+                const saldoP = (v.total_pesos || 0) - v.pagadoPesos
+                const saldoU = (v.total_dolares || 0) - v.pagadoUSD
+                const pagada = saldoP <= 0 && saldoU <= 0
+
+                return (
+                  <div key={v.id} style={{
+                    padding: '14px 16px', background: '#f9fafb',
+                    borderRadius: '10px', border: '1px solid #e5e7eb',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                      <div>
+                        <div style={{ fontWeight: '700', fontSize: '15px', color: '#1a1a1a' }}>
+                          Venta #{v.id} — {new Date(v.fecha).toLocaleDateString('es-AR')}
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
+                          {v.total_pesos > 0 && `Total: ${fmt(v.total_pesos)}`}
+                          {v.total_dolares > 0 && ` · U$S ${v.total_dolares}`}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span style={{
+                          padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
+                          background: pagada ? '#dcfce7' : '#fef2f2',
+                          color: pagada ? '#16a34a' : '#dc2626',
+                        }}>
+                          {pagada ? '✅ Pagada' : `Saldo: ${saldoP > 0 ? fmt(saldoP) : `U$S ${saldoU}`}`}
+                        </span>
+                        {!pagada && (
+                          <button
+                            onClick={() => window.location.href = `/pagos?venta_id=${v.id}&dni=${dni}`}
+                            style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px' }}
+                          >
+                            💳 Pagar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {v.venta_detalle?.map(d => (
+                      <div key={d.id} style={{ fontSize: '13px', color: '#6b7280', marginBottom: '2px' }}>
+                        · {d.numeros_serie?.productos?.producto || d.productos?.producto || '-'}
+                        {d.numeros_serie?.numero_serie ? ` (${d.numeros_serie.numero_serie})` : ''}
+                        {d.precio_venta_pesos ? ` — ${fmt(d.precio_venta_pesos)}` : ''}
+                        {d.precio_venta_usd ? ` — U$S ${d.precio_venta_usd}` : ''}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
-
-      </div>
+      )}
 
     </div>
   )
 }
 
 const inputStyle = {
-  width: '100%',
-  padding: '10px 14px',
-  borderRadius: '8px',
-  border: '1px solid #e5e7eb',
-  fontSize: '15px',
-  fontFamily: "'Outfit', sans-serif",
-  background: 'white',
-  color: '#1a1a1a',
-  outline: 'none',
-  boxSizing: 'border-box',
+  width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb',
+  fontSize: '15px', fontFamily: "'Outfit', sans-serif", background: 'white',
+  color: '#1a1a1a', outline: 'none', boxSizing: 'border-box',
 }
 
 const labelStyle = {
-  fontSize: '13px',
-  fontWeight: '600',
-  color: '#6b7280',
-  marginBottom: '4px',
-  display: 'block',
+  fontSize: '13px', fontWeight: '600', color: '#6b7280', marginBottom: '4px', display: 'block',
 }
 
 const card = {
-  background: 'white',
-  border: '1px solid #e5e7eb',
-  borderRadius: '12px',
-  padding: '20px 24px',
-  marginBottom: '20px',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+  background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px',
+  padding: '20px 24px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
 }
 
 const cardTitle = {
-  fontSize: '14px',
-  fontWeight: '600',
-  color: '#374151',
-  marginBottom: '14px',
+  fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '14px',
 }
 
 const btnPrimario = {
-  padding: '10px 20px',
-  background: '#8B1E2D',
-  color: 'white',
-  border: 'none',
-  borderRadius: '8px',
-  fontSize: '15px',
-  fontWeight: '600',
-  cursor: 'pointer',
+  padding: '10px 20px', background: '#8B1E2D', color: 'white', border: 'none',
+  borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer',
   fontFamily: "'Outfit', sans-serif",
 }
 
 const btnSecundario = {
-  padding: '10px 20px',
-  background: 'white',
-  color: '#374151',
-  border: '1px solid #e5e7eb',
-  borderRadius: '8px',
-  fontSize: '15px',
-  fontWeight: '500',
-  cursor: 'pointer',
+  padding: '10px 20px', background: 'white', color: '#374151', border: '1px solid #e5e7eb',
+  borderRadius: '8px', fontSize: '15px', fontWeight: '500', cursor: 'pointer',
   fontFamily: "'Outfit', sans-serif",
 }
-
