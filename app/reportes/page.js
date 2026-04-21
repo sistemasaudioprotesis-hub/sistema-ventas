@@ -183,7 +183,7 @@ export default function Reportes() {
       {/* Filtros */}
       <div style={card}>
         <div style={cardTitle}>🔍 Filtros</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '14px' }}>
           <Field label="Desde">
             <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} style={inputStyle} />
           </Field>
