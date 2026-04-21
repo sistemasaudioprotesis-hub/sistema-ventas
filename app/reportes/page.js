@@ -163,16 +163,16 @@ export default function Reportes() {
       {/* Estilos de impresión */}
       <style>{`
         @media print {
-          .no-print { display: none !important; }
-          .print-only { display: block !important; }
-          aside { display: none !important; }
-          main { margin-left: 0 !important; padding: 20px !important; }
-          body { background: white; }
-          tr { page-break-inside: avoid; }
-          table { font-size: 10px; }
-body { font-size: 12px; }
-td, th { padding: 6px 8px !important; }
-        }
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  aside { display: none !important; }
+  main { margin-left: 0 !important; padding: 20px !important; }
+  body { background: white; font-size: 11px; }
+  tr { page-break-inside: avoid; }
+  table { font-size: 9px; width: 100%; }
+  td, th { padding: 5px 6px !important; }
+  @page { margin: 1.5cm; }
+}
         .print-only { display: none; }
       `}</style>
 
@@ -318,7 +318,7 @@ td, th { padding: 6px 8px !important; }
                     <th style={thStyle}>DNI</th>
                     <th style={thStyle}>Productos</th>
                     <th style={{ ...thStyle, textAlign: 'right' }}>Total $</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>Total U$S</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>U$S</th>
                     <th style={thStyle}>Estado</th>
                   </tr>
                 </thead>
