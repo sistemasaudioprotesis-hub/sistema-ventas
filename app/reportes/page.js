@@ -14,6 +14,7 @@ export default function Reportes() {
   const [obrasSociales, setObrasSociales] = useState([])
   const [obraSocialId, setObraSocialId] = useState('')
   const [motivoId, setMotivoId] = useState('')
+  const [busquedaPaciente, setBusquedaPaciente] = useState('')
   const [motivos, setMotivos] = useState([])
   const [tab, setTab] = useState('ventas')
   const [cargando, setCargando] = useState(false)
@@ -134,6 +135,14 @@ export default function Reportes() {
 
     if (motivoId) query = query.eq('motivo_id', motivoId)
     if (operadorId) query = query.eq('creado_por', operadorId)
+    if (busquedaPaciente) {
+  const termino = busquedaPaciente.trim()
+  if (/^\d+$/.test(termino)) {
+    query = query.eq('pacientes.dni', termino)
+  } else {
+    query = query.ilike('pacientes.apellido_paciente', `%${termino}%`)
+  }
+}
 
     const { data } = await query
     setVisitas(data || [])
