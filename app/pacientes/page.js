@@ -184,7 +184,7 @@ setVisitas(data || [])
   }
 
   // Visitas
-  async function guardarVisita() {
+ async function guardarVisita() {
   if (!pacienteId) { alert('Primero seleccioná un paciente'); return }
   if (!formVisita.motivo_id) { alert('Seleccionar motivo'); return }
 
@@ -209,28 +209,10 @@ setVisitas(data || [])
   const { data: nuevasVisitas, error: errorVisitas } = await supabase
     .from('visitas')
     .select('*')
-    .e
-  if (error) { alert('Error: ' + error.message); return }
-
-  alert('✅ Visita registrada')
-  setFormVisita({ motivo_id: '', observaciones: '', venta_id: '' })
-  setMostrarFormVisita(false)
-  setBusquedaMotivo('')
-
-  // Recargar visitas directo
-  const pid = pacienteId
-  const { data: nuevasVisitas } = await supabase
-    .from('visitas')
-    .select(`
-      id, fecha, observaciones, created_at,
-      visita_motivos (motivo),
-      usuarios (nombre),
-      ventas (id, fecha, total_pesos, total_dolares)
-    `)
     .eq('paciente_id', pid)
     .order('fecha', { ascending: false })
 
-  console.log('pid:', pid, 'visitas:', nuevasVisitas)
+  console.log('error:', errorVisitas, 'visitas simples:', nuevasVisitas)
   setVisitas(nuevasVisitas || [])
 }
 
