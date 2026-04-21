@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
+import { getUsuarioId } from '../../lib/getUsuario'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
@@ -102,7 +103,7 @@ export default function Ventas() {
     let ventaActualId = ventaId
 
     if (!ventaActualId) {
-      const { data: venta } = await supabase.from('ventas').insert([{ paciente_id: paciente.id, fecha, creado_por: 1, confirmada: false }]).select().single()
+      const { data: venta } = await supabase.from('ventas').insert([{ paciente_id: paciente.id, fecha, creado_por: getUsuarioId(), confirmada: false }]).select().single()
       ventaActualId = venta.id
       setVentaId(ventaActualId)
     }
@@ -113,7 +114,7 @@ export default function Ventas() {
       producto_id: !modoConSerie ? Number(form.producto_id) : null,
       precio_venta_pesos: form.precio_pesos || null,
       precio_venta_usd: form.precio_usd || null,
-      creado_por: 1,
+      creado_por: getUsuarioId(),
     }]).select().single()
 
     if (modoConSerie) {
