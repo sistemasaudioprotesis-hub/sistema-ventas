@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
+import { getUsuarioId } from '../../lib/getUsuario'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -109,7 +110,7 @@ export default function Caja() {
           await supabase.from('valor_dolar_bna').insert([{
             fecha: fecha,
             dolar_vendedor: valor,
-            creado_por: usuario?.id || 1,
+            creado_por: getUsuarioId(),
           }])
         }
 
@@ -133,7 +134,7 @@ export default function Caja() {
       concepto: form.concepto,
       monto_pesos: form.monto_pesos ? Number(form.monto_pesos) : null,
       monto_usd: form.monto_usd ? Number(form.monto_usd) : null,
-      creado_por: usuario?.id || 1,
+      creado_por: getUsuarioId(),
     }])
 
     if (error) { alert('Error: ' + error.message); return }
