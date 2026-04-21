@@ -133,7 +133,8 @@ export default function Pacientes() {
       `)
       .eq('paciente_id', pid)
       .order('fecha', { ascending: false })
-    setVisitas(data || [])
+    console.log('visitas:', data)
+setVisitas(data || [])
   }
 
   async function cargarVentasPaciente(pid) {
