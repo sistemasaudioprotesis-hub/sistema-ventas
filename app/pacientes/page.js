@@ -198,9 +198,10 @@ export default function Pacientes() {
     }])
 
     alert('✅ Visita registrada')
-    setFormVisita({ motivo_id: '', observaciones: '', venta_id: '' })
-    setMostrarFormVisita(false)
-    cargarVisitas(pacienteId)
+setFormVisita({ motivo_id: '', observaciones: '', venta_id: '' })
+setMostrarFormVisita(false)
+setBusquedaMotivo('')
+await cargarVisitas(pacienteId)
   }
 
   async function eliminarVisita(id) {
