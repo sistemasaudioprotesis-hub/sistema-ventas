@@ -204,6 +204,14 @@ export default function Reportes() {
               {obrasSociales.map(o => <option key={o.id} value={o.id}>{o.obra_social}</option>)}
             </select>
           </Field>
+                <Field label="Paciente (DNI o apellido)">
+  <input
+    placeholder="DNI o apellido..."
+    value={busquedaPaciente}
+    onChange={(e) => setBusquedaPaciente(e.target.value)}
+    style={inputStyle}
+  />
+</Field>
           <Field label="Motivo de visita">
             <select value={motivoId} onChange={(e) => setMotivoId(e.target.value)} style={inputStyle}>
               <option value="">Todos</option>
