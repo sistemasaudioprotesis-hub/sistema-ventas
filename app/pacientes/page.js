@@ -111,12 +111,12 @@ export default function Pacientes() {
         provincia_id: pacienteActual.provincia_id,
         mail: pacienteActual.mail,
         observaciones: pacienteActual.observaciones,
-        creado_por: 1,
+        creado_por: getUsuarioId(),
       }])
       await supabase.from('pacientes').update({ ...form, provincia_id: Number(form.provincia_id) }).eq('id', pacienteId)
       alert('Paciente actualizado')
     } else {
-      await supabase.from('pacientes').insert([{ ...form, provincia_id: Number(form.provincia_id), creado_por: 1 }])
+      await supabase.from('pacientes').insert([{ ...form, provincia_id: Number(form.provincia_id), creado_por: getUsuarioId() }])
       alert('Paciente creado')
     }
 
