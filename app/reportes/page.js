@@ -11,6 +11,8 @@ export default function Reportes() {
   const [hasta, setHasta] = useState(hoy)
   const [operadorId, setOperadorId] = useState('')
   const [usuarios, setUsuarios] = useState([])
+  const [obrasSociales, setObrasSociales] = useState([])
+  const [obraSocialId, setObraSocialId] = useState('')
   const [tab, setTab] = useState('ventas')
   const [cargando, setCargando] = useState(false)
 
@@ -24,9 +26,11 @@ export default function Reportes() {
   }, [])
 
   async function cargarUsuarios() {
-    const { data } = await supabase.from('usuarios').select('id, nombre').eq('activo', true).order('nombre')
-    setUsuarios(data || [])
-  }
+  const { data } = await supabase.from('usuarios').select('id, nombre').eq('activo', true).order('nombre')
+  setUsuarios(data || [])
+  const { data: os } = await supabase.from('obras_sociales').select('*').order('obra_social')
+  setObrasSociales(os || [])
+}
 
   async function buscar() {
     setCargando(true)
@@ -51,6 +55,7 @@ export default function Reportes() {
       .order('fecha', { ascending: false })
 
     if (operadorId) query = query.eq('creado_por', operadorId)
+    if (obraSocialId) query = query.eq('obra_social_id', obraSocialId)
 
     const { data } = await query
     setVentas(data || [])
@@ -144,7 +149,7 @@ export default function Reportes() {
       {/* Filtros */}
       <div style={card}>
         <div style={cardTitle}>🔍 Filtros</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '14px', alignItems: 'end', flexWrap: 'wrap' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '14px', alignItems: 'end', flexWrap: 'wrap' }}>
 
           <Field label="Desde">
             <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} style={inputStyle} />
@@ -160,6 +165,13 @@ export default function Reportes() {
               {usuarios.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}
             </select>
           </Field>
+
+                <Field label="Obra social">
+  <select value={obraSocialId} onChange={(e) => setObraSocialId(e.target.value)} style={inputStyle}>
+    <option value="">Todas</option>
+    {obrasSociales.map(o => <option key={o.id} value={o.id}>{o.obra_social}</option>)}
+  </select>
+</Field>
 
           <button onClick={buscar} disabled={cargando} style={{ ...btnPrimario, height: '42px', opacity: cargando ? 0.7 : 1 }}>
             {cargando ? 'Buscando...' : '🔍 Buscar'}
