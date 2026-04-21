@@ -15,6 +15,7 @@ export default function NumerosSerie() {
   const [depositos, setDepositos] = useState([])
   const [filtroEstado, setFiltroEstado] = useState('stock')
   const [filtroProducto, setFiltroProducto] = useState('')
+  const [filtroDeposito, setFiltroDeposito] = useState('')
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
 
   // Modales de alta
@@ -149,10 +150,11 @@ export default function NumerosSerie() {
 }
 
   const seriesFiltradas = series.filter(s => {
-    const estadoOk = filtroEstado === 'todos' ? true : filtroEstado === 'stock' ? s.en_stock : !s.en_stock
-    const productoOk = filtroProducto ? s.productos?.id == filtroProducto : true
-    return estadoOk && productoOk
-  })
+  const estadoOk = filtroEstado === 'todos' ? true : filtroEstado === 'stock' ? s.en_stock : !s.en_stock
+  const productoOk = filtroProducto ? s.productos?.id == filtroProducto : true
+  const depositoOk = filtroDeposito ? s.depositos?.id == filtroDeposito : true
+  return estadoOk && productoOk && depositoOk
+})
 
   const totalStock = series.filter(s => s.en_stock).length
   const totalVendidos = series.filter(s => !s.en_stock).length
@@ -343,6 +345,10 @@ export default function NumerosSerie() {
             <option value="">Todos los productos</option>
             {productos.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
           </select>
+              <select value={filtroDeposito} onChange={(e) => setFiltroDeposito(e.target.value)} style={{ ...inputStyle, width: 'auto', flex: 1, minWidth: '180px' }}>
+  <option value="">Todos los depósitos</option>
+  {depositos.map(d => <option key={d.id} value={d.id}>{d.deposito}</option>)}
+</select>
         </div>
       </div>
 
