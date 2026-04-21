@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { getUsuarioId, getUsuario } from '../../lib/getUsuario'
+import { getUsuarioId } from '../../lib/getUsuario'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
@@ -27,11 +27,7 @@ export default function Pacientes() {
   const [mostrarFormVisita, setMostrarFormVisita] = useState(false)
   const [mostrarABMMotivos, setMostrarABMMotivos] = useState(false)
   const [nuevoMotivo, setNuevoMotivo] = useState('')
-  const [formVisita, setFormVisita] = useState({
-    motivo_id: '',
-    observaciones: '',
-    venta_id: '',
-  })
+  const [formVisita, setFormVisita] = useState({ motivo_id: '', observaciones: '', venta_id: '' })
   const [ventasPaciente, setVentasPaciente] = useState([])
 
   const [form, setForm] = useState({
@@ -86,55 +82,54 @@ export default function Pacientes() {
   async function buscarPaciente() {
     const valor = busqueda.trim()
     if (!valor) { alert('Ingresar DNI o apellido'); return }
-
     let query = supabase.from('pacientes').select('*')
     if (/^\d+$/.test(valor)) {
       query = query.eq('dni', valor)
     } else {
       query = query.ilike('apellido_paciente', `%${valor}%`)
     }
-
     const { data, error } = await query.order('apellido_paciente')
     if (error) { alert('Error buscando pacientes'); return }
     if (!data || data.length === 0) { alert('No se encontraron resultados'); setResultados([]); return }
     setResultados(data)
   }
 
+  function cargarDesdeObjeto(p) {
+    setPacienteId(p.id)
+    setForm({
+      apellido_paciente: p.apellido_paciente || '',
+      nombres_paciente: p.nombres_paciente || '',
+      dni: p.dni || '',
+      telefono: p.telefono || '',
+      domicilio: p.domicilio || '',
+      localidad: p.localidad || '',
+      provincia_id: p.provincia_id ? String(p.provincia_id) : '',
+      mail: p.mail || '',
+      observaciones: p.observaciones || '',
+      obra_social_id: p.obra_social_id ? String(p.obra_social_id) : '',
+    })
+    setGuardado(true)
+    cargarVisitas(p.id)
+    cargarVentasPaciente(p.id)
+  }
+
   async function cargarPacientePorDni(dni) {
     const { data } = await supabase.from('pacientes').select('*').eq('dni', dni).maybeSingle()
-    if (data) {
-      setPacienteId(data.id)
-      setForm({
-        apellido_paciente: data.apellido_paciente || '',
-        nombres_paciente: data.nombres_paciente || '',
-        dni: data.dni || '',
-        telefono: data.telefono || '',
-        domicilio: data.domicilio || '',
-        localidad: data.localidad || '',
-        provincia_id: data.provincia_id ? String(data.provincia_id) : '',
-        mail: data.mail || '',
-        observaciones: data.observaciones || '',
-        obra_social_id: data.obra_social_id ? String(data.obra_social_id) : '',
-      })
-      setGuardado(true)
-      cargarVisitas(data.id)
-      cargarVentasPaciente(data.id)
-    }
+    if (data) cargarDesdeObjeto(data)
   }
 
   async function cargarVisitas(pid) {
-  const { data } = await supabase
-    .from('visitas')
-    .select(`
-      id, fecha, observaciones, created_at, atendido_por,
-      visita_motivos (motivo),
-      ventas (id, fecha, total_pesos, total_dolares)
-    `)
-    .eq('paciente_id', pid)
-    .order('fecha', { ascending: false })
-  console.log('visitas:', data)
-  setVisitas(data || [])
-}
+    const { data } = await supabase
+      .from('visitas')
+      .select(`
+        id, fecha, observaciones, created_at, atendido_por,
+        visita_motivos (motivo),
+        ventas (id, fecha, total_pesos, total_dolares)
+      `)
+      .eq('paciente_id', pid)
+      .order('fecha', { ascending: false })
+    setVisitas(data || [])
+  }
 
   async function cargarVentasPaciente(pid) {
     const { data } = await supabase
@@ -182,38 +177,40 @@ export default function Pacientes() {
     if (!destino) limpiarFormulario()
   }
 
-  // Visitas
- async function guardarVisita() {
-  if (!pacienteId) { alert('Primero seleccioná un paciente'); return }
-  if (!formVisita.motivo_id) { alert('Seleccionar motivo'); return }
+  async function guardarVisita() {
+    if (!pacienteId) { alert('Primero seleccioná un paciente'); return }
+    if (!formVisita.motivo_id) { alert('Seleccionar motivo'); return }
 
-  const { error } = await supabase.from('visitas').insert([{
-    paciente_id: pacienteId,
-    fecha: new Date().toISOString(),
-    motivo_id: Number(formVisita.motivo_id),
-    observaciones: formVisita.observaciones || null,
-    venta_id: formVisita.venta_id ? Number(formVisita.venta_id) : null,
-    atendido_por: getUsuarioId(),
-    creado_por: getUsuarioId(),
-  }])
+    const { error } = await supabase.from('visitas').insert([{
+      paciente_id: pacienteId,
+      fecha: new Date().toISOString(),
+      motivo_id: Number(formVisita.motivo_id),
+      observaciones: formVisita.observaciones || null,
+      venta_id: formVisita.venta_id ? Number(formVisita.venta_id) : null,
+      atendido_por: getUsuarioId(),
+      creado_por: getUsuarioId(),
+    }])
 
-  if (error) { alert('Error: ' + error.message); return }
+    if (error) { alert('Error: ' + error.message); return }
 
-  alert('✅ Visita registrada')
-  setFormVisita({ motivo_id: '', observaciones: '', venta_id: '' })
-  setMostrarFormVisita(false)
-  setBusquedaMotivo('')
+    // Recargar con join completo usando el id directamente
+    const pid = pacienteId
+    const { data: nuevasVisitas } = await supabase
+      .from('visitas')
+      .select(`
+        id, fecha, observaciones, created_at, atendido_por,
+        visita_motivos (motivo),
+        ventas (id, fecha, total_pesos, total_dolares)
+      `)
+      .eq('paciente_id', pid)
+      .order('fecha', { ascending: false })
 
-  const pid = pacienteId
-  const { data: nuevasVisitas, error: errorVisitas } = await supabase
-    .from('visitas')
-    .select('*')
-    .eq('paciente_id', pid)
-    .order('fecha', { ascending: false })
-
-  console.log('error:', errorVisitas, 'visitas simples:', nuevasVisitas)
-  setVisitas(nuevasVisitas || [])
-}
+    setVisitas(nuevasVisitas || [])
+    setFormVisita({ motivo_id: '', observaciones: '', venta_id: '' })
+    setMostrarFormVisita(false)
+    setBusquedaMotivo('')
+    alert('✅ Visita registrada')
+  }
 
   async function eliminarVisita(id) {
     if (!confirm('¿Eliminar esta visita?')) return
@@ -221,7 +218,6 @@ export default function Pacientes() {
     cargarVisitas(pacienteId)
   }
 
-  // Motivos ABM
   async function guardarMotivo() {
     if (!nuevoMotivo) { alert('Ingresar nombre del motivo'); return }
     const nombre = normalizarTexto(nuevoMotivo)
@@ -277,23 +273,8 @@ export default function Pacientes() {
           <select value="" onChange={(e) => {
             const p = resultados.find(x => x.id == e.target.value)
             if (!p) return
-            setPacienteId(p.id)
-            setForm({
-              apellido_paciente: p.apellido_paciente || '',
-              nombres_paciente: p.nombres_paciente || '',
-              dni: p.dni || '',
-              telefono: p.telefono || '',
-              domicilio: p.domicilio || '',
-              localidad: p.localidad || '',
-              provincia_id: p.provincia_id ? String(p.provincia_id) : '',
-              mail: p.mail || '',
-              observaciones: p.observaciones || '',
-              obra_social_id: p.obra_social_id ? String(p.obra_social_id) : '',
-            })
             setResultados([])
-            setGuardado(true)
-            cargarVisitas(p.id)
-            cargarVentasPaciente(p.id)
+            cargarDesdeObjeto(p)
           }} style={{ ...inputStyle, marginTop: '10px' }}>
             <option value="">Seleccionar paciente ({resultados.length} encontrados)</option>
             {resultados.map(p => (
@@ -303,13 +284,10 @@ export default function Pacientes() {
         )}
       </div>
 
-      {/* Tabs — solo si hay paciente */}
+      {/* Tabs */}
       {pacienteId && (
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          {[
-            ['datos', '👤 Datos'],
-            ['visitas', `📋 Visitas (${visitas.length})`],
-          ].map(([val, label]) => (
+          {[['datos', '👤 Datos'], ['visitas', `📋 Visitas (${visitas.length})`]].map(([val, label]) => (
             <button key={val} onClick={() => setTab(val)} style={{
               padding: '9px 20px', borderRadius: '8px', border: '1px solid #e5e7eb',
               background: tab === val ? '#8B1E2D' : 'white',
@@ -384,7 +362,6 @@ export default function Pacientes() {
       {/* TAB VISITAS */}
       {tab === 'visitas' && (
         <>
-          {/* Acciones */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
             <button onClick={() => setMostrarFormVisita(!mostrarFormVisita)} style={btnPrimario}>
               {mostrarFormVisita ? '✕ Cancelar' : '+ Nueva visita'}
@@ -397,7 +374,7 @@ export default function Pacientes() {
           {/* ABM Motivos */}
           {mostrarABMMotivos && (
             <div style={{ ...card, marginBottom: '16px' }}>
-              <div style={cardTitle}>⚙️ Motivos de visita</div>
+              <div style={{ ...cardTitle, marginBottom: '14px' }}>⚙️ Motivos de visita</div>
               <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
                 <input
                   placeholder="Nuevo motivo..."
@@ -431,9 +408,8 @@ export default function Pacientes() {
           {/* Formulario nueva visita */}
           {mostrarFormVisita && (
             <div style={card}>
-              <div style={cardTitle}>📋 Nueva visita</div>
+              <div style={{ ...cardTitle, marginBottom: '14px' }}>📋 Nueva visita</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-
                 <Field label="Motivo *">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <input
@@ -448,7 +424,6 @@ export default function Pacientes() {
                     </select>
                   </div>
                 </Field>
-
                 <Field label="Venta relacionada (opcional)">
                   <select value={formVisita.venta_id} onChange={(e) => setFormVisita({ ...formVisita, venta_id: e.target.value })} style={inputStyle}>
                     <option value="">Sin venta relacionada</option>
@@ -461,7 +436,6 @@ export default function Pacientes() {
                     ))}
                   </select>
                 </Field>
-
                 <Field label="Observaciones">
                   <textarea
                     placeholder="Observaciones de la visita..."
@@ -471,7 +445,6 @@ export default function Pacientes() {
                     style={{ ...inputStyle, resize: 'vertical' }}
                   />
                 </Field>
-
               </div>
               <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
                 <button onClick={guardarVisita} style={btnPrimario}>💾 Guardar visita</button>
@@ -481,13 +454,12 @@ export default function Pacientes() {
 
           {/* Lista visitas */}
           <div style={card}>
-            <div style={cardTitle}>
+            <div style={{ ...cardTitle, marginBottom: '14px' }}>
               Historial de visitas
               <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>
                 ({visitas.length} registros)
               </span>
             </div>
-
             {visitas.length === 0 ? (
               <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>
                 No hay visitas registradas para este paciente
@@ -495,10 +467,7 @@ export default function Pacientes() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {visitas.map(v => (
-                  <div key={v.id} style={{
-                    padding: '14px 16px', background: '#f9fafb',
-                    borderRadius: '10px', border: '1px solid #e5e7eb',
-                  }}>
+                  <div key={v.id} style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                       <div>
                         <div style={{ fontWeight: '700', fontSize: '15px', color: '#8B1E2D' }}>
@@ -506,7 +475,6 @@ export default function Pacientes() {
                         </div>
                         <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '3px' }}>
                           {fmtFecha(v.fecha)} {fmtHora(v.fecha)}
-                          {v.usuarios?.nombre ? ` · Atendido por: ${v.usuarios.nombre}` : ''}
                         </div>
                         {v.ventas && (
                           <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
@@ -519,9 +487,7 @@ export default function Pacientes() {
                           </div>
                         )}
                       </div>
-                      <button onClick={() => eliminarVisita(v.id)} style={{
-                        background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#ef4444'
-                      }}>✕</button>
+                      <button onClick={() => eliminarVisita(v.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#ef4444' }}>✕</button>
                     </div>
                   </div>
                 ))}
@@ -544,11 +510,7 @@ function Field({ label, children }) {
   )
 }
 
-const inputStyle = {
-  width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb',
-  fontSize: '15px', fontFamily: "'Outfit', sans-serif", background: 'white',
-  color: '#1a1a1a', outline: 'none', boxSizing: 'border-box',
-}
+const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '15px', fontFamily: "'Outfit', sans-serif", background: 'white', color: '#1a1a1a', outline: 'none', boxSizing: 'border-box' }
 const card = { background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px 24px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }
 const cardTitle = { fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '0' }
 const btnPrimario = { padding: '10px 20px', background: '#8B1E2D', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
