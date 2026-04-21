@@ -185,21 +185,44 @@ export default function Caja() {
 
       {/* Cotización dólar */}
       <div style={{ ...card, marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <div>
-            <div style={cardTitle}>💵 Cotización dólar BNA</div>
-            {cotizacion ? (
-              <div style={{ fontSize: '22px', fontWeight: '700', color: '#1a1a1a' }}>
-                {fmt(cotizacion)} <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: '400' }}>/ U$S 1</span>
-              </div>
-            ) : (
-              <div style={{ fontSize: '14px', color: '#9ca3af' }}>Sin cotización para esta fecha</div>
-            )}
-          </div>
-          <button onClick={buscarDolarAutomatico} disabled={cargandoDolar} style={{ ...btnSecundario, opacity: cargandoDolar ? 0.7 : 1 }}>
-            {cargandoDolar ? 'Buscando...' : '🔄 Actualizar automático'}
-          </button>
-        </div>
+       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+  <div>
+    <div style={cardTitle}>💵 Cotización dólar BNA</div>
+    {cotizacion ? (
+      <div style={{ fontSize: '22px', fontWeight: '700', color: '#1a1a1a' }}>
+        {fmt(cotizacion)} <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: '400' }}>/ U$S 1</span>
+      </div>
+    ) : (
+      <div style={{ fontSize: '14px', color: '#9ca3af' }}>Sin cotización para esta fecha</div>
+    )}
+  </div>
+  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+    <input
+      type="number"
+      placeholder="Cargar manual"
+      id="dolarManual"
+      style={{ ...inputStyle, width: '150px' }}
+    />
+    <button onClick={async () => {
+      const valor = Number(document.getElementById('dolarManual').value)
+      if (!valor) { alert('Ingresar valor del dólar'); return }
+      const { data: existe } = await supabase.from('valor_dolar_bna').select('id').eq('fecha', fecha).maybeSingle()
+      if (existe) {
+        await supabase.from('valor_dolar_bna').update({ dolar_vendedor: valor }).eq('fecha', fecha)
+      } else {
+        await supabase.from('valor_dolar_bna').insert([{ fecha, dolar_vendedor: valor, creado_por: getUsuarioId() }])
+      }
+      setCotizacion(valor)
+      document.getElementById('dolarManual').value = ''
+      alert(`✅ Cotización guardada: $${valor}`)
+    }} style={btnSecundario}>
+      💾 Guardar
+    </button>
+    <button onClick={buscarDolarAutomatico} disabled={cargandoDolar} style={{ ...btnSecundario, opacity: cargandoDolar ? 0.7 : 1 }}>
+      {cargandoDolar ? 'Buscando...' : '🔄 Automático'}
+    </button>
+  </div>
+</div>
       </div>
 
       {/* Resumen */}
