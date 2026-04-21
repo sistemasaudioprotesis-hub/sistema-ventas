@@ -16,6 +16,7 @@ export default function Ventas() {
   const [busqueda, setBusqueda] = useState('')
   const [resultados, setResultados] = useState([])
   const [series, setSeries] = useState([])
+  const [seriesAll, setSeriesAll] = useState([]) // todas incluyendo vendidas para edición
   const [seriesFiltradas, setSeriesFiltradas] = useState([])
   const [productos, setProductos] = useState([])
   const [modoConSerie, setModoConSerie] = useState(true)
@@ -24,6 +25,13 @@ export default function Ventas() {
   const [items, setItems] = useState([])
   const [ventasPaciente, setVentasPaciente] = useState([])
   const [tab, setTab] = useState('nueva')
+
+  // Edición
+  const [ventaEditando, setVentaEditando] = useState(null)
+  const [itemsEdicion, setItemsEdicion] = useState([])
+  const [formEdicion, setFormEdicion] = useState({ producto_id: '', numero_serie_id: '', precio_pesos: '', precio_usd: '' })
+  const [modoConSerieEdicion, setModoConSerieEdicion] = useState(true)
+  const [seriesFiltradasEdicion, setSeriesFiltradasEdicion] = useState([])
 
   const [form, setForm] = useState({
     numero_serie_id: '',
@@ -45,10 +53,10 @@ export default function Ventas() {
   async function obtenerSeries() {
     const { data } = await supabase
       .from('numeros_serie')
-      .select(`id, numero_serie, producto_id, productos (producto), depositos (deposito)`)
-      .eq('en_stock', true)
+      .select(`id, numero_serie, producto_id, en_stock, productos (producto), depositos (deposito)`)
       .order('numero_serie')
-    setSeries(data || [])
+    setSeriesAll(data || [])
+    setSeries((data || []).filter(s => s.en_stock))
   }
 
   async function obtenerProductos() {
@@ -72,9 +80,9 @@ export default function Ventas() {
       .select(`
         id, fecha, confirmada, total_pesos, total_dolares,
         venta_detalle (
-          id, precio_venta_pesos, precio_venta_usd,
-          numeros_serie (numero_serie, productos (producto)),
-          productos (producto)
+          id, precio_venta_pesos, precio_venta_usd, numero_serie_id, producto_id,
+          numeros_serie (id, numero_serie, productos (producto)),
+          productos (id, producto)
         )
       `)
       .eq('paciente_id', pacienteId)
@@ -112,8 +120,7 @@ export default function Ventas() {
     const { name, value } = e.target
     if (name === 'producto_id') {
       const prod = productos.find(p => p.id === Number(value))
-      const requiereSerie = prod?.tipo_producto?.requiere_serie
-      setModoConSerie(requiereSerie)
+      setModoConSerie(prod?.tipo_producto?.requiere_serie)
       setSeriesFiltradas(series.filter(s => s.producto_id === Number(value)))
       setForm({ ...form, producto_id: value, numero_serie_id: '' })
       return
@@ -200,6 +207,149 @@ export default function Ventas() {
     alert('✅ Venta finalizada sin pagos')
     setVentaId(null); setPaciente(null); setDni(''); setItems([])
     setVentaConfirmada(false); setBusqueda(''); setVentasPaciente([])
+  }
+
+  // ---- EDICIÓN ----
+  function abrirEdicion(venta) {
+    setVentaEditando(venta)
+    setItemsEdicion(venta.venta_detalle || [])
+    setFormEdicion({ producto_id: '', numero_serie_id: '', precio_pesos: '', precio_usd: '' })
+  }
+
+  function cerrarEdicion() {
+    setVentaEditando(null)
+    setItemsEdicion([])
+  }
+
+  function handleChangeEdicion(e) {
+    const { name, value } = e.target
+    if (name === 'producto_id') {
+      const prod = productos.find(p => p.id === Number(value))
+      setModoConSerieEdicion(prod?.tipo_producto?.requiere_serie)
+      // Para edición mostramos todas las series en stock + la que ya tiene ese item
+      setSeriesFiltradasEdicion(seriesAll.filter(s => s.producto_id === Number(value) && (s.en_stock)))
+      setFormEdicion({ ...formEdicion, producto_id: value, numero_serie_id: '' })
+      return
+    }
+    setFormEdicion({ ...formEdicion, [name]: value })
+  }
+
+  async function guardarCambioItem(item, campo, valor) {
+    // Guardar historial antes de modificar
+    await supabase.from('venta_detalle_historial').insert([{
+      venta_detalle_id: item.id,
+      venta_id: ventaEditando.id,
+      numero_serie_id: item.numero_serie_id,
+      producto_id: item.producto_id,
+      precio_venta_pesos: item.precio_venta_pesos,
+      precio_venta_usd: item.precio_venta_usd,
+      modificado_por: getUsuarioId(),
+    }])
+
+    const updateData = { [campo]: valor }
+
+    // Si cambia el número de serie
+    if (campo === 'numero_serie_id') {
+      // Devolver el serie anterior al stock
+      if (item.numero_serie_id) {
+        await supabase.from('numeros_serie').update({ en_stock: true, fecha_salida: null }).eq('id', item.numero_serie_id)
+      }
+      // Marcar el nuevo serie como vendido
+      if (valor) {
+        await supabase.from('numeros_serie').update({ en_stock: false, fecha_salida: new Date().toISOString() }).eq('id', valor)
+      }
+    }
+
+    await supabase.from('venta_detalle').update(updateData).eq('id', item.id)
+
+    // Actualizar items en estado
+    setItemsEdicion(itemsEdicion.map(i => i.id === item.id ? { ...i, [campo]: valor } : i))
+    obtenerSeries()
+  }
+
+  async function eliminarItemEdicion(item) {
+    if (!confirm('¿Eliminar este producto de la venta?')) return
+
+    // Guardar historial
+    await supabase.from('venta_detalle_historial').insert([{
+      venta_detalle_id: item.id,
+      venta_id: ventaEditando.id,
+      numero_serie_id: item.numero_serie_id,
+      producto_id: item.producto_id,
+      precio_venta_pesos: item.precio_venta_pesos,
+      precio_venta_usd: item.precio_venta_usd,
+      modificado_por: getUsuarioId(),
+    }])
+
+    await supabase.from('venta_detalle').delete().eq('id', item.id)
+
+    if (item.numero_serie_id) {
+      await supabase.from('numeros_serie').update({ en_stock: true, fecha_salida: null }).eq('id', item.numero_serie_id)
+    }
+
+    setItemsEdicion(itemsEdicion.filter(i => i.id !== item.id))
+    obtenerSeries()
+  }
+
+  async function agregarItemEdicion() {
+    if (!formEdicion.precio_pesos && !formEdicion.precio_usd) return alert('Ingresar precio')
+    if (modoConSerieEdicion && !formEdicion.numero_serie_id) return alert('Seleccionar serie')
+    if (!modoConSerieEdicion && !formEdicion.producto_id) return alert('Seleccionar producto')
+
+    const fecha = new Date().toISOString()
+
+    const { data: detalle } = await supabase.from('venta_detalle').insert([{
+      venta_id: ventaEditando.id,
+      numero_serie_id: modoConSerieEdicion ? Number(formEdicion.numero_serie_id) : null,
+      producto_id: !modoConSerieEdicion ? Number(formEdicion.producto_id) : null,
+      precio_venta_pesos: formEdicion.precio_pesos || null,
+      precio_venta_usd: formEdicion.precio_usd || null,
+      creado_por: getUsuarioId(),
+    }]).select().single()
+
+    if (modoConSerieEdicion) {
+      await supabase.from('numeros_serie').update({ en_stock: false, fecha_salida: fecha }).eq('id', formEdicion.numero_serie_id)
+    }
+
+    const nuevaSerieInfo = seriesAll.find(s => s.id == formEdicion.numero_serie_id)
+    const nuevoProductoInfo = productos.find(p => p.id == formEdicion.producto_id)
+
+    setItemsEdicion([...itemsEdicion, {
+      id: detalle.id,
+      numero_serie_id: modoConSerieEdicion ? Number(formEdicion.numero_serie_id) : null,
+      producto_id: !modoConSerieEdicion ? Number(formEdicion.producto_id) : null,
+      precio_venta_pesos: formEdicion.precio_pesos || null,
+      precio_venta_usd: formEdicion.precio_usd || null,
+      numeros_serie: nuevaSerieInfo ? { id: nuevaSerieInfo.id, numero_serie: nuevaSerieInfo.numero_serie, productos: nuevaSerieInfo.productos } : null,
+      productos: nuevoProductoInfo ? { id: nuevoProductoInfo.id, producto: nuevoProductoInfo.producto } : null,
+    }])
+
+    setFormEdicion({ producto_id: '', numero_serie_id: '', precio_pesos: '', precio_usd: '' })
+    obtenerSeries()
+  }
+
+  async function guardarTotalesVenta() {
+    const nuevoTotalPesos = itemsEdicion.reduce((acc, i) => acc + (Number(i.precio_venta_pesos) || 0), 0)
+    const nuevoTotalUSD = itemsEdicion.reduce((acc, i) => acc + (Number(i.precio_venta_usd) || 0), 0)
+
+    // Guardar historial de la venta
+    await supabase.from('ventas_historial').insert([{
+      venta_id: ventaEditando.id,
+      total_pesos: ventaEditando.total_pesos,
+      total_dolares: ventaEditando.total_dolares,
+      confirmada: ventaEditando.confirmada,
+      modificado_por: getUsuarioId(),
+    }])
+
+    await supabase.from('ventas').update({
+      total_pesos: nuevoTotalPesos,
+      total_dolares: nuevoTotalUSD,
+    }).eq('id', ventaEditando.id)
+
+    alert('✅ Venta actualizada')
+    cerrarEdicion()
+    if (paciente) cargarVentasPaciente(paciente.id)
+    obtenerSeries()
   }
 
   const totalPesos = items.reduce((acc, i) => acc + (Number(i.precio_pesos) || 0), 0)
@@ -336,19 +486,14 @@ export default function Ventas() {
                         {item.precio_usd && ` · USD ${formatearUSD(item.precio_usd)}`}
                       </div>
                     </div>
-                    <button onClick={() => eliminarItem(item)} style={{
-                      background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ef4444'
-                    }}>✕</button>
+                    <button onClick={() => eliminarItem(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ef4444' }}>✕</button>
                   </div>
                 ))}
               </div>
             )}
 
             {items.length > 0 && (
-              <div style={{
-                marginTop: '16px', padding: '14px 16px', background: '#1a1a1a',
-                borderRadius: '10px', color: 'white', display: 'flex', gap: '24px', flexWrap: 'wrap',
-              }}>
+              <div style={{ marginTop: '16px', padding: '14px 16px', background: '#1a1a1a', borderRadius: '10px', color: 'white', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
                 <div>
                   <div style={{ fontSize: '11px', opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Pesos</div>
                   <div style={{ fontSize: '20px', fontWeight: '700' }}>{formatearPesos(totalPesos)}</div>
@@ -370,7 +515,7 @@ export default function Ventas() {
       )}
 
       {/* TAB HISTORIAL */}
-      {tab === 'historial' && (
+      {tab === 'historial' && !ventaEditando && (
         <div style={card}>
           <div style={cardTitle}>📋 Historial de ventas</div>
           {ventasPaciente.length === 0 ? (
@@ -385,10 +530,7 @@ export default function Ventas() {
                 const pagada = saldoP <= 0 && saldoU <= 0
 
                 return (
-                  <div key={v.id} style={{
-                    padding: '14px 16px', background: '#f9fafb',
-                    borderRadius: '10px', border: '1px solid #e5e7eb',
-                  }}>
+                  <div key={v.id} style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                       <div>
                         <div style={{ fontWeight: '700', fontSize: '15px', color: '#1a1a1a' }}>
@@ -399,7 +541,7 @@ export default function Ventas() {
                           {v.total_dolares > 0 && ` · U$S ${v.total_dolares}`}
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                         <span style={{
                           padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
                           background: pagada ? '#dcfce7' : '#fef2f2',
@@ -408,13 +550,15 @@ export default function Ventas() {
                           {pagada ? '✅ Pagada' : `Saldo: ${saldoP > 0 ? fmt(saldoP) : `U$S ${saldoU}`}`}
                         </span>
                         {!pagada && (
-                          <button
-                            onClick={() => window.location.href = `/pagos?venta_id=${v.id}&dni=${dni}`}
-                            style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px' }}
-                          >
+                          <button onClick={() => window.location.href = `/pagos?venta_id=${v.id}&dni=${dni}`}
+                            style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px' }}>
                             💳 Pagar
                           </button>
                         )}
+                        <button onClick={() => abrirEdicion(v)}
+                          style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px', color: '#8B1E2D', borderColor: '#f5c2c9' }}>
+                          ✏️ Editar
+                        </button>
                       </div>
                     </div>
                     {v.venta_detalle?.map(d => (
@@ -430,6 +574,127 @@ export default function Ventas() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* EDICIÓN DE VENTA */}
+      {tab === 'historial' && ventaEditando && (
+        <div style={card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={cardTitle}>✏️ Editando Venta #{ventaEditando.id}</div>
+            <button onClick={cerrarEdicion} style={{ ...btnSecundario, fontSize: '13px', padding: '6px 12px' }}>← Volver</button>
+          </div>
+
+          {/* Items actuales */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+            {itemsEdicion.map(item => (
+              <div key={item.id} style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+                <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a', marginBottom: '10px' }}>
+                  {item.numeros_serie?.productos?.producto || item.productos?.producto || '-'}
+                  {item.numeros_serie?.numero_serie ? ` (${item.numeros_serie.numero_serie})` : ''}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  {/* Cambiar serie */}
+                  {item.numero_serie_id && (
+                    <div>
+                      <label style={labelStyle}>Cambiar número de serie</label>
+                      <select
+                        value={item.numero_serie_id || ''}
+                        onChange={(e) => guardarCambioItem(item, 'numero_serie_id', Number(e.target.value))}
+                        style={inputStyle}
+                      >
+                        <option value={item.numero_serie_id}>
+                          {item.numeros_serie?.numero_serie} (actual)
+                        </option>
+                        {seriesAll.filter(s => s.en_stock && s.producto_id === (item.numeros_serie?.productos ? seriesAll.find(x => x.id === item.numero_serie_id)?.producto_id : null)).map(s => (
+                          <option key={s.id} value={s.id}>{s.numero_serie}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Cambiar precio pesos */}
+                  <div>
+                    <label style={labelStyle}>Precio pesos</label>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <input
+                        defaultValue={item.precio_venta_pesos || ''}
+                        onBlur={(e) => {
+                          if (e.target.value !== String(item.precio_venta_pesos || '')) {
+                            guardarCambioItem(item, 'precio_venta_pesos', e.target.value ? Number(e.target.value) : null)
+                          }
+                        }}
+                        placeholder="$0"
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Cambiar precio USD */}
+                  <div>
+                    <label style={labelStyle}>Precio USD</label>
+                    <input
+                      defaultValue={item.precio_venta_usd || ''}
+                      onBlur={(e) => {
+                        if (e.target.value !== String(item.precio_venta_usd || '')) {
+                          guardarCambioItem(item, 'precio_venta_usd', e.target.value ? Number(e.target.value) : null)
+                        }
+                      }}
+                      placeholder="U$S 0"
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '10px' }}>
+                  <button onClick={() => eliminarItemEdicion(item)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px', color: '#dc2626', borderColor: '#fecaca' }}>
+                    🗑️ Eliminar producto
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Agregar nuevo producto a la venta */}
+          <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '10px', border: '1px dashed #e5e7eb', marginBottom: '16px' }}>
+            <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>➕ Agregar producto a esta venta</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <label style={labelStyle}>Producto</label>
+                <select name="producto_id" value={formEdicion.producto_id} onChange={handleChangeEdicion} style={inputStyle}>
+                  <option value="">Seleccionar</option>
+                  {productos.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
+                </select>
+              </div>
+              {modoConSerieEdicion && (
+                <div>
+                  <label style={labelStyle}>Serie</label>
+                  <select name="numero_serie_id" value={formEdicion.numero_serie_id} onChange={handleChangeEdicion} style={inputStyle}>
+                    <option value="">Seleccionar serie</option>
+                    {seriesFiltradasEdicion.map(s => <option key={s.id} value={s.id}>{s.numero_serie}</option>)}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label style={labelStyle}>Precio pesos</label>
+                <input name="precio_pesos" placeholder="$0" value={formEdicion.precio_pesos} onChange={handleChangeEdicion} style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Precio USD</label>
+                <input name="precio_usd" placeholder="U$S 0" value={formEdicion.precio_usd} onChange={handleChangeEdicion} style={inputStyle} />
+              </div>
+            </div>
+            <div style={{ marginTop: '10px' }}>
+              <button onClick={agregarItemEdicion} style={{ ...btnSecundario, fontSize: '13px' }}>+ Agregar</button>
+            </div>
+          </div>
+
+          {/* Guardar cambios */}
+          <div style={{ display: 'flex', gap: '10px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
+            <button onClick={guardarTotalesVenta} style={btnPrimario}>💾 Guardar cambios</button>
+            <button onClick={cerrarEdicion} style={btnSecundario}>Cancelar</button>
+          </div>
         </div>
       )}
 
