@@ -121,32 +121,43 @@ export default function Reportes() {
   }
 
   async function cargarVisitas() {
-    let query = supabase
-      .from('visitas')
-      .select(`
-        id, fecha, observaciones,
-        visita_motivos (motivo),
-        pacientes (apellido_paciente, nombres_paciente, dni),
-        ventas (id)
-      `)
-      .gte('fecha', `${desde}T00:00:00`)
-      .lte('fecha', `${hasta}T23:59:59`)
-      .order('fecha', { ascending: false })
+  let pacienteIds = null
 
-    if (motivoId) query = query.eq('motivo_id', motivoId)
-    if (operadorId) query = query.eq('creado_por', operadorId)
-    if (busquedaPaciente) {
-  const termino = busquedaPaciente.trim()
-  if (/^\d+$/.test(termino)) {
-    query = query.eq('pacientes.dni', termino)
-  } else {
-    query = query.ilike('pacientes.apellido_paciente', `%${termino}%`)
+  if (busquedaPaciente.trim()) {
+    const termino = busquedaPaciente.trim()
+    let queryPac = supabase.from('pacientes').select('id')
+    if (/^\d+$/.test(termino)) {
+      queryPac = queryPac.eq('dni', termino)
+    } else {
+      queryPac = queryPac.ilike('apellido_paciente', `%${termino}%`)
+    }
+    const { data: pacs } = await queryPac
+    pacienteIds = (pacs || []).map(p => p.id)
+    if (pacienteIds.length === 0) {
+      setVisitas([])
+      return
+    }
   }
+
+  let query = supabase
+    .from('visitas')
+    .select(`
+      id, fecha, observaciones,
+      visita_motivos (motivo),
+      pacientes (apellido_paciente, nombres_paciente, dni),
+      ventas (id)
+    `)
+    .gte('fecha', `${desde}T00:00:00`)
+    .lte('fecha', `${hasta}T23:59:59`)
+    .order('fecha', { ascending: false })
+
+  if (motivoId) query = query.eq('motivo_id', motivoId)
+  if (operadorId) query = query.eq('creado_por', operadorId)
+  if (pacienteIds) query = query.in('paciente_id', pacienteIds)
+
+  const { data } = await query
+  setVisitas(data || [])
 }
-
-    const { data } = await query
-    setVisitas(data || [])
-  }
 
   const totalVentasPesos = ventas.reduce((acc, v) => acc + (Number(v.total_pesos) || 0), 0)
   const totalVentasUSD = ventas.reduce((acc, v) => acc + (Number(v.total_dolares) || 0), 0)
