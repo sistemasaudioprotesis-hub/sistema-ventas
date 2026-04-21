@@ -202,7 +202,17 @@ setVisitas(data || [])
 setFormVisita({ motivo_id: '', observaciones: '', venta_id: '' })
 setMostrarFormVisita(false)
 setBusquedaMotivo('')
-await cargarVisitas(pacienteId)
+const { data: nuevasVisitas } = await supabase
+  .from('visitas')
+  .select(`
+    id, fecha, observaciones, created_at,
+    visita_motivos (motivo),
+    usuarios (nombre),
+    ventas (id, fecha, total_pesos, total_dolares)
+  `)
+  .eq('paciente_id', pacienteId)
+  .order('fecha', { ascending: false })
+setVisitas(nuevasVisitas || [])
   }
 
   async function eliminarVisita(id) {
