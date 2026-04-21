@@ -161,15 +161,16 @@ export default function Reportes() {
 
       {/* Estilos de impresión */}
       <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          .print-title { display: block !important; }
-          body { background: white; }
-          table { page-break-inside: auto; }
-          tr { page-break-inside: avoid; }
-        }
-        .print-title { display: none; }
-      `}</style>
+  @media print {
+    .no-print { display: none !important; }
+    .print-title { display: block !important; }
+    aside { display: none !important; }
+    main { margin-left: 0 !important; padding: 20px !important; }
+    body { background: white; }
+    tr { page-break-inside: avoid; }
+  }
+  .print-title { display: none; }
+`}</style>
 
       {/* Header */}
       <div style={{ marginBottom: '28px' }} className="no-print">
