@@ -1,0 +1,111 @@
+name: Backup Supabase Diario
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Corre todos los días a las 23:00 Argentina (02:00 UTC)
+  workflow_dispatch:       # Permite correrlo manualmente desde GitHub
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependencias
+        run: npm install @supabase/supabase-js
+
+      - name: Exportar tablas de Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          node << 'EOF'
+          const { createClient } = require('@supabase/supabase-js')
+          const fs = require('fs')
+          const path = require('path')
+
+          const supabase = createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_KEY
+          )
+
+          const tablas = [
+            'pacientes',
+            'pacientes_historial',
+            'ventas',
+            'venta_detalle',
+            'ventas_historial',
+            'venta_detalle_historial',
+            'pagos',
+            'turnos',
+            'visitas',
+            'visita_motivos',
+            'productos',
+            'tipo_producto',
+            'numeros_serie',
+            'stock_general',
+            'stock_general_movimientos',
+            'depositos',
+            'obras_sociales',
+            'formas_pago',
+            'usuarios',
+            'caja_movimientos',
+            'valor_dolar_bna',
+            'provincias',
+            'profesionales',
+          ]
+
+          const fecha = new Date().toISOString().split('T')[0]
+          const carpeta = `backups/${fecha}`
+          fs.mkdirSync(carpeta, { recursive: true })
+
+          async function exportar() {
+            console.log(`Iniciando backup del ${fecha}...`)
+            const resumen = {}
+
+            for (const tabla of tablas) {
+              try {
+                const { data, error } = await supabase.from(tabla).select('*')
+                if (error) {
+                  console.error(`Error en ${tabla}:`, error.message)
+                  resumen[tabla] = { error: error.message }
+                  continue
+                }
+                const archivo = path.join(carpeta, `${tabla}.json`)
+                fs.writeFileSync(archivo, JSON.stringify(data, null, 2))
+                console.log(`✅ ${tabla}: ${data.length} registros`)
+                resumen[tabla] = { registros: data.length }
+              } catch (e) {
+                console.error(`Error inesperado en ${tabla}:`, e.message)
+                resumen[tabla] = { error: e.message }
+              }
+            }
+
+            // Guardar resumen
+            fs.writeFileSync(
+              path.join(carpeta, '_resumen.json'),
+              JSON.stringify({ fecha, tablas: resumen }, null, 2)
+            )
+
+            console.log('\nBackup completado.')
+          }
+
+          exportar()
+          EOF
+
+      - name: Commitear backup
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add backups/
+          git diff --staged --quiet || git commit -m "🗄️ Backup automático $(date +'%Y-%m-%d')"
+          git push
