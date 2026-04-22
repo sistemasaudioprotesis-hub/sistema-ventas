@@ -6,7 +6,7 @@ import { getUsuarioId } from '../../lib/getUsuario'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
-const EFECTIVO_ID = 1 // id de la forma de pago EFECTIVO
+const EFECTIVO_ID = 1
 
 export default function Caja() {
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
@@ -16,13 +16,21 @@ export default function Caja() {
   const [cotizacion, setCotizacion] = useState(null)
   const [cargandoDolar, setCargandoDolar] = useState(false)
   const [dolarManual, setDolarManual] = useState('')
+  const [formasPago, setFormasPago] = useState([])
 
-  const [form, setForm] = useState({
-    tipo: 'ingreso',
-    concepto: '',
-    monto_pesos: '',
-    monto_usd: '',
-  })
+  const [form, setForm] = useState({ tipo: 'ingreso', concepto: '', monto_pesos: '', monto_usd: '' })
+
+  // Edición movimiento manual
+  const [editandoMovimiento, setEditandoMovimiento] = useState(null)
+  const [formEditMovimiento, setFormEditMovimiento] = useState({ tipo: '', concepto: '', monto_pesos: '', monto_usd: '' })
+
+  // Edición pago
+  const [editandoPago, setEditandoPago] = useState(null)
+  const [formEditPago, setFormEditPago] = useState({ monto_pesos: '', monto_usd: '', forma_pago_id: '' })
+
+  useEffect(() => {
+    cargarFormasPago()
+  }, [])
 
   useEffect(() => {
     if (fecha) {
@@ -32,69 +40,47 @@ export default function Caja() {
     }
   }, [fecha])
 
-  async function cargarMovimientos() {
-    const { data: manuales } = await supabase
-      .from('caja_movimientos')
-      .select('*')
-      .eq('fecha', fecha)
-      .order('created_at')
+  async function cargarFormasPago() {
+    const { data } = await supabase.from('formas_pago').select('*').order('forma_pago')
+    setFormasPago(data || [])
+  }
 
+  async function cargarMovimientos() {
+    const { data: manuales } = await supabase.from('caja_movimientos').select('*').eq('fecha', fecha).order('created_at')
     const fechaInicio = `${fecha}T00:00:00`
     const fechaFin = `${fecha}T23:59:59`
-
-    const { data: pagos } = await supabase
-      .from('pagos')
-      .select(`
-        id, monto_pesos, monto_usd, fecha_pago,
-        formas_pago (forma_pago),
-        ventas (pacientes (apellido_paciente, nombres_paciente))
-      `)
+    const { data: pagos } = await supabase.from('pagos')
+      .select(`id, monto_pesos, monto_usd, fecha_pago, formas_pago (forma_pago), ventas (pacientes (apellido_paciente, nombres_paciente))`)
       .eq('forma_pago_id', EFECTIVO_ID)
-      .gte('fecha_pago', fechaInicio)
-      .lte('fecha_pago', fechaFin)
-      .order('fecha_pago')
+      .gte('fecha_pago', fechaInicio).lte('fecha_pago', fechaFin).order('fecha_pago')
 
     const pagosComoMovimientos = (pagos || []).map(p => ({
       id: `pago-${p.id}`,
-      tipo: 'ingreso',
-      origen: 'pago',
+      pago_id: p.id,
+      tipo: 'ingreso', origen: 'pago',
       concepto: `Pago - ${p.ventas?.pacientes?.apellido_paciente || ''} ${p.ventas?.pacientes?.nombres_paciente || ''}`,
-      monto_pesos: p.monto_pesos,
-      monto_usd: p.monto_usd,
+      monto_pesos: p.monto_pesos, monto_usd: p.monto_usd,
       created_at: p.fecha_pago,
+      forma_pago_id: EFECTIVO_ID,
     }))
 
     const todos = [...pagosComoMovimientos, ...(manuales || [])]
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-
     setMovimientos(todos)
   }
 
   async function cargarPagosOtros() {
     const fechaInicio = `${fecha}T00:00:00`
     const fechaFin = `${fecha}T23:59:59`
-
-    const { data } = await supabase
-      .from('pagos')
-      .select(`
-        id, monto_pesos, monto_usd, fecha_pago, forma_pago_id,
-        formas_pago (forma_pago),
-        ventas (pacientes (apellido_paciente, nombres_paciente))
-      `)
+    const { data } = await supabase.from('pagos')
+      .select(`id, monto_pesos, monto_usd, fecha_pago, forma_pago_id, formas_pago (forma_pago), ventas (pacientes (apellido_paciente, nombres_paciente))`)
       .neq('forma_pago_id', EFECTIVO_ID)
-      .gte('fecha_pago', fechaInicio)
-      .lte('fecha_pago', fechaFin)
-      .order('fecha_pago')
-
+      .gte('fecha_pago', fechaInicio).lte('fecha_pago', fechaFin).order('fecha_pago')
     setPagosOtros(data || [])
   }
 
   async function cargarCotizacion() {
-    const { data } = await supabase
-      .from('valor_dolar_bna')
-      .select('*')
-      .eq('fecha', fecha)
-      .maybeSingle()
+    const { data } = await supabase.from('valor_dolar_bna').select('*').eq('fecha', fecha).maybeSingle()
     setCotizacion(data?.dolar_vendedor || null)
   }
 
@@ -107,8 +93,7 @@ export default function Caja() {
     } else {
       await supabase.from('valor_dolar_bna').insert([{ fecha, dolar_vendedor: valor, creado_por: getUsuarioId() }])
     }
-    setCotizacion(valor)
-    setDolarManual('')
+    setCotizacion(valor); setDolarManual('')
     alert(`✅ Cotización guardada: $${valor}`)
   }
 
@@ -128,9 +113,7 @@ export default function Caja() {
         setCotizacion(valor)
         alert(`✅ Cotización actualizada: $${valor}`)
       }
-    } catch (e) {
-      alert('No se pudo obtener la cotización automáticamente')
-    }
+    } catch (e) { alert('No se pudo obtener la cotización automáticamente') }
     setCargandoDolar(false)
   }
 
@@ -138,10 +121,7 @@ export default function Caja() {
     if (!form.concepto) { alert('Ingresar concepto'); return }
     if (!form.monto_pesos && !form.monto_usd) { alert('Ingresar monto'); return }
     const { error } = await supabase.from('caja_movimientos').insert([{
-      fecha,
-      tipo: form.tipo,
-      origen: 'manual',
-      concepto: form.concepto,
+      fecha, tipo: form.tipo, origen: 'manual', concepto: form.concepto,
       monto_pesos: form.monto_pesos ? Number(form.monto_pesos) : null,
       monto_usd: form.monto_usd ? Number(form.monto_usd) : null,
       creado_por: getUsuarioId(),
@@ -157,7 +137,79 @@ export default function Caja() {
     cargarMovimientos()
   }
 
-  // Cálculos efectivo
+  function abrirEditarMovimiento(m) {
+    setEditandoMovimiento(m)
+    setFormEditMovimiento({ tipo: m.tipo, concepto: m.concepto, monto_pesos: m.monto_pesos || '', monto_usd: m.monto_usd || '' })
+  }
+
+  async function guardarEditMovimiento() {
+    if (!formEditMovimiento.concepto) { alert('Ingresar concepto'); return }
+    if (!formEditMovimiento.monto_pesos && !formEditMovimiento.monto_usd) { alert('Ingresar monto'); return }
+
+    // Guardar historial
+    await supabase.from('caja_movimientos_historial').insert([{
+      caja_movimiento_id: editandoMovimiento.id,
+      concepto: editandoMovimiento.concepto,
+      tipo: editandoMovimiento.tipo,
+      monto_pesos: editandoMovimiento.monto_pesos,
+      monto_usd: editandoMovimiento.monto_usd,
+      modificado_por: getUsuarioId(),
+    }])
+
+    await supabase.from('caja_movimientos').update({
+      tipo: formEditMovimiento.tipo,
+      concepto: formEditMovimiento.concepto,
+      monto_pesos: formEditMovimiento.monto_pesos ? Number(formEditMovimiento.monto_pesos) : null,
+      monto_usd: formEditMovimiento.monto_usd ? Number(formEditMovimiento.monto_usd) : null,
+    }).eq('id', editandoMovimiento.id)
+
+    setEditandoMovimiento(null)
+    cargarMovimientos()
+  }
+
+  function abrirEditarPago(p) {
+    setEditandoPago(p)
+    setFormEditPago({
+      monto_pesos: p.monto_pesos || '',
+      monto_usd: p.monto_usd || '',
+      forma_pago_id: String(p.forma_pago_id || EFECTIVO_ID),
+    })
+  }
+
+  async function guardarEditPago() {
+    if (!formEditPago.monto_pesos && !formEditPago.monto_usd) { alert('Ingresar monto'); return }
+
+    const pagoId = editandoPago.pago_id || editandoPago.id
+
+    // Guardar historial
+    await supabase.from('pagos_historial').insert([{
+      pago_id: pagoId,
+      monto_pesos: editandoPago.monto_pesos,
+      monto_usd: editandoPago.monto_usd,
+      forma_pago_id: editandoPago.forma_pago_id,
+      modificado_por: getUsuarioId(),
+    }])
+
+    await supabase.from('pagos').update({
+      monto_pesos: formEditPago.monto_pesos ? Number(formEditPago.monto_pesos) : null,
+      monto_usd: formEditPago.monto_usd ? Number(formEditPago.monto_usd) : null,
+      forma_pago_id: Number(formEditPago.forma_pago_id),
+    }).eq('id', pagoId)
+
+    setEditandoPago(null)
+    cargarMovimientos()
+    cargarPagosOtros()
+  }
+
+  async function eliminarPago(p) {
+    if (!confirm('¿Eliminar este pago? Esta acción no se puede deshacer.')) return
+    const pagoId = p.pago_id || p.id
+    await supabase.from('pagos').delete().eq('id', pagoId)
+    cargarMovimientos()
+    cargarPagosOtros()
+  }
+
+  // Cálculos
   const ingresosPesos = movimientos.filter(m => m.tipo === 'ingreso').reduce((acc, m) => acc + (Number(m.monto_pesos) || 0), 0)
   const egresosPesos = movimientos.filter(m => m.tipo === 'egreso').reduce((acc, m) => acc + (Number(m.monto_pesos) || 0), 0)
   const saldoPesos = ingresosPesos - egresosPesos
@@ -166,7 +218,6 @@ export default function Caja() {
   const saldoUSD = ingresosUSD - egresosUSD
   const saldoUnificado = cotizacion ? saldoPesos + (saldoUSD * cotizacion) : null
 
-  // Agrupar otros medios por forma de pago
   const otrosAgrupados = pagosOtros.reduce((acc, p) => {
     const nombre = p.formas_pago?.forma_pago || 'Sin forma'
     if (!acc[nombre]) acc[nombre] = { pesos: 0, usd: 0, pagos: [] }
@@ -208,13 +259,7 @@ export default function Caja() {
             )}
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <input
-              type="number"
-              placeholder="Cargar manual"
-              value={dolarManual}
-              onChange={(e) => setDolarManual(e.target.value)}
-              style={{ ...inputStyle, width: '150px' }}
-            />
+            <input type="number" placeholder="Cargar manual" value={dolarManual} onChange={(e) => setDolarManual(e.target.value)} style={{ ...inputStyle, width: '150px' }} />
             <button onClick={guardarDolarManual} style={btnSecundario}>💾 Guardar</button>
             <button onClick={buscarDolarAutomatico} disabled={cargandoDolar} style={{ ...btnSecundario, opacity: cargandoDolar ? 0.7 : 1 }}>
               {cargandoDolar ? 'Buscando...' : '🔄 Automático'}
@@ -231,46 +276,93 @@ export default function Caja() {
             background: tab === val ? '#8B1E2D' : 'white',
             color: tab === val ? 'white' : '#374151',
             fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
-          }}>
-            {label}
-          </button>
+          }}>{label}</button>
         ))}
       </div>
+
+      {/* MODAL EDITAR MOVIMIENTO MANUAL */}
+      {editandoMovimiento && (
+        <div style={overlay}>
+          <div style={modalBox}>
+            <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a', marginBottom: '16px' }}>✏️ Editar movimiento</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <Field label="Tipo">
+                <select value={formEditMovimiento.tipo} onChange={(e) => setFormEditMovimiento({ ...formEditMovimiento, tipo: e.target.value })} style={inputStyle}>
+                  <option value="ingreso">💰 Ingreso</option>
+                  <option value="egreso">💸 Egreso</option>
+                </select>
+              </Field>
+              <Field label="Concepto">
+                <input value={formEditMovimiento.concepto} onChange={(e) => setFormEditMovimiento({ ...formEditMovimiento, concepto: e.target.value })} style={inputStyle} />
+              </Field>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <Field label="Monto pesos">
+                  <input type="number" value={formEditMovimiento.monto_pesos} onChange={(e) => setFormEditMovimiento({ ...formEditMovimiento, monto_pesos: e.target.value })} placeholder="$0" style={inputStyle} />
+                </Field>
+                <Field label="Monto USD">
+                  <input type="number" value={formEditMovimiento.monto_usd} onChange={(e) => setFormEditMovimiento({ ...formEditMovimiento, monto_usd: e.target.value })} placeholder="U$S 0" style={inputStyle} />
+                </Field>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+              <button onClick={guardarEditMovimiento} style={btnPrimario}>💾 Guardar</button>
+              <button onClick={() => setEditandoMovimiento(null)} style={btnSecundario}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR PAGO */}
+      {editandoPago && (
+        <div style={overlay}>
+          <div style={modalBox}>
+            <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a', marginBottom: '4px' }}>✏️ Editar pago</div>
+            <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>{editandoPago.concepto || `${editandoPago.ventas?.pacientes?.apellido_paciente || ''} ${editandoPago.ventas?.pacientes?.nombres_paciente || ''}`}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <Field label="Forma de pago">
+                <select value={formEditPago.forma_pago_id} onChange={(e) => setFormEditPago({ ...formEditPago, forma_pago_id: e.target.value })} style={inputStyle}>
+                  {formasPago.map(f => <option key={f.id} value={f.id}>{f.forma_pago}</option>)}
+                </select>
+              </Field>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <Field label="Monto pesos">
+                  <input type="number" value={formEditPago.monto_pesos} onChange={(e) => setFormEditPago({ ...formEditPago, monto_pesos: e.target.value })} placeholder="$0" style={inputStyle} />
+                </Field>
+                <Field label="Monto USD">
+                  <input type="number" value={formEditPago.monto_usd} onChange={(e) => setFormEditPago({ ...formEditPago, monto_usd: e.target.value })} placeholder="U$S 0" style={inputStyle} />
+                </Field>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+              <button onClick={guardarEditPago} style={btnPrimario}>💾 Guardar</button>
+              <button onClick={() => setEditandoPago(null)} style={btnSecundario}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TAB EFECTIVO */}
       {tab === 'efectivo' && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '20px' }}>
-            <div style={card}>
-              <div style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Caja en Pesos</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '6px' }}>
-                <span style={{ color: '#6b7280' }}>Ingresos</span>
-                <span style={{ color: '#16a34a', fontWeight: '600' }}>{fmt(ingresosPesos)}</span>
+            {[
+              { label: 'Caja en Pesos', ingresos: ingresosPesos, egresos: egresosPesos, saldo: saldoPesos, fmt: fmt },
+              { label: 'Caja en USD', ingresos: ingresosUSD, egresos: egresosUSD, saldo: saldoUSD, fmt: fmtUSD },
+            ].map(({ label, ingresos, egresos, saldo, fmt: f }) => (
+              <div key={label} style={card}>
+                <div style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>{label}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '6px' }}>
+                  <span style={{ color: '#6b7280' }}>Ingresos</span><span style={{ color: '#16a34a', fontWeight: '600' }}>{f(ingresos)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '12px' }}>
+                  <span style={{ color: '#6b7280' }}>Egresos</span><span style={{ color: '#dc2626', fontWeight: '600' }}>{f(egresos)}</span>
+                </div>
+                <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '10px', display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: '700', fontSize: '15px' }}>Saldo</span>
+                  <span style={{ fontWeight: '700', fontSize: '18px', color: saldo >= 0 ? '#16a34a' : '#dc2626' }}>{f(saldo)}</span>
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '12px' }}>
-                <span style={{ color: '#6b7280' }}>Egresos</span>
-                <span style={{ color: '#dc2626', fontWeight: '600' }}>{fmt(egresosPesos)}</span>
-              </div>
-              <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '10px', display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: '700', fontSize: '15px' }}>Saldo</span>
-                <span style={{ fontWeight: '700', fontSize: '18px', color: saldoPesos >= 0 ? '#16a34a' : '#dc2626' }}>{fmt(saldoPesos)}</span>
-              </div>
-            </div>
-            <div style={card}>
-              <div style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Caja en USD</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '6px' }}>
-                <span style={{ color: '#6b7280' }}>Ingresos</span>
-                <span style={{ color: '#16a34a', fontWeight: '600' }}>{fmtUSD(ingresosUSD)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '12px' }}>
-                <span style={{ color: '#6b7280' }}>Egresos</span>
-                <span style={{ color: '#dc2626', fontWeight: '600' }}>{fmtUSD(egresosUSD)}</span>
-              </div>
-              <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '10px', display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: '700', fontSize: '15px' }}>Saldo</span>
-                <span style={{ fontWeight: '700', fontSize: '18px', color: saldoUSD >= 0 ? '#16a34a' : '#dc2626' }}>{fmtUSD(saldoUSD)}</span>
-              </div>
-            </div>
+            ))}
           </div>
 
           {cotizacion && (
@@ -331,13 +423,21 @@ export default function Caja() {
                         {m.origen === 'pago' ? '🔗 Pago de venta' : '✏️ Manual'} · {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div style={{ textAlign: 'right' }}>
                         {m.monto_pesos && <div style={{ fontWeight: '700', fontSize: '15px', color: m.tipo === 'ingreso' ? '#16a34a' : '#dc2626' }}>{m.tipo === 'egreso' ? '-' : ''}{fmt(m.monto_pesos)}</div>}
                         {m.monto_usd && <div style={{ fontWeight: '700', fontSize: '15px', color: m.tipo === 'ingreso' ? '#16a34a' : '#dc2626' }}>{m.tipo === 'egreso' ? '-' : ''}{fmtUSD(m.monto_usd)}</div>}
                       </div>
-                      {m.origen === 'manual' && (
-                        <button onClick={() => eliminarMovimiento(m.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#ef4444' }}>✕</button>
+                      {m.origen === 'pago' ? (
+                        <>
+                          <button onClick={() => abrirEditarPago(m)} style={btnIcono}>✏️</button>
+                          <button onClick={() => eliminarPago(m)} style={{ ...btnIcono, color: '#ef4444' }}>✕</button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => abrirEditarMovimiento(m)} style={btnIcono}>✏️</button>
+                          <button onClick={() => eliminarMovimiento(m.id)} style={{ ...btnIcono, color: '#ef4444' }}>✕</button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -378,8 +478,7 @@ export default function Caja() {
                       <div key={p.id} style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                         padding: '10px 14px', background: '#f0fdf4',
-                        borderRadius: '8px', border: '1px solid #bbf7d0',
-                        flexWrap: 'wrap', gap: '8px',
+                        borderRadius: '8px', border: '1px solid #bbf7d0', flexWrap: 'wrap', gap: '8px',
                       }}>
                         <div>
                           <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a' }}>
@@ -389,8 +488,12 @@ export default function Caja() {
                             {new Date(p.fecha_pago).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
-                        <div style={{ fontWeight: '700', fontSize: '15px', color: '#16a34a' }}>
-                          {p.monto_pesos ? fmt(p.monto_pesos) : fmtUSD(p.monto_usd)}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ fontWeight: '700', fontSize: '15px', color: '#16a34a' }}>
+                            {p.monto_pesos ? fmt(p.monto_pesos) : fmtUSD(p.monto_usd)}
+                          </div>
+                          <button onClick={() => abrirEditarPago(p)} style={btnIcono}>✏️</button>
+                          <button onClick={() => eliminarPago(p)} style={{ ...btnIcono, color: '#ef4444' }}>✕</button>
                         </div>
                       </div>
                     ))}
@@ -421,39 +524,13 @@ function Field({ label, children }) {
   )
 }
 
-const inputStyle = {
-  width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb',
-  fontSize: '15px', fontFamily: "'Outfit', sans-serif", background: 'white',
-  color: '#1a1a1a', outline: 'none', boxSizing: 'border-box',
-}
-
-const card = {
-  background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px',
-  padding: '20px 24px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-}
-
-const cardTitle = {
-  fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '16px',
-}
-
-const statCard = {
-  background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px',
-  padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-}
-
-const statLabel = {
-  fontSize: '12px', fontWeight: '600', color: '#6b7280',
-  textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px',
-}
-
-const btnPrimario = {
-  padding: '10px 20px', background: '#8B1E2D', color: 'white', border: 'none',
-  borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer',
-  fontFamily: "'Outfit', sans-serif",
-}
-
-const btnSecundario = {
-  padding: '10px 20px', background: 'white', color: '#374151', border: '1px solid #e5e7eb',
-  borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer',
-  fontFamily: "'Outfit', sans-serif",
-}
+const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '15px', fontFamily: "'Outfit', sans-serif", background: 'white', color: '#1a1a1a', outline: 'none', boxSizing: 'border-box' }
+const card = { background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px 24px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }
+const cardTitle = { fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '16px' }
+const statCard = { background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }
+const statLabel = { fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }
+const btnPrimario = { padding: '10px 20px', background: '#8B1E2D', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
+const btnSecundario = { padding: '10px 20px', background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
+const btnIcono = { background: 'none', border: 'none', cursor: 'pointer', fontSize: '15px', color: '#6b7280', padding: '4px' }
+const overlay = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }
+const modalBox = { background: 'white', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '420px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', maxHeight: '90vh', overflowY: 'auto' }
