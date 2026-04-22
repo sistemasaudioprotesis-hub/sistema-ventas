@@ -252,6 +252,18 @@ export default function Agenda() {
             {a.nombre}{a.tipo === 'agenda_os' && <span style={{ fontSize: '10px', marginLeft: '4px', opacity: 0.8 }}>OS</span>}
           </button>
         ))}
+          <button
+  onClick={() => setVerCancelados(!verCancelados)}
+  style={{
+    padding: '7px 16px', borderRadius: '8px', cursor: 'pointer',
+    border: `1px solid ${verCancelados ? '#6b7280' : '#e5e7eb'}`,
+    background: verCancelados ? '#6b7280' : 'white',
+    color: verCancelados ? 'white' : '#9ca3af',
+    fontSize: '13px', fontWeight: '600', fontFamily: "'Outfit', sans-serif",
+  }}
+>
+  {verCancelados ? '✕ Ocultar cancelados' : '👁 Ver cancelados'}
+</button>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           {Object.entries(coloresEstado).map(([estado, c]) => (
             <div key={estado} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}>
