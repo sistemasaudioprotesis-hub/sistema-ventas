@@ -340,7 +340,7 @@ export default function Pacientes() {
             ['datos', '👤 Datos'],
             ['visitas', `📋 Visitas (${visitas.length})`],
             ['turnos', `📅 Turnos (${turnos.filter(t => t.estado !== 'cancelado').length})`],
-            ['historial', `🕐 Historial (${historial.length})`],
+            ['historial', `🕐 Historial datos (${historial.length})`],
           ].map(([val, label]) => (
             <button key={val} onClick={() => setTab(val)} style={{
               padding: '9px 20px', borderRadius: '8px', border: '1px solid #e5e7eb',
