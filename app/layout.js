@@ -106,7 +106,7 @@ export default function RootLayout({ children }) {
   </svg>
 }/>
 
-  </NavSection>
+ </NavSection>
   
   <NavSection label="Información">
   <NavItem href="/reportes" label="Reportes" icon={
@@ -117,7 +117,7 @@ export default function RootLayout({ children }) {
     </svg>
   }/>
 </NavSection>
-                </NavSection>
+               
 
                 {/* Stock — solo director y admin */}
                 {usuario && ['admin', 'director'].includes(usuario.rol) && (
