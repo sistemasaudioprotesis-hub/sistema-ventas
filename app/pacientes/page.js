@@ -30,6 +30,13 @@ export default function Pacientes() {
   const [formVisita, setFormVisita] = useState({ motivo_id: '', observaciones: '', venta_id: '' })
   const [ventasPaciente, setVentasPaciente] = useState([])
 
+  // Turnos
+  const [turnos, setTurnos] = useState([])
+
+  // Historial
+  const [historial, setHistorial] = useState([])
+  const [provinciasMap, setProvinciasMap] = useState({})
+
   const [form, setForm] = useState({
     apellido_paciente: '', nombres_paciente: '', dni: '', telefono: '',
     domicilio: '', localidad: '', provincia_id: '', mail: '', observaciones: '', obra_social_id: '',
@@ -48,6 +55,9 @@ export default function Pacientes() {
   async function obtenerProvincias() {
     const { data } = await supabase.from('provincias').select('*')
     setProvincias(data || [])
+    const map = {}
+    ;(data || []).forEach(p => { map[p.id] = p.provincia })
+    setProvinciasMap(map)
   }
 
   async function obtenerObrasSociales() {
@@ -76,6 +86,8 @@ export default function Pacientes() {
     setTab('datos')
     setVisitas([])
     setVentasPaciente([])
+    setTurnos([])
+    setHistorial([])
     setForm({ apellido_paciente: '', nombres_paciente: '', dni: '', telefono: '', domicilio: '', localidad: '', provincia_id: '', mail: '', observaciones: '', obra_social_id: '' })
   }
 
@@ -111,6 +123,8 @@ export default function Pacientes() {
     setGuardado(true)
     cargarVisitas(p.id)
     cargarVentasPaciente(p.id)
+    cargarTurnos(p.id)
+    cargarHistorial(p.id)
   }
 
   async function cargarPacientePorDni(dni) {
@@ -140,6 +154,30 @@ export default function Pacientes() {
     setVentasPaciente(data || [])
   }
 
+  async function cargarTurnos(pid) {
+    const { data } = await supabase
+      .from('turnos')
+      .select(`
+        id, fecha, hora, estado, observaciones, asistio,
+        profesionales (nombre),
+        visita_motivos (motivo),
+        obras_sociales (obra_social)
+      `)
+      .eq('paciente_id', pid)
+      .order('fecha', { ascending: false })
+      .order('hora', { ascending: false })
+    setTurnos(data || [])
+  }
+
+  async function cargarHistorial(pid) {
+    const { data } = await supabase
+      .from('pacientes_historial')
+      .select('*, usuarios:creado_por (nombre)')
+      .eq('paciente_id', pid)
+      .order('created_at', { ascending: false })
+    setHistorial(data || [])
+  }
+
   async function guardar(destino) {
     if (!form.apellido_paciente || !form.nombres_paciente || !form.dni) { alert('Completar campos obligatorios'); return }
     if (!form.provincia_id) { alert('Seleccionar provincia'); return }
@@ -166,6 +204,7 @@ export default function Pacientes() {
       }])
       await supabase.from('pacientes').update(dataGuardar).eq('id', pacienteId)
       alert('Paciente actualizado')
+      cargarHistorial(pacienteId)
     } else {
       await supabase.from('pacientes').insert([{ ...dataGuardar, creado_por: getUsuarioId() }])
       alert('Paciente creado')
@@ -193,7 +232,6 @@ export default function Pacientes() {
 
     if (error) { alert('Error: ' + error.message); return }
 
-    // Recargar con join completo usando el id directamente
     const pid = pacienteId
     const { data: nuevasVisitas } = await supabase
       .from('visitas')
@@ -239,6 +277,17 @@ export default function Pacientes() {
 
   const fmtFecha = (f) => new Date(f).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
   const fmtHora = (f) => new Date(f).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
+  const hoy = new Date().toISOString().split('T')[0]
+
+  const turnosFuturos = turnos.filter(t => t.fecha >= hoy && t.estado !== 'cancelado')
+  const turnosPasados = turnos.filter(t => t.fecha < hoy || t.estado === 'cancelado')
+
+  const coloresEstado = {
+    pendiente: { bg: '#fef3c7', color: '#92400e' },
+    realizado: { bg: '#dcfce7', color: '#15803d' },
+    no_asistio: { bg: '#fef2f2', color: '#dc2626' },
+    cancelado: { bg: '#f3f4f6', color: '#6b7280' },
+  }
 
   return (
     <div style={{ maxWidth: '720px' }}>
@@ -287,7 +336,12 @@ export default function Pacientes() {
       {/* Tabs */}
       {pacienteId && (
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          {[['datos', '👤 Datos'], ['visitas', `📋 Visitas (${visitas.length})`]].map(([val, label]) => (
+          {[
+            ['datos', '👤 Datos'],
+            ['visitas', `📋 Visitas (${visitas.length})`],
+            ['turnos', `📅 Turnos (${turnos.filter(t => t.estado !== 'cancelado').length})`],
+            ['historial', `🕐 Historial (${historial.length})`],
+          ].map(([val, label]) => (
             <button key={val} onClick={() => setTab(val)} style={{
               padding: '9px 20px', borderRadius: '8px', border: '1px solid #e5e7eb',
               background: tab === val ? '#8B1E2D' : 'white',
@@ -305,11 +359,6 @@ export default function Pacientes() {
         <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div style={cardTitle}>{pacienteId ? '✏️ Editar paciente' : '👤 Nuevo paciente'}</div>
-            {pacienteId && (
-              <a href={`/historial-pacientes?dni=${form.dni}`} style={{ fontSize: '13px', color: '#8B1E2D', fontWeight: '600', textDecoration: 'none' }}>
-                Ver historial →
-              </a>
-            )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -371,32 +420,18 @@ export default function Pacientes() {
             </button>
           </div>
 
-          {/* ABM Motivos */}
           {mostrarABMMotivos && (
             <div style={{ ...card, marginBottom: '16px' }}>
               <div style={{ ...cardTitle, marginBottom: '14px' }}>⚙️ Motivos de visita</div>
               <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                <input
-                  placeholder="Nuevo motivo..."
-                  value={nuevoMotivo}
-                  onChange={(e) => setNuevoMotivo(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && guardarMotivo()}
-                  style={{ ...inputStyle, flex: 1, textTransform: 'uppercase' }}
-                />
+                <input placeholder="Nuevo motivo..." value={nuevoMotivo} onChange={(e) => setNuevoMotivo(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && guardarMotivo()} style={{ ...inputStyle, flex: 1, textTransform: 'uppercase' }} />
                 <button onClick={guardarMotivo} style={btnPrimario}>+ Agregar</button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {motivos.map(m => (
-                  <div key={m.id} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '8px 12px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb',
-                  }}>
+                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
                     <span style={{ fontSize: '14px', fontWeight: '500', color: m.activo ? '#1a1a1a' : '#9ca3af' }}>{m.motivo}</span>
-                    <button onClick={() => toggleMotivo(m)} style={{
-                      fontSize: '12px', padding: '4px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-                      background: m.activo ? '#fef2f2' : '#f0fdf4',
-                      color: m.activo ? '#dc2626' : '#16a34a',
-                    }}>
+                    <button onClick={() => toggleMotivo(m)} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: m.activo ? '#fef2f2' : '#f0fdf4', color: m.activo ? '#dc2626' : '#16a34a' }}>
                       {m.activo ? 'Desactivar' : 'Activar'}
                     </button>
                   </div>
@@ -405,19 +440,13 @@ export default function Pacientes() {
             </div>
           )}
 
-          {/* Formulario nueva visita */}
           {mostrarFormVisita && (
             <div style={card}>
               <div style={{ ...cardTitle, marginBottom: '14px' }}>📋 Nueva visita</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <Field label="Motivo *">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <input
-                      placeholder="Buscar motivo..."
-                      value={busquedaMotivo}
-                      onChange={(e) => setBusquedaMotivo(e.target.value)}
-                      style={inputStyle}
-                    />
+                    <input placeholder="Buscar motivo..." value={busquedaMotivo} onChange={(e) => setBusquedaMotivo(e.target.value)} style={inputStyle} />
                     <select value={formVisita.motivo_id} onChange={(e) => setFormVisita({ ...formVisita, motivo_id: e.target.value })} style={inputStyle}>
                       <option value="">Seleccionar motivo</option>
                       {motivosFiltrados.map(m => <option key={m.id} value={m.id}>{m.motivo}</option>)}
@@ -437,13 +466,7 @@ export default function Pacientes() {
                   </select>
                 </Field>
                 <Field label="Observaciones">
-                  <textarea
-                    placeholder="Observaciones de la visita..."
-                    value={formVisita.observaciones}
-                    onChange={(e) => setFormVisita({ ...formVisita, observaciones: e.target.value })}
-                    rows={3}
-                    style={{ ...inputStyle, resize: 'vertical' }}
-                  />
+                  <textarea placeholder="Observaciones de la visita..." value={formVisita.observaciones} onChange={(e) => setFormVisita({ ...formVisita, observaciones: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
                 </Field>
               </div>
               <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
@@ -452,40 +475,23 @@ export default function Pacientes() {
             </div>
           )}
 
-          {/* Lista visitas */}
           <div style={card}>
             <div style={{ ...cardTitle, marginBottom: '14px' }}>
               Historial de visitas
-              <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>
-                ({visitas.length} registros)
-              </span>
+              <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({visitas.length} registros)</span>
             </div>
             {visitas.length === 0 ? (
-              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>
-                No hay visitas registradas para este paciente
-              </div>
+              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay visitas registradas</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {visitas.map(v => (
                   <div key={v.id} style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                       <div>
-                        <div style={{ fontWeight: '700', fontSize: '15px', color: '#8B1E2D' }}>
-                          {v.visita_motivos?.motivo || '-'}
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '3px' }}>
-                          {fmtFecha(v.fecha)} {fmtHora(v.fecha)}
-                        </div>
-                        {v.ventas && (
-                          <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-                            🔗 Venta #{v.ventas.id} — {new Date(v.ventas.fecha).toLocaleDateString('es-AR')}
-                          </div>
-                        )}
-                        {v.observaciones && (
-                          <div style={{ fontSize: '13px', color: '#374151', marginTop: '6px', padding: '8px', background: 'white', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                            {v.observaciones}
-                          </div>
-                        )}
+                        <div style={{ fontWeight: '700', fontSize: '15px', color: '#8B1E2D' }}>{v.visita_motivos?.motivo || '-'}</div>
+                        <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '3px' }}>{fmtFecha(v.fecha)} {fmtHora(v.fecha)}</div>
+                        {v.ventas && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>🔗 Venta #{v.ventas.id} — {new Date(v.ventas.fecha).toLocaleDateString('es-AR')}</div>}
+                        {v.observaciones && <div style={{ fontSize: '13px', color: '#374151', marginTop: '6px', padding: '8px', background: 'white', borderRadius: '6px', border: '1px solid #e5e7eb' }}>{v.observaciones}</div>}
                       </div>
                       <button onClick={() => eliminarVisita(v.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#ef4444' }}>✕</button>
                     </div>
@@ -495,6 +501,131 @@ export default function Pacientes() {
             )}
           </div>
         </>
+      )}
+
+      {/* TAB TURNOS */}
+      {tab === 'turnos' && (
+        <>
+          {/* Próximos */}
+          <div style={card}>
+            <div style={{ ...cardTitle, marginBottom: '14px' }}>
+              📅 Próximos turnos
+              <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({turnosFuturos.length})</span>
+            </div>
+            {turnosFuturos.length === 0 ? (
+              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '16px 0' }}>No hay turnos próximos</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {turnosFuturos.map(t => (
+                  <div key={t.id} style={{ padding: '12px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', borderLeft: '4px solid #8B1E2D' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                      <div>
+                        <div style={{ fontWeight: '700', fontSize: '14px', color: '#1a1a1a' }}>
+                          {new Date(t.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} · {t.hora.slice(0, 5)} hs
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '3px' }}>
+                          {t.profesionales?.nombre}
+                          {t.visita_motivos?.motivo && ` · ${t.visita_motivos.motivo}`}
+                          {t.obras_sociales?.obra_social && ` · ${t.obras_sociales.obra_social}`}
+                        </div>
+                        {t.observaciones && <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '3px' }}>{t.observaciones}</div>}
+                      </div>
+                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', background: coloresEstado[t.estado]?.bg, color: coloresEstado[t.estado]?.color }}>
+                        {t.estado}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Pasados */}
+          <div style={card}>
+            <div style={{ ...cardTitle, marginBottom: '14px' }}>
+              📂 Turnos anteriores
+              <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({turnosPasados.length})</span>
+            </div>
+            {turnosPasados.length === 0 ? (
+              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '16px 0' }}>No hay turnos anteriores</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {turnosPasados.map(t => (
+                  <div key={t.id} style={{ padding: '12px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                      <div>
+                        <div style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>
+                          {new Date(t.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} · {t.hora.slice(0, 5)} hs
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '3px' }}>
+                          {t.profesionales?.nombre}
+                          {t.visita_motivos?.motivo && ` · ${t.visita_motivos.motivo}`}
+                          {t.obras_sociales?.obra_social && ` · ${t.obras_sociales.obra_social}`}
+                        </div>
+                      </div>
+                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', background: coloresEstado[t.estado]?.bg, color: coloresEstado[t.estado]?.color }}>
+                        {t.estado.replace('_', ' ')}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* TAB HISTORIAL */}
+      {tab === 'historial' && (
+        <div style={card}>
+          <div style={{ ...cardTitle, marginBottom: '14px' }}>
+            🕐 Historial de cambios
+            <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({historial.length} registros)</span>
+          </div>
+          {historial.length === 0 ? (
+            <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>
+              No hay cambios registrados — los cambios se registran automáticamente al guardar
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {historial.map((h, i) => (
+                <div key={h.id} style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>
+                      Versión anterior #{historial.length - i}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#9ca3af' }}>
+                      {fmtFecha(h.created_at)} {fmtHora(h.created_at)}
+                      {h.usuarios?.nombre && ` · por ${h.usuarios.nombre}`}
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '13px' }}>
+                    {[
+                      ['Apellido', h.apellido_paciente],
+                      ['Nombre', h.nombres_paciente],
+                      ['Teléfono', h.telefono],
+                      ['Mail', h.mail],
+                      ['Domicilio', h.domicilio],
+                      ['Localidad', h.localidad],
+                      ['Provincia', provinciasMap[h.provincia_id]],
+                    ].filter(([, v]) => v).map(([label, valor]) => (
+                      <div key={label} style={{ display: 'flex', gap: '6px' }}>
+                        <span style={{ color: '#9ca3af', minWidth: '70px' }}>{label}:</span>
+                        <span style={{ color: '#374151' }}>{valor}</span>
+                      </div>
+                    ))}
+                    {h.observaciones && (
+                      <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '6px' }}>
+                        <span style={{ color: '#9ca3af', minWidth: '70px' }}>Obs:</span>
+                        <span style={{ color: '#374151' }}>{h.observaciones}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
     </div>
