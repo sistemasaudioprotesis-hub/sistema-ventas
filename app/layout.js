@@ -78,22 +78,6 @@ export default function RootLayout({ children }) {
                   }/>
                 </NavSection>
 
-              <NavSection label="Configuración">
-  <NavItem href="/obras-sociales" label="Obras Sociales" icon={
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-    </svg>
-  }/>
-
-    <NavItem href="/formas-pago" label="Formas de Pago" icon={
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-    <line x1="1" y1="10" x2="23" y2="10"/>
-  </svg>
-}/>
-  
-</NavSection>
-
                 <NavSection label="Operaciones">
   <NavItem href="/agenda" label="Turnos" icon={
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
@@ -142,6 +126,23 @@ export default function RootLayout({ children }) {
                       </svg>
                     }/>
                   </NavSection>
+
+<NavSection label="Configuración">
+  <NavItem href="/obras-sociales" label="Obras Sociales" icon={
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+    </svg>
+  }/>
+
+    <NavItem href="/formas-pago" label="Formas de Pago" icon={
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+    <line x1="1" y1="10" x2="23" y2="10"/>
+  </svg>
+}/>
+  
+</NavSection>
+
                 )}
 
                 {/* Admin — solo admin */}
