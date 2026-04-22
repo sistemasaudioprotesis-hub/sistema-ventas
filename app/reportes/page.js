@@ -15,6 +15,8 @@ export default function Reportes() {
   const [obraSocialId, setObraSocialId] = useState('')
   const [motivoId, setMotivoId] = useState('')
   const [motivos, setMotivos] = useState([])
+  const [agendaId, setAgendaId] = useState('')
+  const [agendas, setAgendas] = useState([])
   const [tab, setTab] = useState('ventas')
   const [cargando, setCargando] = useState(false)
 
@@ -26,18 +28,21 @@ export default function Reportes() {
   const [pagos, setPagos] = useState([])
   const [movimientosCaja, setMovimientosCaja] = useState([])
   const [visitas, setVisitas] = useState([])
+  const [turnos, setTurnos] = useState([])
 
-  useEffect(() => {
-    cargarUsuarios()
-  }, [])
+  useEffect(() => { cargarUsuarios() }, [])
 
   async function cargarUsuarios() {
-    const { data } = await supabase.from('usuarios').select('id, nombre').eq('activo', true).order('nombre')
+    const [{ data }, { data: os }, { data: mv }, { data: ags }] = await Promise.all([
+      supabase.from('usuarios').select('id, nombre').eq('activo', true).order('nombre'),
+      supabase.from('obras_sociales').select('*').order('obra_social'),
+      supabase.from('visita_motivos').select('*').eq('activo', true).order('motivo'),
+      supabase.from('profesionales').select('*').eq('activo', true).order('nombre'),
+    ])
     setUsuarios(data || [])
-    const { data: os } = await supabase.from('obras_sociales').select('*').order('obra_social')
     setObrasSociales(os || [])
-    const { data: mv } = await supabase.from('visita_motivos').select('*').eq('activo', true).order('motivo')
     setMotivos(mv || [])
+    setAgendas(ags || [])
   }
 
   async function buscarPacientes() {
@@ -55,89 +60,82 @@ export default function Reportes() {
 
   async function buscar() {
     setCargando(true)
-    await Promise.all([cargarVentas(), cargarPagos(), cargarCaja(), cargarVisitas()])
+    await Promise.all([cargarVentas(), cargarPagos(), cargarCaja(), cargarVisitas(), cargarTurnos()])
     setCargando(false)
   }
 
   async function cargarVentas() {
-    let query = supabase
-      .from('ventas')
-      .select(`
+    let query = supabase.from('ventas').select(`
         id, fecha, confirmada, total_pesos, total_dolares,
         pacientes (apellido_paciente, nombres_paciente, dni),
         venta_detalle (
           id, precio_venta_pesos, precio_venta_usd,
           numeros_serie (numero_serie, productos (producto)),
           productos (producto)
-        )
-      `)
-      .gte('fecha', `${desde}T00:00:00`)
-      .lte('fecha', `${hasta}T23:59:59`)
+        )`)
+      .gte('fecha', `${desde}T00:00:00`).lte('fecha', `${hasta}T23:59:59`)
       .order('fecha', { ascending: false })
-
     if (operadorId) query = query.eq('creado_por', operadorId)
     if (obraSocialId) query = query.eq('obra_social_id', obraSocialId)
     if (pacienteSeleccionado) query = query.eq('paciente_id', pacienteSeleccionado.id)
-
     const { data } = await query
     setVentas(data || [])
   }
 
   async function cargarPagos() {
-    let query = supabase
-      .from('pagos')
-      .select(`
+    let query = supabase.from('pagos').select(`
         id, monto_pesos, monto_usd, fecha_pago,
         formas_pago (forma_pago),
-        ventas (
-          id, total_pesos, total_dolares,
-          pacientes (apellido_paciente, nombres_paciente, dni)
-        )
-      `)
-      .gte('fecha_pago', `${desde}T00:00:00`)
-      .lte('fecha_pago', `${hasta}T23:59:59`)
+        ventas (id, total_pesos, total_dolares, pacientes (apellido_paciente, nombres_paciente, dni))`)
+      .gte('fecha_pago', `${desde}T00:00:00`).lte('fecha_pago', `${hasta}T23:59:59`)
       .order('fecha_pago', { ascending: false })
-
     if (operadorId) query = query.eq('creado_por', operadorId)
-
     const { data } = await query
     setPagos(data || [])
   }
 
   async function cargarCaja() {
-    const { data: pagosData } = await supabase
-      .from('pagos')
+    const { data: pagosData } = await supabase.from('pagos')
       .select(`id, monto_pesos, monto_usd, fecha_pago, formas_pago (forma_pago), ventas (pacientes (apellido_paciente, nombres_paciente))`)
-      .gte('fecha_pago', `${desde}T00:00:00`)
-      .lte('fecha_pago', `${hasta}T23:59:59`)
-
-    const { data: manuales } = await supabase
-      .from('caja_movimientos').select('*')
-      .gte('fecha', desde).lte('fecha', hasta)
-
+      .gte('fecha_pago', `${desde}T00:00:00`).lte('fecha_pago', `${hasta}T23:59:59`)
+    const { data: manuales } = await supabase.from('caja_movimientos').select('*').gte('fecha', desde).lte('fecha', hasta)
     const pagosComoMovimientos = (pagosData || []).map(p => ({
       id: `pago-${p.id}`, tipo: 'ingreso', origen: 'pago',
       concepto: `Pago - ${p.ventas?.pacientes?.apellido_paciente || ''} ${p.ventas?.pacientes?.nombres_paciente || ''} (${p.formas_pago?.forma_pago || ''})`,
       monto_pesos: p.monto_pesos, monto_usd: p.monto_usd, created_at: p.fecha_pago,
     }))
-
     setMovimientosCaja([...pagosComoMovimientos, ...(manuales || [])].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)))
   }
 
   async function cargarVisitas() {
-    let query = supabase
-      .from('visitas')
+    let query = supabase.from('visitas')
       .select(`id, fecha, observaciones, visita_motivos (motivo), pacientes (apellido_paciente, nombres_paciente, dni), ventas (id)`)
-      .gte('fecha', `${desde}T00:00:00`)
-      .lte('fecha', `${hasta}T23:59:59`)
+      .gte('fecha', `${desde}T00:00:00`).lte('fecha', `${hasta}T23:59:59`)
       .order('fecha', { ascending: false })
-
     if (motivoId) query = query.eq('motivo_id', motivoId)
     if (operadorId) query = query.eq('creado_por', operadorId)
     if (pacienteSeleccionado) query = query.eq('paciente_id', pacienteSeleccionado.id)
-
     const { data } = await query
     setVisitas(data || [])
+  }
+
+  async function cargarTurnos() {
+    let query = supabase.from('turnos')
+      .select(`
+        id, fecha, hora, estado, asistio, observaciones, nombre_libre,
+        pacientes (apellido_paciente, nombres_paciente, dni, telefono),
+        profesionales (nombre),
+        visita_motivos (motivo),
+        obras_sociales (obra_social)
+      `)
+      .gte('fecha', desde).lte('fecha', hasta)
+      .order('fecha', { ascending: true })
+      .order('hora', { ascending: true })
+    if (agendaId) query = query.eq('profesional_id', agendaId)
+    if (pacienteSeleccionado) query = query.eq('paciente_id', pacienteSeleccionado.id)
+    if (motivoId) query = query.eq('motivo_id', motivoId)
+    const { data } = await query
+    setTurnos(data || [])
   }
 
   const totalVentasPesos = ventas.reduce((acc, v) => acc + (Number(v.total_pesos) || 0), 0)
@@ -149,38 +147,42 @@ export default function Reportes() {
   const ingresosUSD = movimientosCaja.filter(m => m.tipo === 'ingreso').reduce((acc, m) => acc + (Number(m.monto_usd) || 0), 0)
   const egresosUSD = movimientosCaja.filter(m => m.tipo === 'egreso').reduce((acc, m) => acc + (Number(m.monto_usd) || 0), 0)
   const visitasPorMotivo = visitas.reduce((acc, v) => { const m = v.visita_motivos?.motivo || 'Sin motivo'; acc[m] = (acc[m] || 0) + 1; return acc }, {})
+  const turnosPorEstado = turnos.reduce((acc, t) => { acc[t.estado] = (acc[t.estado] || 0) + 1; return acc }, {})
 
   const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0)
   const fmtUSD = (n) => `U$S ${Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   const fmtFecha = (f) => new Date(f).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
   const fmtHora = (f) => new Date(f).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
 
-  const tabLabels = { ventas: 'Ventas', pagos: 'Pagos', caja: 'Caja', visitas: 'Visitas' }
+  const tabLabels = { ventas: 'Ventas', pagos: 'Pagos', caja: 'Caja', visitas: 'Visitas', turnos: 'Turnos' }
+
+  const coloresEstado = {
+    pendiente: { bg: '#fef3c7', color: '#92400e' },
+    realizado: { bg: '#dcfce7', color: '#15803d' },
+    no_asistio: { bg: '#fef2f2', color: '#dc2626' },
+    cancelado: { bg: '#f3f4f6', color: '#6b7280' },
+  }
 
   return (
     <div style={{ maxWidth: '960px' }}>
 
-      {/* Estilos de impresión */}
       <style>{`
         @media print {
-  .no-print { display: none !important; }
-  .print-only { display: block !important; }
-  aside { display: none !important; }
-  main { margin-left: 0 !important; padding: 20px !important; }
-  body { background: white; font-size: 11px; }
-  tr { page-break-inside: avoid; }
-  table { font-size: 9px; width: 100%; }
-  td, th { padding: 5px 6px !important; }
-  @page { margin: 1.5cm; }
-}
+          .no-print { display: none !important; }
+          .print-only { display: block !important; }
+          aside { display: none !important; }
+          main { margin-left: 0 !important; padding: 20px !important; }
+          body { background: white; font-size: 11px; }
+          tr { page-break-inside: avoid; }
+          table { font-size: 9px; width: 100%; }
+          td, th { padding: 5px 6px !important; }
+          @page { margin: 1.5cm; }
+        }
         .print-only { display: none; }
       `}</style>
 
-      {/* Header de impresión — visible solo al imprimir */}
-      <div className="print-only" style={{
-        marginBottom: '20px', paddingBottom: '14px',
-        borderBottom: '2px solid #8B1E2D',
-      }}>
+      {/* Header impresión */}
+      <div className="print-only" style={{ marginBottom: '20px', paddingBottom: '14px', borderBottom: '2px solid #8B1E2D' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <img src="/logo.jpeg" style={{ width: '48px', height: '48px', borderRadius: '50%' }} alt="logo" />
@@ -203,7 +205,7 @@ export default function Reportes() {
       {/* Header pantalla */}
       <div style={{ marginBottom: '28px' }} className="no-print">
         <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>Reportes</h1>
-        <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '14px' }}>Ventas, pagos, caja y visitas por período</p>
+        <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '14px' }}>Ventas, pagos, caja, visitas y turnos por período</p>
       </div>
 
       {/* Filtros */}
@@ -230,11 +232,17 @@ export default function Reportes() {
               {obrasSociales.map(o => <option key={o.id} value={o.id}>{o.obra_social}</option>)}
             </select>
           </Field>
-          <Field label="Motivo de visita">
-            <select value={motivoId} onChange={(e) => setMotivoId(e.target.value)} style={inputStyle}>
-              <option value="">Todos</option>
-              {motivos.map(m => <option key={m.id} value={m.id}>{m.motivo}</option>)}
-            </select>
+          <Field label="Motivo / Agenda">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <select value={motivoId} onChange={(e) => setMotivoId(e.target.value)} style={inputStyle}>
+                <option value="">Todos los motivos</option>
+                {motivos.map(m => <option key={m.id} value={m.id}>{m.motivo}</option>)}
+              </select>
+              <select value={agendaId} onChange={(e) => setAgendaId(e.target.value)} style={inputStyle}>
+                <option value="">Todas las agendas</option>
+                {agendas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+              </select>
+            </div>
           </Field>
           <Field label="Paciente">
             {pacienteSeleccionado ? (
@@ -246,13 +254,7 @@ export default function Reportes() {
               </div>
             ) : (
               <div style={{ display: 'flex', gap: '6px' }}>
-                <input
-                  placeholder="DNI o apellido..."
-                  value={busquedaPaciente}
-                  onChange={(e) => setBusquedaPaciente(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && buscarPacientes()}
-                  style={{ ...inputStyle, flex: 1 }}
-                />
+                <input placeholder="DNI o apellido..." value={busquedaPaciente} onChange={(e) => setBusquedaPaciente(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && buscarPacientes()} style={{ ...inputStyle, flex: 1 }} />
                 <button onClick={buscarPacientes} style={{ padding: '10px 14px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>Buscar</button>
               </div>
             )}
@@ -260,14 +262,10 @@ export default function Reportes() {
               <select value="" onChange={(e) => {
                 const p = resultadosPaciente.find(x => x.id == e.target.value)
                 if (!p) return
-                setPacienteSeleccionado(p)
-                setResultadosPaciente([])
-                setBusquedaPaciente('')
+                setPacienteSeleccionado(p); setResultadosPaciente([]); setBusquedaPaciente('')
               }} style={{ ...inputStyle, marginTop: '6px' }}>
                 <option value="">Seleccionar ({resultadosPaciente.length} encontrados)</option>
-                {resultadosPaciente.map(p => (
-                  <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>
-                ))}
+                {resultadosPaciente.map(p => <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>)}
               </select>
             )}
           </Field>
@@ -284,15 +282,14 @@ export default function Reportes() {
           ['pagos', `💳 Pagos${pagos.length > 0 ? ` (${pagos.length})` : ''}`],
           ['caja', '💰 Caja'],
           ['visitas', `🏥 Visitas${visitas.length > 0 ? ` (${visitas.length})` : ''}`],
+          ['turnos', `📅 Turnos${turnos.length > 0 ? ` (${turnos.length})` : ''}`],
         ].map(([val, label]) => (
           <button key={val} onClick={() => setTab(val)} style={{
             padding: '9px 20px', borderRadius: '8px', border: '1px solid #e5e7eb',
             background: tab === val ? '#8B1E2D' : 'white',
             color: tab === val ? 'white' : '#374151',
             fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
-          }}>
-            {label}
-          </button>
+          }}>{label}</button>
         ))}
       </div>
 
@@ -300,9 +297,7 @@ export default function Reportes() {
       {tab === 'ventas' && (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <div style={{ fontSize: '14px', color: '#6b7280' }}>
-              {ventas.length} ventas · {fmt(totalVentasPesos)} · {fmtUSD(totalVentasUSD)}
-            </div>
+            <div style={{ fontSize: '14px', color: '#6b7280' }}>{ventas.length} ventas · {fmt(totalVentasPesos)} · {fmtUSD(totalVentasUSD)}</div>
             <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
           </div>
           <div style={card}>
@@ -312,14 +307,9 @@ export default function Reportes() {
               <table style={tableStyle}>
                 <thead>
                   <tr>
-                    <th style={thStyle}>#</th>
-                    <th style={thStyle}>Fecha</th>
-                    <th style={thStyle}>Paciente</th>
-                    <th style={thStyle}>DNI</th>
-                    <th style={thStyle}>Productos</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>Total $</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>Total U$S</th>
-                    <th style={thStyle}>Estado</th>
+                    <th style={thStyle}>#</th><th style={thStyle}>Fecha</th><th style={thStyle}>Paciente</th><th style={thStyle}>DNI</th>
+                    <th style={thStyle}>Productos</th><th style={{ ...thStyle, textAlign: 'right' }}>Total $</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Total U$S</th><th style={thStyle}>Estado</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -329,25 +319,10 @@ export default function Reportes() {
                       <td style={tdStyle}>{fmtFecha(v.fecha)}</td>
                       <td style={{ ...tdStyle, fontWeight: '600' }}>{v.pacientes?.apellido_paciente} {v.pacientes?.nombres_paciente}</td>
                       <td style={tdStyle}>{v.pacientes?.dni}</td>
-                      <td style={tdStyle}>
-                        {v.venta_detalle?.map(d => (
-                          <div key={d.id} style={{ fontSize: '12px', color: '#6b7280' }}>
-                            {d.numeros_serie?.productos?.producto || d.productos?.producto || '-'}
-                            {d.numeros_serie?.numero_serie ? ` (${d.numeros_serie.numero_serie})` : ''}
-                          </div>
-                        ))}
-                      </td>
-                      <td style={{ ...tdStyle, textAlign: 'right', color: '#16a34a', fontWeight: '600' }}>
-                        {v.total_pesos > 0 ? fmt(v.total_pesos) : '-'}
-                      </td>
-                      <td style={{ ...tdStyle, textAlign: 'right', color: '#2563eb', fontWeight: '600' }}>
-                        {v.total_dolares > 0 ? fmtUSD(v.total_dolares) : '-'}
-                      </td>
-                      <td style={tdStyle}>
-                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: v.confirmada ? '#dcfce7' : '#fef9c3', color: v.confirmada ? '#16a34a' : '#ca8a04' }}>
-                          {v.confirmada ? 'Confirmada' : 'Pendiente'}
-                        </span>
-                      </td>
+                      <td style={tdStyle}>{v.venta_detalle?.map(d => <div key={d.id} style={{ fontSize: '12px', color: '#6b7280' }}>{d.numeros_serie?.productos?.producto || d.productos?.producto || '-'}{d.numeros_serie?.numero_serie ? ` (${d.numeros_serie.numero_serie})` : ''}</div>)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#16a34a', fontWeight: '600' }}>{v.total_pesos > 0 ? fmt(v.total_pesos) : '-'}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#2563eb', fontWeight: '600' }}>{v.total_dolares > 0 ? fmtUSD(v.total_dolares) : '-'}</td>
+                      <td style={tdStyle}><span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: v.confirmada ? '#dcfce7' : '#fef9c3', color: v.confirmada ? '#16a34a' : '#ca8a04' }}>{v.confirmada ? 'Confirmada' : 'Pendiente'}</span></td>
                     </tr>
                   ))}
                   <tr style={{ background: '#1a1a1a' }}>
@@ -367,9 +342,7 @@ export default function Reportes() {
       {tab === 'pagos' && (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <div style={{ fontSize: '14px', color: '#6b7280' }}>
-              {pagos.length} pagos · {fmt(totalPagadoPesos)} · {fmtUSD(totalPagadoUSD)}
-            </div>
+            <div style={{ fontSize: '14px', color: '#6b7280' }}>{pagos.length} pagos · {fmt(totalPagadoPesos)} · {fmtUSD(totalPagadoUSD)}</div>
             <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
           </div>
           <div style={card}>
@@ -379,13 +352,9 @@ export default function Reportes() {
               <table style={tableStyle}>
                 <thead>
                   <tr>
-                    <th style={thStyle}>Fecha</th>
-                    <th style={thStyle}>Paciente</th>
-                    <th style={thStyle}>DNI</th>
-                    <th style={thStyle}>Venta #</th>
-                    <th style={thStyle}>Forma de pago</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>Monto $</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>Monto U$S</th>
+                    <th style={thStyle}>Fecha</th><th style={thStyle}>Paciente</th><th style={thStyle}>DNI</th>
+                    <th style={thStyle}>Venta #</th><th style={thStyle}>Forma de pago</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Monto $</th><th style={{ ...thStyle, textAlign: 'right' }}>Monto U$S</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -396,12 +365,8 @@ export default function Reportes() {
                       <td style={tdStyle}>{p.ventas?.pacientes?.dni}</td>
                       <td style={tdStyle}>#{p.ventas?.id}</td>
                       <td style={tdStyle}>{p.formas_pago?.forma_pago}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right', color: '#16a34a', fontWeight: '600' }}>
-                        {p.monto_pesos ? fmt(p.monto_pesos) : '-'}
-                      </td>
-                      <td style={{ ...tdStyle, textAlign: 'right', color: '#2563eb', fontWeight: '600' }}>
-                        {p.monto_usd ? fmtUSD(p.monto_usd) : '-'}
-                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#16a34a', fontWeight: '600' }}>{p.monto_pesos ? fmt(p.monto_pesos) : '-'}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: '#2563eb', fontWeight: '600' }}>{p.monto_usd ? fmtUSD(p.monto_usd) : '-'}</td>
                     </tr>
                   ))}
                   <tr style={{ background: '#1a1a1a' }}>
@@ -424,20 +389,11 @@ export default function Reportes() {
             <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '20px' }}>
-            {[
-              { label: 'Caja Pesos', ingresos: ingresosPesos, egresos: egresosPesos, fmt: fmt },
-              { label: 'Caja USD', ingresos: ingresosUSD, egresos: egresosUSD, fmt: fmtUSD },
-            ].map(({ label, ingresos, egresos, fmt: f }) => (
+            {[{ label: 'Caja Pesos', ingresos: ingresosPesos, egresos: egresosPesos, fmt: fmt }, { label: 'Caja USD', ingresos: ingresosUSD, egresos: egresosUSD, fmt: fmtUSD }].map(({ label, ingresos, egresos, fmt: f }) => (
               <div key={label} style={card}>
                 <div style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>{label}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '4px' }}>
-                  <span style={{ color: '#6b7280' }}>Ingresos</span>
-                  <span style={{ color: '#16a34a', fontWeight: '600' }}>{f(ingresos)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}>
-                  <span style={{ color: '#6b7280' }}>Egresos</span>
-                  <span style={{ color: '#dc2626', fontWeight: '600' }}>{f(egresos)}</span>
-                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '4px' }}><span style={{ color: '#6b7280' }}>Ingresos</span><span style={{ color: '#16a34a', fontWeight: '600' }}>{f(ingresos)}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '8px' }}><span style={{ color: '#6b7280' }}>Egresos</span><span style={{ color: '#dc2626', fontWeight: '600' }}>{f(egresos)}</span></div>
                 <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '8px', display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontWeight: '700' }}>Saldo</span>
                   <span style={{ fontWeight: '700', fontSize: '18px', color: (ingresos - egresos) >= 0 ? '#16a34a' : '#dc2626' }}>{f(ingresos - egresos)}</span>
@@ -450,33 +406,15 @@ export default function Reportes() {
               <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay movimientos para el período seleccionado</div>
             ) : (
               <table style={tableStyle}>
-                <thead>
-                  <tr>
-                    <th style={thStyle}>Fecha</th>
-                    <th style={thStyle}>Concepto</th>
-                    <th style={thStyle}>Origen</th>
-                    <th style={thStyle}>Tipo</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>Monto $</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>Monto U$S</th>
-                  </tr>
-                </thead>
+                <thead><tr><th style={thStyle}>Fecha</th><th style={thStyle}>Concepto</th><th style={thStyle}>Origen</th><th style={thStyle}>Tipo</th><th style={{ ...thStyle, textAlign: 'right' }}>Monto $</th><th style={{ ...thStyle, textAlign: 'right' }}>Monto U$S</th></tr></thead>
                 <tbody>
                   {movimientosCaja.map((m, i) => (
                     <tr key={m.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
-                      <td style={tdStyle}>{fmtFecha(m.created_at)}</td>
-                      <td style={tdStyle}>{m.concepto}</td>
+                      <td style={tdStyle}>{fmtFecha(m.created_at)}</td><td style={tdStyle}>{m.concepto}</td>
                       <td style={tdStyle}>{m.origen === 'pago' ? 'Pago' : 'Manual'}</td>
-                      <td style={tdStyle}>
-                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: m.tipo === 'ingreso' ? '#dcfce7' : '#fef2f2', color: m.tipo === 'ingreso' ? '#16a34a' : '#dc2626' }}>
-                          {m.tipo}
-                        </span>
-                      </td>
-                      <td style={{ ...tdStyle, textAlign: 'right', color: m.tipo === 'ingreso' ? '#16a34a' : '#dc2626', fontWeight: '600' }}>
-                        {m.monto_pesos ? `${m.tipo === 'egreso' ? '-' : ''}${fmt(m.monto_pesos)}` : '-'}
-                      </td>
-                      <td style={{ ...tdStyle, textAlign: 'right', color: m.tipo === 'ingreso' ? '#2563eb' : '#dc2626', fontWeight: '600' }}>
-                        {m.monto_usd ? `${m.tipo === 'egreso' ? '-' : ''}${fmtUSD(m.monto_usd)}` : '-'}
-                      </td>
+                      <td style={tdStyle}><span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: m.tipo === 'ingreso' ? '#dcfce7' : '#fef2f2', color: m.tipo === 'ingreso' ? '#16a34a' : '#dc2626' }}>{m.tipo}</span></td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: m.tipo === 'ingreso' ? '#16a34a' : '#dc2626', fontWeight: '600' }}>{m.monto_pesos ? `${m.tipo === 'egreso' ? '-' : ''}${fmt(m.monto_pesos)}` : '-'}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', color: m.tipo === 'ingreso' ? '#2563eb' : '#dc2626', fontWeight: '600' }}>{m.monto_usd ? `${m.tipo === 'egreso' ? '-' : ''}${fmtUSD(m.monto_usd)}` : '-'}</td>
                     </tr>
                   ))}
                   <tr style={{ background: '#1a1a1a' }}>
@@ -497,9 +435,7 @@ export default function Reportes() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div style={{ fontSize: '14px', color: '#6b7280', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <span><strong>{visitas.length}</strong> visitas</span>
-              {Object.entries(visitasPorMotivo).map(([motivo, cant]) => (
-                <span key={motivo}>{motivo}: <strong>{cant}</strong></span>
-              ))}
+              {Object.entries(visitasPorMotivo).map(([motivo, cant]) => <span key={motivo}>{motivo}: <strong>{cant}</strong></span>)}
             </div>
             <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
           </div>
@@ -508,29 +444,77 @@ export default function Reportes() {
               <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay visitas para el período seleccionado</div>
             ) : (
               <table style={tableStyle}>
+                <thead><tr><th style={thStyle}>Fecha</th><th style={thStyle}>Hora</th><th style={thStyle}>Paciente</th><th style={thStyle}>DNI</th><th style={thStyle}>Motivo</th><th style={thStyle}>Venta</th><th style={thStyle}>Observaciones</th></tr></thead>
+                <tbody>
+                  {visitas.map((v, i) => (
+                    <tr key={v.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
+                      <td style={tdStyle}>{fmtFecha(v.fecha)}</td><td style={tdStyle}>{fmtHora(v.fecha)}</td>
+                      <td style={{ ...tdStyle, fontWeight: '600' }}>{v.pacientes?.apellido_paciente} {v.pacientes?.nombres_paciente}</td>
+                      <td style={tdStyle}>{v.pacientes?.dni}</td>
+                      <td style={tdStyle}><span style={{ color: '#8B1E2D', fontWeight: '600' }}>{v.visita_motivos?.motivo || '-'}</span></td>
+                      <td style={tdStyle}>{v.ventas?.id ? `#${v.ventas.id}` : '-'}</td>
+                      <td style={{ ...tdStyle, fontSize: '12px', color: '#6b7280' }}>{v.observaciones || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* REPORTE TURNOS */}
+      {tab === 'turnos' && (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ fontSize: '14px', color: '#6b7280', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <span><strong>{turnos.length}</strong> turnos</span>
+              {Object.entries(turnosPorEstado).map(([estado, cant]) => (
+                <span key={estado} style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '12px', background: coloresEstado[estado]?.bg, color: coloresEstado[estado]?.color }}>
+                  {estado.replace('_', ' ')}: <strong>{cant}</strong>
+                </span>
+              ))}
+            </div>
+            <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
+          </div>
+          <div style={card}>
+            {turnos.length === 0 ? (
+              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay turnos para el período seleccionado</div>
+            ) : (
+              <table style={tableStyle}>
                 <thead>
                   <tr>
                     <th style={thStyle}>Fecha</th>
                     <th style={thStyle}>Hora</th>
                     <th style={thStyle}>Paciente</th>
                     <th style={thStyle}>DNI</th>
+                    <th style={thStyle}>Teléfono</th>
+                    <th style={thStyle}>Agenda</th>
                     <th style={thStyle}>Motivo</th>
-                    <th style={thStyle}>Venta</th>
+                    <th style={thStyle}>Obra Social</th>
+                    <th style={thStyle}>Estado</th>
                     <th style={thStyle}>Observaciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {visitas.map((v, i) => (
-                    <tr key={v.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
-                      <td style={tdStyle}>{fmtFecha(v.fecha)}</td>
-                      <td style={tdStyle}>{fmtHora(v.fecha)}</td>
-                      <td style={{ ...tdStyle, fontWeight: '600' }}>{v.pacientes?.apellido_paciente} {v.pacientes?.nombres_paciente}</td>
-                      <td style={tdStyle}>{v.pacientes?.dni}</td>
-                      <td style={tdStyle}>
-                        <span style={{ color: '#8B1E2D', fontWeight: '600' }}>{v.visita_motivos?.motivo || '-'}</span>
+                  {turnos.map((t, i) => (
+                    <tr key={t.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
+                      <td style={tdStyle}>{new Date(t.fecha + 'T12:00:00').toLocaleDateString('es-AR')}</td>
+                      <td style={tdStyle}>{t.hora.slice(0, 5)}</td>
+                      <td style={{ ...tdStyle, fontWeight: '600' }}>
+                        {t.pacientes ? `${t.pacientes.apellido_paciente} ${t.pacientes.nombres_paciente}` : t.nombre_libre || '-'}
                       </td>
-                      <td style={tdStyle}>{v.ventas?.id ? `#${v.ventas.id}` : '-'}</td>
-                      <td style={{ ...tdStyle, fontSize: '12px', color: '#6b7280' }}>{v.observaciones || '-'}</td>
+                      <td style={tdStyle}>{t.pacientes?.dni || '-'}</td>
+                      <td style={tdStyle}>{t.pacientes?.telefono || '-'}</td>
+                      <td style={tdStyle}>{t.profesionales?.nombre || '-'}</td>
+                      <td style={tdStyle}>{t.visita_motivos?.motivo || '-'}</td>
+                      <td style={tdStyle}>{t.obras_sociales?.obra_social || '-'}</td>
+                      <td style={tdStyle}>
+                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: coloresEstado[t.estado]?.bg, color: coloresEstado[t.estado]?.color }}>
+                          {t.estado.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td style={{ ...tdStyle, fontSize: '12px', color: '#6b7280' }}>{t.observaciones || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
