@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
+import * as XLSX from 'xlsx'
 import { supabase } from '../../lib/supabaseClient'
 
 export default function Reportes() {
@@ -121,16 +122,11 @@ export default function Reportes() {
 
   async function cargarTurnos() {
     let query = supabase.from('turnos')
-      .select(`
-        id, fecha, hora, estado, asistio, observaciones, nombre_libre,
+      .select(`id, fecha, hora, estado, asistio, observaciones, nombre_libre,
         pacientes (apellido_paciente, nombres_paciente, dni, telefono),
-        profesionales (nombre),
-        visita_motivos (motivo),
-        obras_sociales (obra_social)
-      `)
+        profesionales (nombre), visita_motivos (motivo), obras_sociales (obra_social)`)
       .gte('fecha', desde).lte('fecha', hasta)
-      .order('fecha', { ascending: true })
-      .order('hora', { ascending: true })
+      .order('fecha', { ascending: true }).order('hora', { ascending: true })
     if (agendaId) query = query.eq('profesional_id', agendaId)
     if (pacienteSeleccionado) query = query.eq('paciente_id', pacienteSeleccionado.id)
     if (motivoId) query = query.eq('motivo_id', motivoId)
@@ -153,14 +149,87 @@ export default function Reportes() {
   const fmtUSD = (n) => `U$S ${Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   const fmtFecha = (f) => new Date(f).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
   const fmtHora = (f) => new Date(f).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
-
   const tabLabels = { ventas: 'Ventas', pagos: 'Pagos', caja: 'Caja', visitas: 'Visitas', turnos: 'Turnos' }
-
   const coloresEstado = {
     pendiente: { bg: '#fef3c7', color: '#92400e' },
     realizado: { bg: '#dcfce7', color: '#15803d' },
     no_asistio: { bg: '#fef2f2', color: '#dc2626' },
     cancelado: { bg: '#f3f4f6', color: '#6b7280' },
+  }
+
+  // Excel
+  function exportarExcel(nombreArchivo, filas) {
+    const ws = XLSX.utils.aoa_to_sheet(filas)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Datos')
+    XLSX.writeFile(wb, `${nombreArchivo}_${desde}_${hasta}.xlsx`)
+  }
+
+  function exportarVentas() {
+    exportarExcel('ventas', [
+      ['#', 'Fecha', 'Paciente', 'DNI', 'Productos', 'Total $', 'Total U$S', 'Estado'],
+      ...ventas.map(v => [
+        v.id, fmtFecha(v.fecha),
+        `${v.pacientes?.apellido_paciente || ''} ${v.pacientes?.nombres_paciente || ''}`,
+        v.pacientes?.dni || '',
+        v.venta_detalle?.map(d => d.numeros_serie?.productos?.producto || d.productos?.producto || '-').join(', ') || '',
+        v.total_pesos || 0, v.total_dolares || 0,
+        v.confirmada ? 'Confirmada' : 'Pendiente',
+      ]),
+      ['', '', '', '', 'TOTAL', totalVentasPesos, totalVentasUSD, ''],
+    ])
+  }
+
+  function exportarPagos() {
+    exportarExcel('pagos', [
+      ['Fecha', 'Paciente', 'DNI', 'Venta #', 'Forma de pago', 'Monto $', 'Monto U$S'],
+      ...pagos.map(p => [
+        fmtFecha(p.fecha_pago),
+        `${p.ventas?.pacientes?.apellido_paciente || ''} ${p.ventas?.pacientes?.nombres_paciente || ''}`,
+        p.ventas?.pacientes?.dni || '', p.ventas?.id || '',
+        p.formas_pago?.forma_pago || '', p.monto_pesos || 0, p.monto_usd || 0,
+      ]),
+      ['', '', '', '', 'TOTAL', totalPagadoPesos, totalPagadoUSD],
+    ])
+  }
+
+  function exportarCaja() {
+    exportarExcel('caja', [
+      ['Fecha', 'Concepto', 'Origen', 'Tipo', 'Monto $', 'Monto U$S'],
+      ...movimientosCaja.map(m => [
+        fmtFecha(m.created_at), m.concepto,
+        m.origen === 'pago' ? 'Pago' : 'Manual', m.tipo,
+        m.tipo === 'egreso' ? -(m.monto_pesos || 0) : (m.monto_pesos || 0),
+        m.tipo === 'egreso' ? -(m.monto_usd || 0) : (m.monto_usd || 0),
+      ]),
+      ['', '', '', 'SALDO', ingresosPesos - egresosPesos, ingresosUSD - egresosUSD],
+    ])
+  }
+
+  function exportarVisitas() {
+    exportarExcel('visitas', [
+      ['Fecha', 'Hora', 'Paciente', 'DNI', 'Motivo', 'Venta', 'Observaciones'],
+      ...visitas.map(v => [
+        fmtFecha(v.fecha), fmtHora(v.fecha),
+        `${v.pacientes?.apellido_paciente || ''} ${v.pacientes?.nombres_paciente || ''}`,
+        v.pacientes?.dni || '', v.visita_motivos?.motivo || '',
+        v.ventas?.id ? `#${v.ventas.id}` : '', v.observaciones || '',
+      ]),
+    ])
+  }
+
+  function exportarTurnos() {
+    exportarExcel('turnos', [
+      ['Fecha', 'Hora', 'Paciente', 'DNI', 'Teléfono', 'Agenda', 'Motivo', 'Obra Social', 'Estado', 'Observaciones'],
+      ...turnos.map(t => [
+        new Date(t.fecha + 'T12:00:00').toLocaleDateString('es-AR'),
+        t.hora.slice(0, 5),
+        t.pacientes ? `${t.pacientes.apellido_paciente} ${t.pacientes.nombres_paciente}` : t.nombre_libre || '',
+        t.pacientes?.dni || '', t.pacientes?.telefono || '',
+        t.profesionales?.nombre || '', t.visita_motivos?.motivo || '',
+        t.obras_sociales?.obra_social || '', t.estado.replace('_', ' '), t.observaciones || '',
+      ]),
+    ])
   }
 
   return (
@@ -212,12 +281,8 @@ export default function Reportes() {
       <div style={card} className="no-print">
         <div style={cardTitle}>🔍 Filtros</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '14px' }}>
-          <Field label="Desde">
-            <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} style={inputStyle} />
-          </Field>
-          <Field label="Hasta">
-            <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} style={inputStyle} />
-          </Field>
+          <Field label="Desde"><input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} style={inputStyle} /></Field>
+          <Field label="Hasta"><input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} style={inputStyle} /></Field>
           <Field label="Operador">
             <select value={operadorId} onChange={(e) => setOperadorId(e.target.value)} style={inputStyle}>
               <option value="">Todos</option>
@@ -298,20 +363,17 @@ export default function Reportes() {
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div style={{ fontSize: '14px', color: '#6b7280' }}>{ventas.length} ventas · {fmt(totalVentasPesos)} · {fmtUSD(totalVentasUSD)}</div>
-            <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
+            <div style={{ display: 'flex', gap: '8px' }} className="no-print">
+              <button onClick={exportarVentas} style={btnExcel}>📥 Excel</button>
+              <button onClick={() => window.print()} style={btnImprimir}>🖨️ Imprimir</button>
+            </div>
           </div>
           <div style={card}>
             {ventas.length === 0 ? (
               <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay ventas para el período seleccionado</div>
             ) : (
               <table style={tableStyle}>
-                <thead>
-                  <tr>
-                    <th style={thStyle}>#</th><th style={thStyle}>Fecha</th><th style={thStyle}>Paciente</th><th style={thStyle}>DNI</th>
-                    <th style={thStyle}>Productos</th><th style={{ ...thStyle, textAlign: 'right' }}>Total $</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>Total U$S</th><th style={thStyle}>Estado</th>
-                  </tr>
-                </thead>
+                <thead><tr><th style={thStyle}>#</th><th style={thStyle}>Fecha</th><th style={thStyle}>Paciente</th><th style={thStyle}>DNI</th><th style={thStyle}>Productos</th><th style={{ ...thStyle, textAlign: 'right' }}>Total $</th><th style={{ ...thStyle, textAlign: 'right' }}>Total U$S</th><th style={thStyle}>Estado</th></tr></thead>
                 <tbody>
                   {ventas.map((v, i) => (
                     <tr key={v.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
@@ -343,20 +405,17 @@ export default function Reportes() {
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div style={{ fontSize: '14px', color: '#6b7280' }}>{pagos.length} pagos · {fmt(totalPagadoPesos)} · {fmtUSD(totalPagadoUSD)}</div>
-            <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
+            <div style={{ display: 'flex', gap: '8px' }} className="no-print">
+              <button onClick={exportarPagos} style={btnExcel}>📥 Excel</button>
+              <button onClick={() => window.print()} style={btnImprimir}>🖨️ Imprimir</button>
+            </div>
           </div>
           <div style={card}>
             {pagos.length === 0 ? (
               <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay pagos para el período seleccionado</div>
             ) : (
               <table style={tableStyle}>
-                <thead>
-                  <tr>
-                    <th style={thStyle}>Fecha</th><th style={thStyle}>Paciente</th><th style={thStyle}>DNI</th>
-                    <th style={thStyle}>Venta #</th><th style={thStyle}>Forma de pago</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>Monto $</th><th style={{ ...thStyle, textAlign: 'right' }}>Monto U$S</th>
-                  </tr>
-                </thead>
+                <thead><tr><th style={thStyle}>Fecha</th><th style={thStyle}>Paciente</th><th style={thStyle}>DNI</th><th style={thStyle}>Venta #</th><th style={thStyle}>Forma de pago</th><th style={{ ...thStyle, textAlign: 'right' }}>Monto $</th><th style={{ ...thStyle, textAlign: 'right' }}>Monto U$S</th></tr></thead>
                 <tbody>
                   {pagos.map((p, i) => (
                     <tr key={p.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
@@ -386,7 +445,10 @@ export default function Reportes() {
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div style={{ fontSize: '14px', color: '#6b7280' }}>{movimientosCaja.length} movimientos</div>
-            <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
+            <div style={{ display: 'flex', gap: '8px' }} className="no-print">
+              <button onClick={exportarCaja} style={btnExcel}>📥 Excel</button>
+              <button onClick={() => window.print()} style={btnImprimir}>🖨️ Imprimir</button>
+            </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '20px' }}>
             {[{ label: 'Caja Pesos', ingresos: ingresosPesos, egresos: egresosPesos, fmt: fmt }, { label: 'Caja USD', ingresos: ingresosUSD, egresos: egresosUSD, fmt: fmtUSD }].map(({ label, ingresos, egresos, fmt: f }) => (
@@ -437,7 +499,10 @@ export default function Reportes() {
               <span><strong>{visitas.length}</strong> visitas</span>
               {Object.entries(visitasPorMotivo).map(([motivo, cant]) => <span key={motivo}>{motivo}: <strong>{cant}</strong></span>)}
             </div>
-            <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
+            <div style={{ display: 'flex', gap: '8px' }} className="no-print">
+              <button onClick={exportarVisitas} style={btnExcel}>📥 Excel</button>
+              <button onClick={() => window.print()} style={btnImprimir}>🖨️ Imprimir</button>
+            </div>
           </div>
           <div style={card}>
             {visitas.length === 0 ? (
@@ -475,45 +540,29 @@ export default function Reportes() {
                 </span>
               ))}
             </div>
-            <button onClick={() => window.print()} className="no-print" style={btnImprimir}>🖨️ Imprimir</button>
+            <div style={{ display: 'flex', gap: '8px' }} className="no-print">
+              <button onClick={exportarTurnos} style={btnExcel}>📥 Excel</button>
+              <button onClick={() => window.print()} style={btnImprimir}>🖨️ Imprimir</button>
+            </div>
           </div>
           <div style={card}>
             {turnos.length === 0 ? (
               <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay turnos para el período seleccionado</div>
             ) : (
               <table style={tableStyle}>
-                <thead>
-                  <tr>
-                    <th style={thStyle}>Fecha</th>
-                    <th style={thStyle}>Hora</th>
-                    <th style={thStyle}>Paciente</th>
-                    <th style={thStyle}>DNI</th>
-                    <th style={thStyle}>Teléfono</th>
-                    <th style={thStyle}>Agenda</th>
-                    <th style={thStyle}>Motivo</th>
-                    <th style={thStyle}>Obra Social</th>
-                    <th style={thStyle}>Estado</th>
-                    <th style={thStyle}>Observaciones</th>
-                  </tr>
-                </thead>
+                <thead><tr><th style={thStyle}>Fecha</th><th style={thStyle}>Hora</th><th style={thStyle}>Paciente</th><th style={thStyle}>DNI</th><th style={thStyle}>Teléfono</th><th style={thStyle}>Agenda</th><th style={thStyle}>Motivo</th><th style={thStyle}>Obra Social</th><th style={thStyle}>Estado</th><th style={thStyle}>Observaciones</th></tr></thead>
                 <tbody>
                   {turnos.map((t, i) => (
                     <tr key={t.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
                       <td style={tdStyle}>{new Date(t.fecha + 'T12:00:00').toLocaleDateString('es-AR')}</td>
                       <td style={tdStyle}>{t.hora.slice(0, 5)}</td>
-                      <td style={{ ...tdStyle, fontWeight: '600' }}>
-                        {t.pacientes ? `${t.pacientes.apellido_paciente} ${t.pacientes.nombres_paciente}` : t.nombre_libre || '-'}
-                      </td>
+                      <td style={{ ...tdStyle, fontWeight: '600' }}>{t.pacientes ? `${t.pacientes.apellido_paciente} ${t.pacientes.nombres_paciente}` : t.nombre_libre || '-'}</td>
                       <td style={tdStyle}>{t.pacientes?.dni || '-'}</td>
                       <td style={tdStyle}>{t.pacientes?.telefono || '-'}</td>
                       <td style={tdStyle}>{t.profesionales?.nombre || '-'}</td>
                       <td style={tdStyle}>{t.visita_motivos?.motivo || '-'}</td>
                       <td style={tdStyle}>{t.obras_sociales?.obra_social || '-'}</td>
-                      <td style={tdStyle}>
-                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: coloresEstado[t.estado]?.bg, color: coloresEstado[t.estado]?.color }}>
-                          {t.estado.replace('_', ' ')}
-                        </span>
-                      </td>
+                      <td style={tdStyle}><span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: coloresEstado[t.estado]?.bg, color: coloresEstado[t.estado]?.color }}>{t.estado.replace('_', ' ')}</span></td>
                       <td style={{ ...tdStyle, fontSize: '12px', color: '#6b7280' }}>{t.observaciones || '-'}</td>
                     </tr>
                   ))}
@@ -542,6 +591,7 @@ const card = { background: 'white', border: '1px solid #e5e7eb', borderRadius: '
 const cardTitle = { fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '16px' }
 const btnPrimario = { padding: '10px 20px', background: '#8B1E2D', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
 const btnImprimir = { padding: '8px 16px', background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
+const btnExcel = { padding: '8px 16px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
 const tableStyle = { width: '100%', borderCollapse: 'collapse', fontSize: '13px' }
 const thStyle = { padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#6b7280', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '2px solid #e5e7eb', background: '#f9fafb', whiteSpace: 'nowrap' }
 const tdStyle = { padding: '10px 12px', borderBottom: '1px solid #f3f4f6', color: '#1a1a1a', verticalAlign: 'top', whiteSpace: 'nowrap' }
