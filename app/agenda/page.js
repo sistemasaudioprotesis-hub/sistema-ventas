@@ -10,12 +10,11 @@ import { normalizarTexto } from '../../lib/formatText'
 const HORA_INICIO = 9
 const HORA_FIN_SEMANA = 18
 const HORA_FIN_SABADO = 13
-const INTERVALO = 30 // minutos
+const INTERVALO = 30
 
-function generarHorarios(esSabado) {
+function generarHorarios() {
   const horarios = []
-  const fin = esSabado ? HORA_FIN_SABADO : HORA_FIN_SEMANA
-  for (let h = HORA_INICIO; h < fin; h++) {
+  for (let h = HORA_INICIO; h < HORA_FIN_SEMANA; h++) {
     horarios.push(`${String(h).padStart(2, '0')}:00`)
     horarios.push(`${String(h).padStart(2, '0')}:30`)
   }
@@ -39,21 +38,33 @@ function formatFechaMostrar(date) {
   return date.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'numeric' })
 }
 
+const COLORES_AGENDA = [
+  '#8B1E2D', '#1d4ed8', '#15803d', '#b45309', '#7c3aed', '#0e7490'
+]
+
+const coloresEstado = {
+  pendiente: { bg: '#fef3c7', border: '#f59e0b', text: '#92400e' },
+  realizado: { bg: '#dcfce7', border: '#16a34a', text: '#15803d' },
+  no_asistio: { bg: '#fef2f2', border: '#ef4444', text: '#dc2626' },
+  cancelado: { bg: '#f3f4f6', border: '#d1d5db', text: '#9ca3af' },
+}
+
 export default function Agenda() {
   const [semanaBase, setSemanaBase] = useState(getLunesDeISemana(new Date()))
-  const [profesionales, setProfesionales] = useState([])
+  const [agendas, setAgendas] = useState([])
+  const [agendaFiltro, setAgendaFiltro] = useState('todas')
   const [turnos, setTurnos] = useState([])
   const [motivos, setMotivos] = useState([])
   const [obrasSociales, setObrasSociales] = useState([])
-  const [pacientesResultados, setPacientesResultados] = useState([])
 
   // Modal nuevo turno
-  const [modalNuevo, setModalNuevo] = useState(null) // { fecha, hora, profesional_id }
+  const [modalNuevo, setModalNuevo] = useState(null)
   const [formTurno, setFormTurno] = useState({
-    paciente_id: '', nombre_libre: '', telefono: '',
+    agenda_id: '', nombre_libre: '', telefono: '',
     motivo_id: '', obra_social_id: '', observaciones: '',
   })
   const [busquedaPaciente, setBusquedaPaciente] = useState('')
+  const [pacientesResultados, setPacientesResultados] = useState([])
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null)
 
   // Modal ver turno
@@ -68,12 +79,12 @@ export default function Agenda() {
   }, [semanaBase])
 
   async function cargarDatos() {
-    const [{ data: profs }, { data: movs }, { data: os }] = await Promise.all([
+    const [{ data: ags }, { data: movs }, { data: os }] = await Promise.all([
       supabase.from('profesionales').select('*').eq('activo', true).order('nombre'),
       supabase.from('visita_motivos').select('*').eq('activo', true).order('motivo'),
       supabase.from('obras_sociales').select('*').order('obra_social'),
     ])
-    setProfesionales(profs || [])
+    setAgendas(ags || [])
     setMotivos(movs || [])
     setObrasSociales(os || [])
     cargarTurnos()
@@ -89,12 +100,13 @@ export default function Agenda() {
       .select(`
         id, fecha, hora, observaciones, estado, asistio, nombre_libre, telefono,
         pacientes (id, apellido_paciente, nombres_paciente, dni, telefono),
-        profesionales (id, nombre),
+        profesionales (id, nombre, tipo),
         visita_motivos (motivo),
         obras_sociales (obra_social)
       `)
       .gte('fecha', formatFecha(lunes))
       .lte('fecha', formatFecha(sabado))
+      .neq('estado', 'cancelado')
       .order('hora')
 
     setTurnos(data || [])
@@ -115,14 +127,28 @@ export default function Agenda() {
 
   async function guardarTurno() {
     if (!modalNuevo) return
+    const agendaId = formTurno.agenda_id || modalNuevo.agenda_id
+    if (!agendaId) { alert('Seleccioná una agenda'); return }
     if (!pacienteSeleccionado && !formTurno.nombre_libre) {
       alert('Seleccioná un paciente o ingresá un nombre'); return
     }
 
+    // Verificar superposición
+    const { data: existente } = await supabase
+      .from('turnos')
+      .select('id')
+      .eq('fecha', modalNuevo.fecha)
+      .eq('hora', modalNuevo.hora + ':00')
+      .eq('profesional_id', Number(agendaId))
+      .neq('estado', 'cancelado')
+      .maybeSingle()
+
+    if (existente) { alert('Ya hay un turno en ese horario para esa agenda'); return }
+
     const { error } = await supabase.from('turnos').insert([{
       fecha: modalNuevo.fecha,
-      hora: modalNuevo.hora,
-      profesional_id: modalNuevo.profesional_id,
+      hora: modalNuevo.hora + ':00',
+      profesional_id: Number(agendaId),
       paciente_id: pacienteSeleccionado?.id || null,
       nombre_libre: !pacienteSeleccionado ? normalizarTexto(formTurno.nombre_libre) : null,
       telefono: formTurno.telefono || pacienteSeleccionado?.telefono || null,
@@ -134,15 +160,13 @@ export default function Agenda() {
     }])
 
     if (error) { alert('Error: ' + error.message); return }
-
     cerrarModalNuevo()
     cargarTurnos()
   }
 
   async function marcarAsistencia(turnoId, asistio) {
     await supabase.from('turnos').update({
-      asistio,
-      estado: asistio ? 'realizado' : 'no_asistio',
+      asistio, estado: asistio ? 'realizado' : 'no_asistio',
     }).eq('id', turnoId)
     setModalVer(null)
     cargarTurnos()
@@ -155,42 +179,33 @@ export default function Agenda() {
     cargarTurnos()
   }
 
-  async function reprogramarTurno(turno) {
-    // Abre modal nuevo con datos del turno original
-    setModalVer(null)
-    setModalNuevo({ fecha: turno.fecha, hora: turno.hora, profesional_id: turno.profesionales?.id, reprogramandoId: turno.id })
-    if (turno.pacientes) {
-      setPacienteSeleccionado(turno.pacientes)
-    }
-    setFormTurno({
-      paciente_id: turno.pacientes?.id || '',
-      nombre_libre: turno.nombre_libre || '',
-      telefono: turno.telefono || '',
-      motivo_id: '',
-      obra_social_id: '',
-      observaciones: `Reprogramado desde ${turno.fecha} ${turno.hora.slice(0, 5)}`,
-    })
-  }
-
   function cerrarModalNuevo() {
     setModalNuevo(null)
-    setFormTurno({ paciente_id: '', nombre_libre: '', telefono: '', motivo_id: '', obra_social_id: '', observaciones: '' })
+    setFormTurno({ agenda_id: '', nombre_libre: '', telefono: '', motivo_id: '', obra_social_id: '', observaciones: '' })
     setBusquedaPaciente('')
     setPacienteSeleccionado(null)
     setPacientesResultados([])
   }
 
-  function getTurno(fecha, hora, profesionalId) {
+  function getTurnosSlot(fecha, hora) {
     const horaCorta = hora.slice(0, 5)
-    return turnos.find(t =>
+    return turnos.filter(t =>
       t.fecha === fecha &&
-      t.hora.slice(0, 5) === horaCorta &&
-      t.profesionales?.id === profesionalId &&
-      t.estado !== 'cancelado'
+      t.hora.slice(0, 5) === horaCorta
     )
   }
 
-  // Días de la semana (L a S)
+  function getColorAgenda(agendaId) {
+    const idx = agendas.findIndex(a => a.id === agendaId)
+    return COLORES_AGENDA[idx % COLORES_AGENDA.length]
+  }
+
+  // Filtrar agendas según selección
+  const agendasMostradas = agendaFiltro === 'todas'
+    ? agendas
+    : agendas.filter(a => String(a.id) === agendaFiltro)
+
+  // Días L a S
   const dias = []
   for (let i = 0; i < 6; i++) {
     const d = new Date(semanaBase)
@@ -198,12 +213,8 @@ export default function Agenda() {
     dias.push(d)
   }
 
-  const colores = {
-    pendiente: { bg: '#fef3c7', border: '#f59e0b', text: '#92400e' },
-    realizado: { bg: '#dcfce7', border: '#16a34a', text: '#15803d' },
-    no_asistio: { bg: '#fef2f2', border: '#ef4444', text: '#dc2626' },
-    cancelado: { bg: '#f3f4f6', border: '#9ca3af', text: '#6b7280' },
-  }
+  const horarios = generarHorarios()
+  const hoy = formatFecha(new Date())
 
   return (
     <div style={{ maxWidth: '100%' }}>
@@ -212,81 +223,93 @@ export default function Agenda() {
       <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>Agenda</h1>
-          <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '14px' }}>Turnos semanales</p>
+          <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '14px' }}>
+            Semana del {dias[0] && formatFechaMostrar(dias[0])} al {dias[5] && formatFechaMostrar(dias[5])}
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button onClick={() => { const d = new Date(semanaBase); d.setDate(d.getDate() - 7); setSemanaBase(d) }} style={btnSecundario}>← Semana anterior</button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button onClick={() => { const d = new Date(semanaBase); d.setDate(d.getDate() - 7); setSemanaBase(d) }} style={btnSecundario}>← Anterior</button>
           <button onClick={() => setSemanaBase(getLunesDeISemana(new Date()))} style={btnSecundario}>Hoy</button>
-          <button onClick={() => { const d = new Date(semanaBase); d.setDate(d.getDate() + 7); setSemanaBase(d) }} style={btnSecundario}>Semana siguiente →</button>
+          <button onClick={() => { const d = new Date(semanaBase); d.setDate(d.getDate() + 7); setSemanaBase(d) }} style={btnSecundario}>Siguiente →</button>
         </div>
       </div>
 
-      {/* Leyenda */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
-        {Object.entries(colores).map(([estado, c]) => (
-          <div key={estado} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: c.bg, border: `1px solid ${c.border}` }} />
-            <span style={{ color: '#6b7280', textTransform: 'capitalize' }}>{estado.replace('_', ' ')}</span>
-          </div>
+      {/* Filtros por agenda */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <span style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280' }}>Agenda:</span>
+        <button
+          onClick={() => setAgendaFiltro('todas')}
+          style={{
+            padding: '7px 16px', borderRadius: '8px', border: '1px solid #e5e7eb', cursor: 'pointer',
+            background: agendaFiltro === 'todas' ? '#1a1a1a' : 'white',
+            color: agendaFiltro === 'todas' ? 'white' : '#374151',
+            fontSize: '13px', fontWeight: '600', fontFamily: "'Outfit', sans-serif",
+          }}
+        >
+          Todas
+        </button>
+        {agendas.map((a, i) => (
+          <button
+            key={a.id}
+            onClick={() => setAgendaFiltro(String(a.id))}
+            style={{
+              padding: '7px 16px', borderRadius: '8px', border: `1px solid ${COLORES_AGENDA[i % COLORES_AGENDA.length]}`, cursor: 'pointer',
+              background: agendaFiltro === String(a.id) ? COLORES_AGENDA[i % COLORES_AGENDA.length] : 'white',
+              color: agendaFiltro === String(a.id) ? 'white' : COLORES_AGENDA[i % COLORES_AGENDA.length],
+              fontSize: '13px', fontWeight: '600', fontFamily: "'Outfit', sans-serif",
+            }}
+          >
+            {a.nombre}
+            {a.tipo === 'agenda_os' && <span style={{ fontSize: '10px', marginLeft: '4px', opacity: 0.8 }}>OS</span>}
+          </button>
         ))}
+
+        {/* Leyenda estados */}
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {Object.entries(coloresEstado).map(([estado, c]) => (
+            <div key={estado} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#6b7280' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: c.bg, border: `1px solid ${c.border}` }} />
+              {estado.replace('_', ' ')}
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Grilla de agenda */}
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: `${200 + profesionales.length * dias.length * 120}px` }}>
+      {/* Grilla */}
+      <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: `${80 + dias.length * 140}px`, background: 'white' }}>
           <thead>
-            {/* Fila de días */}
             <tr>
-              <th style={{ ...thBase, width: '60px' }}></th>
+              <th style={{ ...thBase, width: '64px', borderRight: '1px solid #e5e7eb' }}>HORA</th>
               {dias.map((dia, di) => {
                 const esSabado = dia.getDay() === 6
-                const esHoy = formatFecha(dia) === formatFecha(new Date())
+                const esHoy = formatFecha(dia) === hoy
                 return (
-                  <th
-                    key={di}
-                    colSpan={profesionales.length}
-                    style={{
-                      ...thBase,
-                      background: esHoy ? '#fdf2f4' : '#f9fafb',
-                      color: esHoy ? '#8B1E2D' : '#374151',
-                      borderBottom: '1px solid #e5e7eb',
-                      borderLeft: '2px solid #e5e7eb',
-                      fontSize: '13px',
-                      fontWeight: esHoy ? '700' : '600',
-                    }}
-                  >
+                  <th key={di} style={{
+                    ...thBase,
+                    background: esHoy ? '#fdf2f4' : '#f9fafb',
+                    color: esHoy ? '#8B1E2D' : '#374151',
+                    borderLeft: '1px solid #e5e7eb',
+                    fontWeight: esHoy ? '700' : '600',
+                    fontSize: '12px',
+                  }}>
                     {formatFechaMostrar(dia).toUpperCase()}
-                    {esSabado && <span style={{ fontSize: '10px', marginLeft: '4px', color: '#9ca3af' }}>hasta 13hs</span>}
+                    {esSabado && <div style={{ fontSize: '9px', color: '#9ca3af', fontWeight: '400' }}>hasta 13hs</div>}
+                    {esHoy && <div style={{ fontSize: '9px', color: '#8B1E2D', fontWeight: '700' }}>HOY</div>}
                   </th>
                 )
               })}
             </tr>
-            {/* Fila de profesionales */}
-            <tr>
-              <th style={{ ...thBase, fontSize: '11px', color: '#9ca3af' }}>HORA</th>
-              {dias.map((dia, di) => (
-                profesionales.map((prof, pi) => (
-                  <th key={`${di}-${pi}`} style={{
-                    ...thBase,
-                    fontSize: '11px',
-                    color: '#8B1E2D',
-                    borderLeft: pi === 0 ? '2px solid #e5e7eb' : '1px solid #f3f4f6',
-                    minWidth: '120px',
-                  }}>
-                    {prof.nombre}
-                  </th>
-                ))
-              ))}
-            </tr>
           </thead>
           <tbody>
-            {generarHorarios(false).map(hora => (
-              <tr key={hora} style={{ borderBottom: '1px solid #f3f4f6' }}>
+            {horarios.map((hora, hi) => (
+              <tr key={hora} style={{ borderBottom: hora.endsWith(':00') ? '1px solid #e5e7eb' : '1px solid #f9fafb' }}>
                 <td style={{
-                  padding: '4px 8px', fontSize: '12px', color: '#9ca3af',
+                  padding: '4px 8px', fontSize: '11px', textAlign: 'right', whiteSpace: 'nowrap',
+                  color: hora.endsWith(':00') ? '#374151' : '#9ca3af',
                   fontWeight: hora.endsWith(':00') ? '600' : '400',
                   background: '#fafafa', borderRight: '1px solid #e5e7eb',
-                  whiteSpace: 'nowrap',
+                  verticalAlign: 'top', paddingTop: '6px',
                 }}>
                   {hora}
                 </td>
@@ -294,66 +317,80 @@ export default function Agenda() {
                   const fechaStr = formatFecha(dia)
                   const esSabado = dia.getDay() === 6
                   const fueraHorario = esSabado && hora >= '13:00'
+                  const esHoy = fechaStr === hoy
 
-                  return profesionales.map((prof, pi) => {
-                    if (fueraHorario) {
-                      return <td key={`${di}-${pi}`} style={{ background: '#f3f4f6', borderLeft: pi === 0 ? '2px solid #e5e7eb' : '1px solid #f3f4f6' }} />
-                    }
+                  if (fueraHorario) {
+                    return <td key={di} style={{ background: '#f3f4f6', borderLeft: '1px solid #e5e7eb' }} />
+                  }
 
-                    const turno = getTurno(fechaStr, hora, prof.id)
+                  const turnosSlot = getTurnosSlot(fechaStr, hora)
+                  const turnosFiltrados = agendaFiltro === 'todas'
+                    ? turnosSlot
+                    : turnosSlot.filter(t => String(t.profesionales?.id) === agendaFiltro)
 
-                    return (
-                      <td
-                        key={`${di}-${pi}`}
-                        style={{
-                          padding: '2px 4px',
-                          borderLeft: pi === 0 ? '2px solid #e5e7eb' : '1px solid #f3f4f6',
-                          verticalAlign: 'top',
-                          minHeight: '36px',
-                          cursor: turno ? 'pointer' : 'default',
-                        }}
-                        onClick={() => {
-                          if (turno) {
-                            setModalVer(turno)
-                          } else {
-                            setModalNuevo({ fecha: fechaStr, hora, profesional_id: prof.id })
-                          }
-                        }}
-                      >
-                        {turno ? (
-                          <div style={{
-                            padding: '3px 6px',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            background: colores[turno.estado]?.bg || '#fef3c7',
-                            border: `1px solid ${colores[turno.estado]?.border || '#f59e0b'}`,
-                            color: colores[turno.estado]?.text || '#92400e',
-                            lineHeight: 1.3,
-                          }}>
-                            <div style={{ fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '110px' }}>
-                              {turno.pacientes
-                                ? `${turno.pacientes.apellido_paciente} ${turno.pacientes.nombres_paciente}`
-                                : turno.nombre_libre || '-'}
-                            </div>
-                            {turno.visita_motivos?.motivo && (
-                              <div style={{ fontSize: '10px', opacity: 0.8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {turno.visita_motivos.motivo}
+                  return (
+                    <td
+                      key={di}
+                      style={{
+                        padding: '2px 4px',
+                        borderLeft: '1px solid #e5e7eb',
+                        verticalAlign: 'top',
+                        minHeight: '36px',
+                        background: esHoy ? '#fffbfb' : 'white',
+                        cursor: 'pointer',
+                        minWidth: '130px',
+                      }}
+                      onClick={() => {
+                        if (turnosFiltrados.length === 0) {
+                          setModalNuevo({
+                            fecha: fechaStr,
+                            hora,
+                            agenda_id: agendaFiltro !== 'todas' ? agendaFiltro : '',
+                          })
+                          setFormTurno(f => ({ ...f, agenda_id: agendaFiltro !== 'todas' ? agendaFiltro : '' }))
+                        }
+                      }}
+                    >
+                      {turnosFiltrados.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          {turnosFiltrados.map(t => {
+                            const color = getColorAgenda(t.profesionales?.id)
+                            const cEstado = coloresEstado[t.estado] || coloresEstado.pendiente
+                            return (
+                              <div
+                                key={t.id}
+                                onClick={(e) => { e.stopPropagation(); setModalVer(t) }}
+                                style={{
+                                  padding: '3px 6px', borderRadius: '4px', fontSize: '11px',
+                                  background: cEstado.bg,
+                                  borderLeft: `3px solid ${color}`,
+                                  border: `1px solid ${cEstado.border}`,
+                                  borderLeftWidth: '3px',
+                                  borderLeftColor: color,
+                                  cursor: 'pointer', lineHeight: 1.3,
+                                }}
+                              >
+                                <div style={{ fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px', color: cEstado.text }}>
+                                  {t.pacientes
+                                    ? `${t.pacientes.apellido_paciente} ${t.pacientes.nombres_paciente}`
+                                    : t.nombre_libre || '-'}
+                                </div>
+                                <div style={{ fontSize: '10px', color: color, fontWeight: '600' }}>
+                                  {t.profesionales?.nombre}
+                                  {t.visita_motivos?.motivo && ` · ${t.visita_motivos.motivo}`}
+                                </div>
                               </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div style={{
-                            height: '32px', borderRadius: '4px',
-                            border: '1px dashed transparent',
-                            transition: '0.15s',
-                          }}
-                            onMouseEnter={e => e.currentTarget.style.borderColor = '#d1d5db'}
-                            onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}
-                          />
-                        )}
-                      </td>
-                    )
-                  })
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <div style={{ height: '32px', borderRadius: '4px', border: '1px dashed transparent', transition: '0.1s' }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.background = '#f9fafb' }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent' }}
+                        />
+                      )}
+                    </td>
+                  )
                 })}
               </tr>
             ))}
@@ -369,10 +406,27 @@ export default function Agenda() {
               ➕ Nuevo turno
             </div>
             <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>
-              {new Date(modalNuevo.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} · {modalNuevo.hora.slice(0, 5)} hs · {profesionales.find(p => p.id === modalNuevo.profesional_id)?.nombre}
+              {new Date(modalNuevo.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} · {modalNuevo.hora} hs
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+              {/* Agenda */}
+              <div>
+                <label style={labelStyle}>Agenda *</label>
+                <select
+                  value={formTurno.agenda_id}
+                  onChange={(e) => setFormTurno({ ...formTurno, agenda_id: e.target.value })}
+                  style={inputStyle}
+                >
+                  <option value="">Seleccionar agenda</option>
+                  {agendas.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.nombre}{a.tipo === 'agenda_os' ? ' (OS)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               {/* Buscar paciente */}
               <div>
@@ -394,7 +448,7 @@ export default function Agenda() {
                         onKeyDown={(e) => e.key === 'Enter' && buscarPacientes()}
                         style={{ ...inputStyle, flex: 1 }}
                       />
-                      <button onClick={buscarPacientes} style={{ ...btnSecundario, whiteSpace: 'nowrap' }}>Buscar</button>
+                      <button onClick={buscarPacientes} style={{ ...btnSecundario, whiteSpace: 'nowrap', fontSize: '13px' }}>Buscar</button>
                     </div>
                     {pacientesResultados.length > 0 && (
                       <select value="" onChange={(e) => {
@@ -414,13 +468,13 @@ export default function Agenda() {
                 )}
               </div>
 
-              {/* Nombre libre si no hay paciente */}
+              {/* Nombre libre */}
               {!pacienteSeleccionado && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
-                    <label style={labelStyle}>Nombre (sin paciente)</label>
+                    <label style={labelStyle}>Nombre (sin paciente cargado)</label>
                     <input
-                      placeholder="Nombre y apellido..."
+                      placeholder="APELLIDO NOMBRE"
                       value={formTurno.nombre_libre}
                       onChange={(e) => setFormTurno({ ...formTurno, nombre_libre: e.target.value })}
                       style={{ ...inputStyle, textTransform: 'uppercase' }}
@@ -480,54 +534,56 @@ export default function Agenda() {
       {modalVer && (
         <div style={overlay}>
           <div style={modalBox}>
-            <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a', marginBottom: '4px' }}>
-              📋 Turno #{modalVer.id}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+              <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a' }}>
+                📋 Turno #{modalVer.id}
+              </div>
+              <span style={{
+                padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600',
+                background: coloresEstado[modalVer.estado]?.bg,
+                color: coloresEstado[modalVer.estado]?.text,
+                border: `1px solid ${coloresEstado[modalVer.estado]?.border}`,
+              }}>
+                {modalVer.estado.replace('_', ' ')}
+              </span>
             </div>
             <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>
-              {new Date(modalVer.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} · {modalVer.hora.slice(0, 5)} hs · {modalVer.profesionales?.nombre}
+              {new Date(modalVer.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} · {modalVer.hora.slice(0, 5)} hs
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+              <Row label="Agenda">{modalVer.profesionales?.nombre}</Row>
               <Row label="Paciente">
                 {modalVer.pacientes
                   ? `${modalVer.pacientes.apellido_paciente} ${modalVer.pacientes.nombres_paciente} (DNI: ${modalVer.pacientes.dni})`
                   : modalVer.nombre_libre || '-'}
               </Row>
-              {modalVer.telefono && <Row label="Teléfono">{modalVer.telefono}</Row>}
+              {(modalVer.telefono || modalVer.pacientes?.telefono) && (
+                <Row label="Teléfono">{modalVer.telefono || modalVer.pacientes?.telefono}</Row>
+              )}
               {modalVer.visita_motivos && <Row label="Motivo">{modalVer.visita_motivos.motivo}</Row>}
               {modalVer.obras_sociales && <Row label="Obra social">{modalVer.obras_sociales.obra_social}</Row>}
               {modalVer.observaciones && <Row label="Observaciones">{modalVer.observaciones}</Row>}
-              <Row label="Estado">
-                <span style={{
-                  padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
-                  background: colores[modalVer.estado]?.bg, color: colores[modalVer.estado]?.text,
-                }}>
-                  {modalVer.estado.replace('_', ' ')}
-                </span>
-              </Row>
             </div>
 
-            {/* Acciones */}
             {modalVer.estado === 'pendiente' && (
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
-                <button onClick={() => marcarAsistencia(modalVer.id, true)} style={{ ...btnPrimario, background: '#16a34a', fontSize: '13px', padding: '8px 14px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '14px', borderTop: '1px solid #f3f4f6', marginBottom: '10px' }}>
+                <button onClick={() => marcarAsistencia(modalVer.id, true)}
+                  style={{ ...btnPrimario, background: '#16a34a', fontSize: '13px', padding: '8px 14px' }}>
                   ✅ Asistió
                 </button>
-                <button onClick={() => marcarAsistencia(modalVer.id, false)} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px', color: '#dc2626', borderColor: '#fecaca' }}>
+                <button onClick={() => marcarAsistencia(modalVer.id, false)}
+                  style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px', color: '#dc2626', borderColor: '#fecaca' }}>
                   ❌ No asistió
                 </button>
-                <button onClick={() => reprogramarTurno(modalVer)} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px' }}>
-                  🔄 Reprogramar
-                </button>
-                <button onClick={() => cancelarTurno(modalVer.id)} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px', color: '#6b7280' }}>
+                <button onClick={() => cancelarTurno(modalVer.id)}
+                  style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px' }}>
                   🗑️ Cancelar
                 </button>
               </div>
             )}
 
-            <div style={{ marginTop: '14px' }}>
-              <button onClick={() => setModalVer(null)} style={btnSecundario}>Cerrar</button>
-            </div>
+            <button onClick={() => setModalVer(null)} style={{ ...btnSecundario, fontSize: '13px' }}>Cerrar</button>
           </div>
         </div>
       )}
@@ -539,17 +595,8 @@ export default function Agenda() {
 function Row({ label, children }) {
   return (
     <div style={{ display: 'flex', gap: '8px', fontSize: '14px' }}>
-      <span style={{ fontWeight: '600', color: '#6b7280', minWidth: '100px' }}>{label}:</span>
+      <span style={{ fontWeight: '600', color: '#6b7280', minWidth: '100px', flexShrink: 0 }}>{label}:</span>
       <span style={{ color: '#1a1a1a' }}>{children}</span>
-    </div>
-  )
-}
-
-function Field({ label, children }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-      <label style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>{label}</label>
-      {children}
     </div>
   )
 }
@@ -560,4 +607,4 @@ const btnPrimario = { padding: '10px 20px', background: '#8B1E2D', color: 'white
 const btnSecundario = { padding: '10px 20px', background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
 const overlay = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }
 const modalBox = { background: 'white', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '520px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', maxHeight: '90vh', overflowY: 'auto' }
-const thBase = { padding: '8px 10px', textAlign: 'center', fontSize: '12px', fontWeight: '600', background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }
+const thBase = { padding: '10px 12px', textAlign: 'center', fontSize: '12px', fontWeight: '600', background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }
