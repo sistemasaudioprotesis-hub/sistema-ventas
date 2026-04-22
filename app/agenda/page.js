@@ -68,6 +68,7 @@ export default function Agenda() {
 
   // Modal ver turno
   const [modalVer, setModalVer] = useState(null)
+  const [verCancelados, setVerCancelados] = useState(false)
 
   useEffect(() => { cargarDatos() }, [])
   useEffect(() => { cargarTurnos() }, [semanaBase])
@@ -97,7 +98,6 @@ export default function Agenda() {
         obras_sociales (obra_social)`)
       .gte('fecha', formatFecha(lunes))
       .lte('fecha', formatFecha(sabado))
-      .neq('estado', 'cancelado')
       .order('hora')
     setTurnos(data || [])
   }
@@ -192,9 +192,13 @@ export default function Agenda() {
   }
 
   function getTurnosSlot(fecha, hora) {
-    const horaCorta = hora.slice(0, 5)
-    return turnos.filter(t => t.fecha === fecha && t.hora.slice(0, 5) === horaCorta)
-  }
+  const horaCorta = hora.slice(0, 5)
+  return turnos.filter(t =>
+    t.fecha === fecha &&
+    t.hora.slice(0, 5) === horaCorta &&
+    (t.estado !== 'cancelado' || verCancelados)
+  )
+}
 
   function getColorAgenda(agendaId) {
     const idx = agendas.findIndex(a => a.id === agendaId)
