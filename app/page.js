@@ -12,12 +12,7 @@ export default function Home() {
           desc: 'Alta, búsqueda y edición',
           icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
         },
-        {
-          href: '/historial-pacientes',
-          label: 'Historial',
-          desc: 'Cambios en datos de pacientes',
-          icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-        },
+        
       ],
     },
     {
