@@ -15,6 +15,10 @@ export default function Ventas() {
   const [paciente, setPaciente] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   const [resultados, setResultados] = useState([])
+  const [buscoPaciente, setBuscoPaciente] = useState(false)
+  const [altaRapida, setAltaRapida] = useState(false)
+  const [formAltaRapida, setFormAltaRapida] = useState({ apellido: '', nombre: '', dni: '', telefono: '' })
+
   const [series, setSeries] = useState([])
   const [seriesAll, setSeriesAll] = useState([])
   const [seriesFiltradas, setSeriesFiltradas] = useState([])
@@ -35,12 +39,7 @@ export default function Ventas() {
   const [modoConSerieEdicion, setModoConSerieEdicion] = useState(true)
   const [seriesFiltradasEdicion, setSeriesFiltradasEdicion] = useState([])
 
-  const [form, setForm] = useState({
-    numero_serie_id: '',
-    producto_id: '',
-    precio_pesos: '',
-    precio_usd: '',
-  })
+  const [form, setForm] = useState({ numero_serie_id: '', producto_id: '', precio_pesos: '', precio_usd: '' })
 
   useEffect(() => {
     obtenerSeries()
@@ -54,18 +53,13 @@ export default function Ventas() {
   }, [])
 
   async function obtenerSeries() {
-    const { data } = await supabase
-      .from('numeros_serie')
-      .select(`id, numero_serie, producto_id, en_stock, productos (producto), depositos (deposito)`)
-      .order('numero_serie')
+    const { data } = await supabase.from('numeros_serie').select(`id, numero_serie, producto_id, en_stock, productos (producto), depositos (deposito)`).order('numero_serie')
     setSeriesAll(data || [])
     setSeries((data || []).filter(s => s.en_stock))
   }
 
   async function obtenerProductos() {
-    const { data } = await supabase
-      .from('productos')
-      .select(`id, producto, tipo_producto (requiere_serie)`)
+    const { data } = await supabase.from('productos').select(`id, producto, tipo_producto (requiere_serie)`)
     setProductos(data || [])
   }
 
@@ -77,27 +71,22 @@ export default function Ventas() {
   async function buscarPacienteAutomatico(dniParam) {
     const { data } = await supabase.from('pacientes').select('*').eq('dni', Number(dniParam))
     if (data && data.length === 1) {
-      setPaciente(data[0])
-      setDni(data[0].dni)
+      setPaciente(data[0]); setDni(data[0].dni)
       setObraSocialId(data[0].obra_social_id ? String(data[0].obra_social_id) : '')
       cargarVentasPaciente(data[0].id)
     } else if (data && data.length > 1) setResultados(data)
   }
 
   async function cargarVentasPaciente(pacienteId) {
-    const { data } = await supabase
-      .from('ventas')
-      .select(`
+    const { data } = await supabase.from('ventas').select(`
         id, fecha, confirmada, total_pesos, total_dolares, obra_social_id,
         obras_sociales (obra_social),
         venta_detalle (
           id, precio_venta_pesos, precio_venta_usd, numero_serie_id, producto_id,
           numeros_serie (id, numero_serie, productos (producto)),
           productos (id, producto)
-        )
-      `)
-      .eq('paciente_id', pacienteId)
-      .order('fecha', { ascending: false })
+        )`)
+      .eq('paciente_id', pacienteId).order('fecha', { ascending: false })
 
     const ventasConSaldo = await Promise.all((data || []).map(async v => {
       const { data: pagos } = await supabase.from('pagos').select('monto_pesos, monto_usd').eq('venta_id', v.id)
@@ -105,14 +94,12 @@ export default function Ventas() {
       const pagadoU = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_usd) || 0), 0)
       return { ...v, pagadoPesos: pagadoP, pagadoUSD: pagadoU }
     }))
-
     setVentasPaciente(ventasConSaldo)
   }
 
   async function buscarPaciente() {
     const valor = busqueda.trim()
     if (!valor) { alert('Ingresar DNI o apellido'); return }
-
     let data, error
     if (/^\d+$/.test(valor)) {
       const res = await supabase.from('pacientes').select('*').eq('dni', Number(valor))
@@ -121,10 +108,36 @@ export default function Ventas() {
       const res = await supabase.from('pacientes').select('*').ilike('apellido_paciente', `%${valor}%`)
       data = res.data; error = res.error
     }
-
     if (error) { alert('Error buscando pacientes'); return }
-    if (!data || data.length === 0) { alert('No se encontraron resultados'); setResultados([]); return }
-    setResultados(data)
+    setResultados(data || [])
+    setBuscoPaciente(true)
+    if (!data || data.length === 0) setResultados([])
+  }
+
+  async function guardarAltaRapida() {
+    if (!formAltaRapida.apellido || !formAltaRapida.nombre || !formAltaRapida.dni) {
+      alert('Apellido, nombre y DNI son obligatorios'); return
+    }
+    const { data: existe } = await supabase.from('pacientes').select('id').eq('dni', formAltaRapida.dni).maybeSingle()
+    if (existe) { alert('❌ Ya existe un paciente con ese DNI'); return }
+    const { data: nuevo, error } = await supabase.from('pacientes').insert([{
+      apellido_paciente: formAltaRapida.apellido,
+      nombres_paciente: formAltaRapida.nombre,
+      dni: formAltaRapida.dni,
+      telefono: formAltaRapida.telefono || null,
+      creado_por: getUsuarioId(),
+    }]).select().single()
+    if (error) { alert('Error: ' + error.message); return }
+    setPaciente(nuevo)
+    setDni(nuevo.dni)
+    setObraSocialId('')
+    setAltaRapida(false)
+    setFormAltaRapida({ apellido: '', nombre: '', dni: '', telefono: '' })
+    setBusqueda('')
+    setResultados([])
+    setBuscoPaciente(false)
+    cargarVentasPaciente(nuevo.id)
+    alert('✅ Paciente creado')
   }
 
   function handleChange(e) {
@@ -147,13 +160,9 @@ export default function Ventas() {
 
     const fecha = new Date().toISOString()
     let ventaActualId = ventaId
-
     if (!ventaActualId) {
       const { data: venta } = await supabase.from('ventas').insert([{
-        paciente_id: paciente.id,
-        fecha,
-        creado_por: getUsuarioId(),
-        confirmada: false,
+        paciente_id: paciente.id, fecha, creado_por: getUsuarioId(), confirmada: false,
         obra_social_id: obraSocialId ? Number(obraSocialId) : null,
       }]).select().single()
       ventaActualId = venta.id
@@ -174,16 +183,11 @@ export default function Ventas() {
     }
 
     setItems([...items, {
-      id: detalle.id,
-      numero_serie_id: form.numero_serie_id,
-      producto: modoConSerie
-        ? series.find(s => s.id == form.numero_serie_id)?.productos?.producto
-        : productos.find(p => p.id == form.producto_id)?.producto,
+      id: detalle.id, numero_serie_id: form.numero_serie_id,
+      producto: modoConSerie ? series.find(s => s.id == form.numero_serie_id)?.productos?.producto : productos.find(p => p.id == form.producto_id)?.producto,
       serie: modoConSerie ? series.find(s => s.id == form.numero_serie_id)?.numero_serie : '-',
-      precio_pesos: form.precio_pesos,
-      precio_usd: form.precio_usd,
+      precio_pesos: form.precio_pesos, precio_usd: form.precio_usd,
     }])
-
     setForm({ numero_serie_id: '', producto_id: '', precio_pesos: '', precio_usd: '' })
     obtenerSeries()
   }
@@ -199,12 +203,7 @@ export default function Ventas() {
 
   async function confirmarVenta() {
     if (!ventaId) return alert('No hay venta')
-    const { error } = await supabase.from('ventas').update({
-      confirmada: true,
-      total_pesos: totalPesos,
-      total_dolares: totalUSD,
-      obra_social_id: obraSocialId ? Number(obraSocialId) : null,
-    }).eq('id', ventaId)
+    const { error } = await supabase.from('ventas').update({ confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD, obra_social_id: obraSocialId ? Number(obraSocialId) : null }).eq('id', ventaId)
     if (error) { alert('Error: ' + error.message); return }
     setVentaConfirmada(true)
     alert('✅ Venta confirmada')
@@ -218,30 +217,21 @@ export default function Ventas() {
 
   async function finalizarVenta() {
     if (!ventaId) return alert('No hay venta')
-    const { error } = await supabase.from('ventas').update({
-      confirmada: true,
-      total_pesos: totalPesos,
-      total_dolares: totalUSD,
-      obra_social_id: obraSocialId ? Number(obraSocialId) : null,
-    }).eq('id', ventaId)
+    const { error } = await supabase.from('ventas').update({ confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD, obra_social_id: obraSocialId ? Number(obraSocialId) : null }).eq('id', ventaId)
     if (error) { alert('Error: ' + error.message); return }
     alert('✅ Venta finalizada sin pagos')
     setVentaId(null); setPaciente(null); setDni(''); setItems([])
     setVentaConfirmada(false); setBusqueda(''); setVentasPaciente([])
-    setObraSocialId('')
+    setObraSocialId(''); setBuscoPaciente(false); setResultados([])
   }
 
-  // ---- EDICIÓN ----
   function abrirEdicion(venta) {
     setVentaEditando(venta)
     setItemsEdicion(venta.venta_detalle || [])
     setFormEdicion({ producto_id: '', numero_serie_id: '', precio_pesos: '', precio_usd: '' })
   }
 
-  function cerrarEdicion() {
-    setVentaEditando(null)
-    setItemsEdicion([])
-  }
+  function cerrarEdicion() { setVentaEditando(null); setItemsEdicion([]) }
 
   function handleChangeEdicion(e) {
     const { name, value } = e.target
@@ -257,48 +247,28 @@ export default function Ventas() {
 
   async function guardarCambioItem(item, campo, valor) {
     await supabase.from('venta_detalle_historial').insert([{
-      venta_detalle_id: item.id,
-      venta_id: ventaEditando.id,
-      numero_serie_id: item.numero_serie_id,
-      producto_id: item.producto_id,
-      precio_venta_pesos: item.precio_venta_pesos,
-      precio_venta_usd: item.precio_venta_usd,
+      venta_detalle_id: item.id, venta_id: ventaEditando.id,
+      numero_serie_id: item.numero_serie_id, producto_id: item.producto_id,
+      precio_venta_pesos: item.precio_venta_pesos, precio_venta_usd: item.precio_venta_usd,
       modificado_por: getUsuarioId(),
     }])
-
     if (campo === 'numero_serie_id') {
-      if (item.numero_serie_id) {
-        await supabase.from('numeros_serie').update({ en_stock: true, fecha_salida: null }).eq('id', item.numero_serie_id)
-      }
-      if (valor) {
-        await supabase.from('numeros_serie').update({ en_stock: false, fecha_salida: new Date().toISOString() }).eq('id', valor)
-      }
+      if (item.numero_serie_id) await supabase.from('numeros_serie').update({ en_stock: true, fecha_salida: null }).eq('id', item.numero_serie_id)
+      if (valor) await supabase.from('numeros_serie').update({ en_stock: false, fecha_salida: new Date().toISOString() }).eq('id', valor)
       const nuevaSerie = seriesAll.find(s => s.id === valor)
-      setItemsEdicion(itemsEdicion.map(i => i.id === item.id ? {
-        ...i,
-        numero_serie_id: valor,
-        numeros_serie: nuevaSerie ? { id: nuevaSerie.id, numero_serie: nuevaSerie.numero_serie, productos: nuevaSerie.productos } : null
-      } : i))
+      setItemsEdicion(itemsEdicion.map(i => i.id === item.id ? { ...i, numero_serie_id: valor, numeros_serie: nuevaSerie ? { id: nuevaSerie.id, numero_serie: nuevaSerie.numero_serie, productos: nuevaSerie.productos } : null } : i))
     } else {
       setItemsEdicion(itemsEdicion.map(i => i.id === item.id ? { ...i, [campo]: valor } : i))
     }
-
     await supabase.from('venta_detalle').update({ [campo]: valor }).eq('id', item.id)
     obtenerSeries()
   }
 
   async function eliminarItemEdicion(item) {
     if (!confirm('¿Eliminar este producto de la venta?')) return
-    await supabase.from('venta_detalle_historial').insert([{
-      venta_detalle_id: item.id, venta_id: ventaEditando.id,
-      numero_serie_id: item.numero_serie_id, producto_id: item.producto_id,
-      precio_venta_pesos: item.precio_venta_pesos, precio_venta_usd: item.precio_venta_usd,
-      modificado_por: getUsuarioId(),
-    }])
+    await supabase.from('venta_detalle_historial').insert([{ venta_detalle_id: item.id, venta_id: ventaEditando.id, numero_serie_id: item.numero_serie_id, producto_id: item.producto_id, precio_venta_pesos: item.precio_venta_pesos, precio_venta_usd: item.precio_venta_usd, modificado_por: getUsuarioId() }])
     await supabase.from('venta_detalle').delete().eq('id', item.id)
-    if (item.numero_serie_id) {
-      await supabase.from('numeros_serie').update({ en_stock: true, fecha_salida: null }).eq('id', item.numero_serie_id)
-    }
+    if (item.numero_serie_id) await supabase.from('numeros_serie').update({ en_stock: true, fecha_salida: null }).eq('id', item.numero_serie_id)
     setItemsEdicion(itemsEdicion.filter(i => i.id !== item.id))
     obtenerSeries()
   }
@@ -307,7 +277,6 @@ export default function Ventas() {
     if (!formEdicion.precio_pesos && !formEdicion.precio_usd) return alert('Ingresar precio')
     if (modoConSerieEdicion && !formEdicion.numero_serie_id) return alert('Seleccionar serie')
     if (!modoConSerieEdicion && !formEdicion.producto_id) return alert('Seleccionar producto')
-
     const fecha = new Date().toISOString()
     const { data: detalle } = await supabase.from('venta_detalle').insert([{
       venta_id: ventaEditando.id,
@@ -317,14 +286,9 @@ export default function Ventas() {
       precio_venta_usd: formEdicion.precio_usd || null,
       creado_por: getUsuarioId(),
     }]).select().single()
-
-    if (modoConSerieEdicion) {
-      await supabase.from('numeros_serie').update({ en_stock: false, fecha_salida: fecha }).eq('id', formEdicion.numero_serie_id)
-    }
-
+    if (modoConSerieEdicion) await supabase.from('numeros_serie').update({ en_stock: false, fecha_salida: fecha }).eq('id', formEdicion.numero_serie_id)
     const nuevaSerieInfo = seriesAll.find(s => s.id == formEdicion.numero_serie_id)
     const nuevoProductoInfo = productos.find(p => p.id == formEdicion.producto_id)
-
     setItemsEdicion([...itemsEdicion, {
       id: detalle.id,
       numero_serie_id: modoConSerieEdicion ? Number(formEdicion.numero_serie_id) : null,
@@ -334,7 +298,6 @@ export default function Ventas() {
       numeros_serie: nuevaSerieInfo ? { id: nuevaSerieInfo.id, numero_serie: nuevaSerieInfo.numero_serie, productos: nuevaSerieInfo.productos } : null,
       productos: nuevoProductoInfo ? { id: nuevoProductoInfo.id, producto: nuevoProductoInfo.producto } : null,
     }])
-
     setFormEdicion({ producto_id: '', numero_serie_id: '', precio_pesos: '', precio_usd: '' })
     obtenerSeries()
   }
@@ -342,20 +305,8 @@ export default function Ventas() {
   async function guardarTotalesVenta() {
     const nuevoTotalPesos = itemsEdicion.reduce((acc, i) => acc + (Number(i.precio_venta_pesos) || 0), 0)
     const nuevoTotalUSD = itemsEdicion.reduce((acc, i) => acc + (Number(i.precio_venta_usd) || 0), 0)
-
-    await supabase.from('ventas_historial').insert([{
-      venta_id: ventaEditando.id,
-      total_pesos: ventaEditando.total_pesos,
-      total_dolares: ventaEditando.total_dolares,
-      confirmada: ventaEditando.confirmada,
-      modificado_por: getUsuarioId(),
-    }])
-
-    await supabase.from('ventas').update({
-      total_pesos: nuevoTotalPesos,
-      total_dolares: nuevoTotalUSD,
-    }).eq('id', ventaEditando.id)
-
+    await supabase.from('ventas_historial').insert([{ venta_id: ventaEditando.id, total_pesos: ventaEditando.total_pesos, total_dolares: ventaEditando.total_dolares, confirmada: ventaEditando.confirmada, modificado_por: getUsuarioId() }])
+    await supabase.from('ventas').update({ total_pesos: nuevoTotalPesos, total_dolares: nuevoTotalUSD }).eq('id', ventaEditando.id)
     alert('✅ Venta actualizada')
     cerrarEdicion()
     if (paciente) cargarVentasPaciente(paciente.id)
@@ -369,7 +320,6 @@ export default function Ventas() {
   return (
     <div style={{ maxWidth: '750px' }}>
 
-      {/* Título */}
       <div style={{ marginBottom: '28px' }}>
         <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>Ventas</h1>
         <p style={{ color: '#6b7280', marginTop: '6px', fontSize: '14px' }}>Registrar y gestionar ventas</p>
@@ -382,7 +332,7 @@ export default function Ventas() {
           <input
             placeholder="DNI o Apellido"
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => { setBusqueda(e.target.value); setBuscoPaciente(false); setAltaRapida(false) }}
             onKeyDown={(e) => e.key === 'Enter' && buscarPaciente()}
             style={{ ...inputStyle, flex: 1, minWidth: '180px' }}
           />
@@ -395,6 +345,7 @@ export default function Ventas() {
             if (!p) return
             setPaciente(p); setDni(p.dni); setResultados([])
             setObraSocialId(p.obra_social_id ? String(p.obra_social_id) : '')
+            setBuscoPaciente(false)
             cargarVentasPaciente(p.id)
           }} style={{ ...inputStyle, marginTop: '10px' }}>
             <option value="">Seleccionar paciente ({resultados.length} encontrados)</option>
@@ -404,23 +355,49 @@ export default function Ventas() {
           </select>
         )}
 
-        {paciente && (
-          <div style={{
-            marginTop: '14px', padding: '14px 16px', background: '#fdf2f4',
-            borderRadius: '8px', border: '1px solid #f5c2c9',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px',
-          }}>
-            <div>
-              <div style={{ fontWeight: '700', fontSize: '16px', color: '#8B1E2D' }}>
-                {paciente.apellido_paciente} {paciente.nombres_paciente}
+        {/* Botón alta rápida */}
+        {buscoPaciente && resultados.length === 0 && !altaRapida && !paciente && (
+          <button onClick={() => setAltaRapida(true)} style={{ ...btnFantasma, marginTop: '10px', width: '100%', textAlign: 'center' }}>
+            + No encontrado — Dar de alta como nuevo paciente
+          </button>
+        )}
+
+        {/* Formulario alta rápida */}
+        {altaRapida && (
+          <div style={{ marginTop: '12px', padding: '14px', background: '#fdf2f4', borderRadius: '8px', border: '1px solid #f5c2c9' }}>
+            <div style={{ fontSize: '13px', fontWeight: '600', color: '#8B1E2D', marginBottom: '10px' }}>Alta rápida de paciente</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <label style={labelStyle}>Apellido *</label>
+                <input placeholder="APELLIDO" value={formAltaRapida.apellido} onChange={(e) => setFormAltaRapida(f => ({ ...f, apellido: e.target.value.toUpperCase() }))} style={inputStyle} />
               </div>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
-                DNI: {paciente.dni} {paciente.telefono ? `· Tel: ${paciente.telefono}` : ''}
+              <div>
+                <label style={labelStyle}>Nombre *</label>
+                <input placeholder="NOMBRE" value={formAltaRapida.nombre} onChange={(e) => setFormAltaRapida(f => ({ ...f, nombre: e.target.value.toUpperCase() }))} style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>DNI *</label>
+                <input placeholder="DNI" value={formAltaRapida.dni} onChange={(e) => setFormAltaRapida(f => ({ ...f, dni: e.target.value }))} style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Teléfono</label>
+                <input placeholder="11 1234-5678" value={formAltaRapida.telefono} onChange={(e) => setFormAltaRapida(f => ({ ...f, telefono: e.target.value }))} style={inputStyle} />
               </div>
             </div>
-            <button onClick={() => window.location.href = `/pacientes?dni=${paciente.dni}`} style={btnSecundario}>
-              ✏️ Editar
-            </button>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+              <button onClick={guardarAltaRapida} style={{ ...btnPrimario, fontSize: '13px', padding: '8px 14px' }}>💾 Guardar y continuar</button>
+              <button onClick={() => setAltaRapida(false)} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px' }}>Cancelar</button>
+            </div>
+          </div>
+        )}
+
+        {paciente && (
+          <div style={{ marginTop: '14px', padding: '14px 16px', background: '#fdf2f4', borderRadius: '8px', border: '1px solid #f5c2c9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <div>
+              <div style={{ fontWeight: '700', fontSize: '16px', color: '#8B1E2D' }}>{paciente.apellido_paciente} {paciente.nombres_paciente}</div>
+              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>DNI: {paciente.dni} {paciente.telefono ? `· Tel: ${paciente.telefono}` : ''}</div>
+            </div>
+            <button onClick={() => window.location.href = `/pacientes?dni=${paciente.dni}`} style={btnSecundario}>✏️ Editar</button>
           </div>
         )}
       </div>
@@ -434,9 +411,7 @@ export default function Ventas() {
               background: tab === val ? '#8B1E2D' : 'white',
               color: tab === val ? 'white' : '#374151',
               fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
-            }}>
-              {label}
-            </button>
+            }}>{label}</button>
           ))}
         </div>
       )}
@@ -444,16 +419,11 @@ export default function Ventas() {
       {/* TAB NUEVA VENTA */}
       {tab === 'nueva' && (
         <>
-          {/* Obra social */}
           {paciente && (
             <div style={{ ...card, padding: '14px 20px', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
                 <label style={{ ...labelStyle, marginBottom: 0, whiteSpace: 'nowrap' }}>🏥 Obra social para esta venta:</label>
-                <select
-                  value={obraSocialId}
-                  onChange={(e) => setObraSocialId(e.target.value)}
-                  style={{ ...inputStyle, flex: 1, minWidth: '200px' }}
-                >
+                <select value={obraSocialId} onChange={(e) => setObraSocialId(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: '200px' }}>
                   <option value="">Sin obra social</option>
                   {obrasSociales.map(o => <option key={o.id} value={o.id}>{o.obra_social}</option>)}
                 </select>
@@ -501,11 +471,7 @@ export default function Ventas() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {items.map(item => (
-                  <div key={item.id} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '12px 14px', background: '#f9fafb',
-                    borderRadius: '8px', border: '1px solid #e5e7eb', flexWrap: 'wrap', gap: '8px',
-                  }}>
+                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', flexWrap: 'wrap', gap: '8px' }}>
                     <div>
                       <div style={{ fontWeight: '600', fontSize: '15px', color: '#1a1a1a' }}>{item.producto}</div>
                       <div style={{ fontSize: '13px', color: '#6b7280' }}>
@@ -519,7 +485,6 @@ export default function Ventas() {
                 ))}
               </div>
             )}
-
             {items.length > 0 && (
               <div style={{ marginTop: '16px', padding: '14px 16px', background: '#1a1a1a', borderRadius: '10px', color: 'white', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
                 <div>
@@ -532,7 +497,6 @@ export default function Ventas() {
                 </div>
               </div>
             )}
-
             <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
               <button onClick={confirmarVenta} style={btnPrimario}>✅ Confirmar venta</button>
               <button onClick={irAPagos} style={btnSecundario}>💳 Ingresar pago</button>
@@ -547,23 +511,18 @@ export default function Ventas() {
         <div style={card}>
           <div style={cardTitle}>📋 Historial de ventas</div>
           {ventasPaciente.length === 0 ? (
-            <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>
-              No hay ventas registradas para este paciente
-            </div>
+            <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay ventas registradas para este paciente</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {ventasPaciente.map(v => {
                 const saldoP = (v.total_pesos || 0) - v.pagadoPesos
                 const saldoU = (v.total_dolares || 0) - v.pagadoUSD
                 const pagada = saldoP <= 0 && saldoU <= 0
-
                 return (
                   <div key={v.id} style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                       <div>
-                        <div style={{ fontWeight: '700', fontSize: '15px', color: '#1a1a1a' }}>
-                          Venta #{v.id} — {new Date(v.fecha).toLocaleDateString('es-AR')}
-                        </div>
+                        <div style={{ fontWeight: '700', fontSize: '15px', color: '#1a1a1a' }}>Venta #{v.id} — {new Date(v.fecha).toLocaleDateString('es-AR')}</div>
                         <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
                           {v.total_pesos > 0 && `Total: ${fmt(v.total_pesos)}`}
                           {v.total_dolares > 0 && ` · U$S ${v.total_dolares}`}
@@ -571,23 +530,13 @@ export default function Ventas() {
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <span style={{
-                          padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
-                          background: pagada ? '#dcfce7' : '#fef2f2',
-                          color: pagada ? '#16a34a' : '#dc2626',
-                        }}>
+                        <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', background: pagada ? '#dcfce7' : '#fef2f2', color: pagada ? '#16a34a' : '#dc2626' }}>
                           {pagada ? '✅ Pagada' : `Saldo: ${saldoP > 0 ? fmt(saldoP) : `U$S ${saldoU}`}`}
                         </span>
                         {!pagada && (
-                          <button onClick={() => window.location.href = `/pagos?venta_id=${v.id}&dni=${dni}`}
-                            style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px' }}>
-                            💳 Pagar
-                          </button>
+                          <button onClick={() => window.location.href = `/pagos?venta_id=${v.id}&dni=${dni}`} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px' }}>💳 Pagar</button>
                         )}
-                        <button onClick={() => abrirEdicion(v)}
-                          style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px', color: '#8B1E2D', borderColor: '#f5c2c9' }}>
-                          ✏️ Editar
-                        </button>
+                        <button onClick={() => abrirEdicion(v)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px', color: '#8B1E2D', borderColor: '#f5c2c9' }}>✏️ Editar</button>
                       </div>
                     </div>
                     {v.venta_detalle?.map(d => (
@@ -613,7 +562,6 @@ export default function Ventas() {
             <div style={cardTitle}>✏️ Editando Venta #{ventaEditando.id}</div>
             <button onClick={cerrarEdicion} style={{ ...btnSecundario, fontSize: '13px', padding: '6px 12px' }}>← Volver</button>
           </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
             {itemsEdicion.map(item => (
               <div key={item.id} style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
@@ -621,16 +569,11 @@ export default function Ventas() {
                   {item.numeros_serie?.productos?.producto || item.productos?.producto || '-'}
                   {item.numeros_serie?.numero_serie ? ` (${item.numeros_serie.numero_serie})` : ''}
                 </div>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   {item.numero_serie_id && (
                     <div>
                       <label style={labelStyle}>Cambiar número de serie</label>
-                      <select
-                        value={item.numero_serie_id || ''}
-                        onChange={(e) => guardarCambioItem(item, 'numero_serie_id', Number(e.target.value))}
-                        style={inputStyle}
-                      >
+                      <select value={item.numero_serie_id || ''} onChange={(e) => guardarCambioItem(item, 'numero_serie_id', Number(e.target.value))} style={inputStyle}>
                         <option value={item.numero_serie_id}>{item.numeros_serie?.numero_serie} (actual)</option>
                         {seriesAll.filter(s => s.en_stock && s.producto_id === seriesAll.find(x => x.id === item.numero_serie_id)?.producto_id).map(s => (
                           <option key={s.id} value={s.id}>{s.numero_serie}</option>
@@ -640,39 +583,19 @@ export default function Ventas() {
                   )}
                   <div>
                     <label style={labelStyle}>Precio pesos</label>
-                    <input
-                      defaultValue={item.precio_venta_pesos || ''}
-                      onBlur={(e) => {
-                        if (e.target.value !== String(item.precio_venta_pesos || '')) {
-                          guardarCambioItem(item, 'precio_venta_pesos', e.target.value ? Number(e.target.value) : null)
-                        }
-                      }}
-                      placeholder="$0" style={inputStyle}
-                    />
+                    <input defaultValue={item.precio_venta_pesos || ''} onBlur={(e) => { if (e.target.value !== String(item.precio_venta_pesos || '')) guardarCambioItem(item, 'precio_venta_pesos', e.target.value ? Number(e.target.value) : null) }} placeholder="$0" style={inputStyle} />
                   </div>
                   <div>
                     <label style={labelStyle}>Precio USD</label>
-                    <input
-                      defaultValue={item.precio_venta_usd || ''}
-                      onBlur={(e) => {
-                        if (e.target.value !== String(item.precio_venta_usd || '')) {
-                          guardarCambioItem(item, 'precio_venta_usd', e.target.value ? Number(e.target.value) : null)
-                        }
-                      }}
-                      placeholder="U$S 0" style={inputStyle}
-                    />
+                    <input defaultValue={item.precio_venta_usd || ''} onBlur={(e) => { if (e.target.value !== String(item.precio_venta_usd || '')) guardarCambioItem(item, 'precio_venta_usd', e.target.value ? Number(e.target.value) : null) }} placeholder="U$S 0" style={inputStyle} />
                   </div>
                 </div>
-
                 <div style={{ marginTop: '10px' }}>
-                  <button onClick={() => eliminarItemEdicion(item)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px', color: '#dc2626', borderColor: '#fecaca' }}>
-                    🗑️ Eliminar producto
-                  </button>
+                  <button onClick={() => eliminarItemEdicion(item)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px', color: '#dc2626', borderColor: '#fecaca' }}>🗑️ Eliminar producto</button>
                 </div>
               </div>
             ))}
           </div>
-
           <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '10px', border: '1px dashed #e5e7eb', marginBottom: '16px' }}>
             <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>➕ Agregar producto a esta venta</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -705,7 +628,6 @@ export default function Ventas() {
               <button onClick={agregarItemEdicion} style={{ ...btnSecundario, fontSize: '13px' }}>+ Agregar</button>
             </div>
           </div>
-
           <div style={{ display: 'flex', gap: '10px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
             <button onClick={guardarTotalesVenta} style={btnPrimario}>💾 Guardar cambios</button>
             <button onClick={cerrarEdicion} style={btnSecundario}>Cancelar</button>
@@ -717,33 +639,10 @@ export default function Ventas() {
   )
 }
 
-const inputStyle = {
-  width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb',
-  fontSize: '15px', fontFamily: "'Outfit', sans-serif", background: 'white',
-  color: '#1a1a1a', outline: 'none', boxSizing: 'border-box',
-}
-
-const labelStyle = {
-  fontSize: '13px', fontWeight: '600', color: '#6b7280', marginBottom: '4px', display: 'block',
-}
-
-const card = {
-  background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px',
-  padding: '20px 24px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-}
-
-const cardTitle = {
-  fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '14px',
-}
-
-const btnPrimario = {
-  padding: '10px 20px', background: '#8B1E2D', color: 'white', border: 'none',
-  borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer',
-  fontFamily: "'Outfit', sans-serif",
-}
-
-const btnSecundario = {
-  padding: '10px 20px', background: 'white', color: '#374151', border: '1px solid #e5e7eb',
-  borderRadius: '8px', fontSize: '15px', fontWeight: '500', cursor: 'pointer',
-  fontFamily: "'Outfit', sans-serif",
-}
+const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '15px', fontFamily: "'Outfit', sans-serif", background: 'white', color: '#1a1a1a', outline: 'none', boxSizing: 'border-box' }
+const labelStyle = { fontSize: '13px', fontWeight: '600', color: '#6b7280', marginBottom: '4px', display: 'block' }
+const card = { background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px 24px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }
+const cardTitle = { fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '14px' }
+const btnPrimario = { padding: '10px 20px', background: '#8B1E2D', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
+const btnSecundario = { padding: '10px 20px', background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '15px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
+const btnFantasma = { padding: '8px 16px', background: 'transparent', color: '#8B1E2D', border: '1px dashed #8B1E2D', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
