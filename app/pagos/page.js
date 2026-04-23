@@ -29,6 +29,7 @@ export default function Pagos() {
   const [cotizacion, setCotizacion] = useState(null)
   const [cotizacionManual, setCotizacionManual] = useState('')
   const [cotizacionFecha, setCotizacionFecha] = useState('')
+  const [cotizacionEstado, setCotizacionEstado] = useState('') // 'hoy', 'anterior', 'manual', 'error'
 
   const [form, setForm] = useState({ forma_pago_id: '', monto_pesos: '', monto_usd: '' })
 
@@ -44,16 +45,55 @@ export default function Pagos() {
 
   async function cargarCotizacion() {
     const hoy = new Date().toISOString().split('T')[0]
-    const { data } = await supabase.from('valor_dolar_bna')
+
+    // 1. Ver si ya hay cotización de hoy en la tabla
+    const { data: hoyData } = await supabase.from('valor_dolar_bna')
+      .select('fecha, dolar_vendedor').eq('fecha', hoy).maybeSingle()
+
+    if (hoyData) {
+      setCotizacion(hoyData.dolar_vendedor)
+      setCotizacionFecha(hoyData.fecha)
+      setCotizacionManual(String(hoyData.dolar_vendedor))
+      setCotizacionEstado('hoy')
+      return
+    }
+
+    // 2. No hay → buscar en la API
+    try {
+      const res = await fetch('https://dolarapi.com/v1/dolares/oficial')
+      const json = await res.json()
+      const venta = json.venta
+      if (venta) {
+        await supabase.from('valor_dolar_bna').insert([{
+          fecha: hoy,
+          dolar_vendedor: venta,
+          creado_por: getUsuarioId(),
+        }])
+        setCotizacion(venta)
+        setCotizacionFecha(hoy)
+        setCotizacionManual(String(venta))
+        setCotizacionEstado('hoy')
+        return
+      }
+    } catch {
+      // API falló, continuar con fallback
+    }
+
+    // 3. API falló → usar la más reciente disponible
+    const { data: anterior } = await supabase.from('valor_dolar_bna')
       .select('fecha, dolar_vendedor')
       .lte('fecha', hoy)
       .order('fecha', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    if (data) {
-      setCotizacion(data.dolar_vendedor)
-      setCotizacionFecha(data.fecha)
-      setCotizacionManual(String(data.dolar_vendedor))
+      .limit(1).maybeSingle()
+
+    if (anterior) {
+      setCotizacion(anterior.dolar_vendedor)
+      setCotizacionFecha(anterior.fecha)
+      setCotizacionManual(String(anterior.dolar_vendedor))
+      setCotizacionEstado('anterior')
+    } else {
+      // 4. No hay nada — dejar campo vacío para carga manual
+      setCotizacionEstado('error')
     }
   }
 
@@ -75,7 +115,6 @@ export default function Pagos() {
       const { data: pagos } = await supabase.from('pagos')
         .select('monto_pesos, monto_usd, monto_equivalente_pesos, monto_equivalente_usd')
         .eq('venta_id', v.id)
-      // Saldo en moneda de venta usando equivalentes
       const pagadoP = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_equivalente_pesos) || Number(p.monto_pesos) || 0), 0)
       const pagadoU = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_equivalente_usd) || Number(p.monto_usd) || 0), 0)
       return { ...v, pagadoPesos: pagadoP, pagadoUSD: pagadoU }
@@ -113,7 +152,6 @@ export default function Pagos() {
     setPagosVenta(pagos || [])
   }
 
-  // Calcular saldo usando equivalentes
   function calcularPagado() {
     const pagadoP = pagosVenta.reduce((acc, p) => acc + (Number(p.monto_equivalente_pesos) || Number(p.monto_pesos) || 0), 0)
     const pagadoU = pagosVenta.reduce((acc, p) => acc + (Number(p.monto_equivalente_usd) || Number(p.monto_usd) || 0), 0)
@@ -191,7 +229,6 @@ export default function Pagos() {
   const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0)
   const fmtUSD = (n) => `U$S ${Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-  // Determinar si el nuevo pago necesita cotización
   const ventaEsUSD = totalUSD > 0 && totalPesos === 0
   const ventaEsPesos = totalPesos > 0 && totalUSD === 0
   const pagoEnMonedaDistinta = (ventaEsUSD && Number(form.monto_pesos) > 0) || (ventaEsPesos && Number(form.monto_usd) > 0)
@@ -234,24 +271,29 @@ export default function Pagos() {
       </div>
 
       {/* Cotización del dólar */}
-      {(ventas.some(v => v.total_dolares > 0) || totalUSD > 0) && (
-        <div style={{ ...card, padding: '14px 20px', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-            <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>
-              💱 Cotización U$S
-              {cotizacionFecha && <span style={{ fontWeight: '400', color: '#9ca3af', marginLeft: '6px' }}>({new Date(cotizacionFecha + 'T12:00:00').toLocaleDateString('es-AR')})</span>}
-            </div>
-            <input
-              type="number"
-              placeholder="Cotización..."
-              value={cotizacionManual}
-              onChange={(e) => setCotizacionManual(e.target.value)}
-              style={{ ...inputStyle, width: '140px', fontSize: '14px' }}
-            />
-            {!cotizacion && <span style={{ fontSize: '12px', color: '#dc2626' }}>⚠️ Sin cotización cargada — editala manualmente</span>}
+      <div style={{ ...card, padding: '14px 20px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>
+            💱 Cotización U$S BNA
+            {cotizacionFecha && (
+              <span style={{ fontWeight: '400', color: '#9ca3af', marginLeft: '6px' }}>
+                ({new Date(cotizacionFecha + 'T12:00:00').toLocaleDateString('es-AR')})
+              </span>
+            )}
           </div>
+          <input
+            type="number"
+            placeholder="Ingresar cotización..."
+            value={cotizacionManual}
+            onChange={(e) => { setCotizacionManual(e.target.value); setCotizacionEstado('manual') }}
+            style={{ ...inputStyle, width: '160px', fontSize: '14px' }}
+          />
+          {cotizacionEstado === 'hoy' && <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: '600' }}>✅ Actualizada hoy</span>}
+          {cotizacionEstado === 'anterior' && <span style={{ fontSize: '12px', color: '#f59e0b', fontWeight: '600' }}>⚠️ Última disponible — verificar</span>}
+          {cotizacionEstado === 'manual' && <span style={{ fontSize: '12px', color: '#6b7280' }}>✏️ Modificada manualmente</span>}
+          {cotizacionEstado === 'error' && <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: '600' }}>❌ Sin cotización — ingresala manualmente</span>}
         </div>
-      )}
+      </div>
 
       {/* Historial de ventas */}
       {ventas.length > 0 && (
@@ -277,11 +319,11 @@ export default function Pagos() {
                     <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a' }}>Venta #{v.id} — {new Date(v.fecha).toLocaleDateString('es-AR')}</div>
                     <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
                       {totalV > 0 && `Total: ${fmt(totalV)}`}
-                      {totalVusd > 0 && ` · U$S ${totalVusd}`}
+                      {totalVusd > 0 && ` · ${fmtUSD(totalVusd)}`}
                     </div>
                   </div>
                   <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', background: pagada ? '#dcfce7' : '#fef2f2', color: pagada ? '#16a34a' : '#dc2626' }}>
-                    {pagada ? '✅ Pagada' : saldoVusd > 0 ? `Saldo: ${fmtUSD(saldoVusd)}` : `Saldo: ${fmt(saldoV)}`}
+                    {pagada ? '✅ Pagada' : saldoVusd > 0.01 ? `Saldo: ${fmtUSD(saldoVusd)}` : `Saldo: ${fmt(saldoV)}`}
                   </span>
                 </div>
               )
@@ -304,7 +346,7 @@ export default function Pagos() {
                 </span>
                 <span style={{ color: '#6b7280', fontSize: '14px' }}>
                   {d.precio_venta_pesos ? formatearPesos(d.precio_venta_pesos) : ''}
-                  {d.precio_venta_usd ? `U$S ${d.precio_venta_usd}` : ''}
+                  {d.precio_venta_usd ? fmtUSD(d.precio_venta_usd) : ''}
                 </span>
               </div>
             ))}
@@ -341,7 +383,6 @@ export default function Pagos() {
                       <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a1a1a' }}>{p.formas_pago?.forma_pago}</div>
                       <div style={{ fontSize: '12px', color: '#6b7280' }}>
                         {new Date(p.fecha_pago).toLocaleDateString('es-AR')}
-                        {/* Si hubo conversión, mostrarla */}
                         {p.cotizacion_usada && p.monto_pesos && p.monto_equivalente_usd && (
                           <span style={{ marginLeft: '8px', color: '#9ca3af' }}>
                             {fmt(p.monto_pesos)} → {fmtUSD(p.monto_equivalente_usd)} (cotiz. {fmt(p.cotizacion_usada)})
@@ -371,7 +412,6 @@ export default function Pagos() {
             <div style={{ paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
               <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>💳 Registrar nuevo pago</div>
 
-              {/* Aviso pago en otra moneda */}
               {pagoEnMonedaDistinta && (
                 <div style={{ padding: '10px 14px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', fontSize: '13px', color: '#92400e', marginBottom: '12px' }}>
                   💱 Pago en moneda distinta a la venta.
