@@ -243,15 +243,22 @@ export default function Agenda() {
     setModalBloqueo(true)
   }
 
-  function esBloqueado(fechaStr, hora, agendaIdSlot) {
-  return bloqueos.some(b => {
-    if (fechaStr < b.fecha_inicio || fechaStr > b.fecha_fin) return false
-    if (!b.todas_las_agendas && b.profesional_id !== agendaIdSlot) return false
-    if (b.todo_el_dia) return true
-    if (!b.hora_inicio || !b.hora_fin) return true
-    return hora >= b.hora_inicio.slice(0, 5) && hora < b.hora_fin.slice(0, 5)
-  })
-}
+  // Chequea si una agenda específica está bloqueada en ese slot
+  function esBloqueado(fechaStr, hora, agendaId) {
+    return bloqueos.some(b => {
+      if (fechaStr < b.fecha_inicio || fechaStr > b.fecha_fin) return false
+      if (!b.todas_las_agendas && b.profesional_id !== agendaId) return false
+      if (b.todo_el_dia) return true
+      if (!b.hora_inicio || !b.hora_fin) return true
+      return hora >= b.hora_inicio.slice(0, 5) && hora < b.hora_fin.slice(0, 5)
+    })
+  }
+
+  // Slot completamente bloqueado = todas las agendas visibles están bloqueadas
+  function slotBloqueadoTotal(fechaStr, hora) {
+    const agendasVisibles = agendaFiltro === 'todas' ? agendas : agendas.filter(a => String(a.id) === agendaFiltro)
+    return agendasVisibles.length > 0 && agendasVisibles.every(a => esBloqueado(fechaStr, hora, a.id))
+  }
 
   function getBloqueosDia(fechaStr) {
     return bloqueos.filter(b => fechaStr >= b.fecha_inicio && fechaStr <= b.fecha_fin && b.todo_el_dia)
@@ -323,7 +330,57 @@ export default function Agenda() {
             </span>
             <span style={{ fontSize: '10px', color: '#9ca3af' }}>{calAbierto ? '▲' : '▼'}</span>
           </button>
+
+          {/* CALENDARIO MENSUAL — popover */}
+          {calAbierto && (
+            <div style={{ position: 'absolute', zIndex: 100, marginTop: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '14px 16px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '260px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <button onClick={mesAnterior} style={btnIcono}>‹</button>
+                <span style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a1a' }}>{MESES[mesCalendario.month]} {mesCalendario.year}</span>
+                <button onClick={mesSiguiente} style={btnIcono}>›</button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', marginBottom: '3px' }}>
+                {DIAS_SEMANA.map(d => (
+                  <div key={d} style={{ textAlign: 'center', fontSize: '10px', fontWeight: '600', color: '#9ca3af', padding: '2px 0' }}>{d}</div>
+                ))}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px' }}>
+                {getDiasMes().map((dia, i) => {
+                  if (!dia) return <div key={i} />
+                  const fechaStr = formatFecha(dia)
+                  const esHoy = fechaStr === hoyStr
+                  const esDomingo = dia.getDay() === 0
+                  const semanaDelDia = formatFecha(getLunesDeISemana(dia))
+                  const esSemanaActual = semanaDelDia === semanaActualStr
+                  const tieneT = tieneTurnos(dia)
+                  return (
+                    <div key={i} onClick={() => {
+                      if (esDomingo) return
+                      setSemanaBase(getLunesDeISemana(dia))
+                      setMesCalendario({ year: dia.getFullYear(), month: dia.getMonth() })
+                      setCalAbierto(false)
+                    }} style={{
+                      textAlign: 'center', padding: '4px 2px', borderRadius: '5px',
+                      cursor: esDomingo ? 'default' : 'pointer',
+                      background: esHoy ? '#8B1E2D' : esSemanaActual ? '#fdf2f4' : 'transparent',
+                      color: esHoy ? 'white' : esDomingo ? '#d1d5db' : '#374151',
+                      fontWeight: esHoy ? '700' : esSemanaActual ? '600' : '400',
+                      fontSize: '11px',
+                      border: esSemanaActual && !esHoy ? '1px solid #f5c2c9' : '1px solid transparent',
+                      opacity: esDomingo ? 0.4 : 1,
+                    }}>
+                      {dia.getDate()}
+                      {tieneT && (
+                        <div style={{ width: '3px', height: '3px', borderRadius: '50%', background: esHoy ? 'white' : '#8B1E2D', margin: '0 auto' }} />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
+
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => setVerBloqueos(!verBloqueos)} style={{
             padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
@@ -338,55 +395,6 @@ export default function Agenda() {
           }} style={btnSecundario}>+ Bloquear</button>
         </div>
       </div>
-
-      {/* CALENDARIO MENSUAL — popover */}
-      {calAbierto && (
-        <div style={{ position: 'absolute', zIndex: 100, marginTop: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '14px 16px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '260px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <button onClick={mesAnterior} style={btnIcono}>‹</button>
-            <span style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a1a' }}>{MESES[mesCalendario.month]} {mesCalendario.year}</span>
-            <button onClick={mesSiguiente} style={btnIcono}>›</button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', marginBottom: '3px' }}>
-            {DIAS_SEMANA.map(d => (
-              <div key={d} style={{ textAlign: 'center', fontSize: '10px', fontWeight: '600', color: '#9ca3af', padding: '2px 0' }}>{d}</div>
-            ))}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px' }}>
-            {getDiasMes().map((dia, i) => {
-              if (!dia) return <div key={i} />
-              const fechaStr = formatFecha(dia)
-              const esHoy = fechaStr === hoyStr
-              const esDomingo = dia.getDay() === 0
-              const semanaDelDia = formatFecha(getLunesDeISemana(dia))
-              const esSemanaActual = semanaDelDia === semanaActualStr
-              const tieneT = tieneTurnos(dia)
-              return (
-                <div key={i} onClick={() => {
-                  if (esDomingo) return
-                  setSemanaBase(getLunesDeISemana(dia))
-                  setMesCalendario({ year: dia.getFullYear(), month: dia.getMonth() })
-                  setCalAbierto(false)
-                }} style={{
-                  textAlign: 'center', padding: '4px 2px', borderRadius: '5px',
-                  cursor: esDomingo ? 'default' : 'pointer',
-                  background: esHoy ? '#8B1E2D' : esSemanaActual ? '#fdf2f4' : 'transparent',
-                  color: esHoy ? 'white' : esDomingo ? '#d1d5db' : '#374151',
-                  fontWeight: esHoy ? '700' : esSemanaActual ? '600' : '400',
-                  fontSize: '11px',
-                  border: esSemanaActual && !esHoy ? '1px solid #f5c2c9' : '1px solid transparent',
-                  opacity: esDomingo ? 0.4 : 1,
-                }}>
-                  {dia.getDate()}
-                  {tieneT && (
-                    <div style={{ width: '3px', height: '3px', borderRadius: '50%', background: esHoy ? 'white' : '#8B1E2D', margin: '0 auto' }} />
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Bloqueos de la semana */}
       {verBloqueos && (
@@ -497,31 +505,18 @@ export default function Agenda() {
                   const esSabado = dia.getDay() === 6
                   const fueraHorario = esSabado && hora >= '13:00'
                   const esHoy = fechaStr === hoyStr
-                  // Slot bloqueado solo si TODAS las agendas visibles están bloqueadas
-const agendasVisibles = agendaFiltro === 'todas' ? agendas : agendas.filter(a => String(a.id) === agendaFiltro)
-const bloqueado = agendasVisibles.length > 0 && agendasVisibles.every(a => esBloqueado(fechaStr, hora, a.id))
-const bloqueadoParcial = !bloqueado && agendas.some(a => esBloqueado(fechaStr, hora, a.id))
+                  const bloqueadoTotal = slotBloqueadoTotal(fechaStr, hora)
 
                   if (fueraHorario) return <td key={di} style={{ background: '#f3f4f6', borderLeft: '1px solid #e5e7eb' }} />
 
-                  if (bloqueado) return (
+                  // Slot totalmente bloqueado — ninguna agenda disponible
+                  if (bloqueadoTotal) return (
                     <td key={di} style={{ background: '#fef2f2', borderLeft: '1px solid #fecaca', cursor: 'not-allowed' }}>
                       <div style={{ height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <span style={{ fontSize: '10px', color: '#fca5a5' }}>🔒</span>
                       </div>
                     </td>
                   )
-                             if (bloqueadoParcial) return (
-  <td key={di} style={{ background: '#fff7f0', borderLeft: '1px solid #fed7aa', cursor: 'pointer' }}
-    onClick={() => {
-      setModalNuevo({ fecha: fechaStr, hora, agenda_id: agendaFiltro !== 'todas' ? agendaFiltro : '' })
-      setFormTurno(f => ({ ...f, agenda_id: agendaFiltro !== 'todas' ? agendaFiltro : '' }))
-    }}>
-    <div style={{ height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <span style={{ fontSize: '10px', color: '#fb923c' }}>⚠️</span>
-    </div>
-  </td>
-)
 
                   const turnosSlot = getTurnosSlot(fechaStr, hora)
                   const turnosFiltrados = agendaFiltro === 'todas' ? turnosSlot : turnosSlot.filter(t => String(t.profesionales?.id) === agendaFiltro)
@@ -539,9 +534,18 @@ const bloqueadoParcial = !bloqueado && agendas.some(a => esBloqueado(fechaStr, h
                           {turnosFiltrados.map(t => {
                             const color = getColorAgenda(t.profesionales?.id)
                             const cEstado = coloresEstado[t.estado] || coloresEstado.pendiente
+                            // Indicador visual si este turno pertenece a una agenda bloqueada
+                            const turnoBloqueado = esBloqueado(fechaStr, hora, t.profesionales?.id)
                             return (
-                              <div key={t.id} onClick={(e) => { e.stopPropagation(); setModalVer(t) }} style={{ padding: '3px 6px', borderRadius: '4px', fontSize: '11px', background: cEstado.bg, border: `1px solid ${cEstado.border}`, borderLeftWidth: '3px', borderLeftColor: color, cursor: 'pointer', lineHeight: 1.3 }}>
-                                <div style={{ fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px', color: cEstado.text }}>
+                              <div key={t.id} onClick={(e) => { e.stopPropagation(); setModalVer(t) }} style={{
+                                padding: '3px 6px', borderRadius: '4px', fontSize: '11px',
+                                background: cEstado.bg, border: `1px solid ${cEstado.border}`,
+                                borderLeftWidth: '3px', borderLeftColor: color,
+                                cursor: 'pointer', lineHeight: 1.3,
+                                opacity: turnoBloqueado ? 0.6 : 1,
+                              }}>
+                                <div style={{ fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px', color: cEstado.text, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                  {turnoBloqueado && <span style={{ fontSize: '9px' }}>🔒</span>}
                                   {t.pacientes ? `${t.pacientes.apellido_paciente} ${t.pacientes.nombres_paciente}` : t.nombre_libre || '-'}
                                 </div>
                                 <div style={{ fontSize: '10px', color: color, fontWeight: '600' }}>
