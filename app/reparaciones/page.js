@@ -112,7 +112,7 @@ export default function Reparaciones() {
       motivo = nuevoMotivo
     }
 
-    const obsCompleta = `MOTIVO: ${normalizarTexto(formNueva.motivo_reparacion)}${formNueva.observaciones ? '\n\nOBS TÉCNICAS: ' + formNueva.observaciones : ''}`
+    const obsCompleta = `MOTIVO: ${normalizarTexto(formNueva.motivo_reparacion)}\n\nOBS TÉCNICAS: ${formNueva.observaciones ? formNueva.observaciones : '--'}`
 
     const { error } = await supabase.from('visitas').insert([{
       paciente_id: pacienteSeleccionado.id,
@@ -155,7 +155,13 @@ export default function Reparaciones() {
   }
 
   async function guardarEdicion() {
-    setGuardandoEdicion(true)
+  const estadoActual = modalVer.respuesta_paciente
+  const cerrados = ['entregada', 'no_aprobada', 'no_aprobada_devuelta']
+  if (cerrados.includes(estadoActual)) {
+    const confirmar = confirm('Esta reparación está cerrada. ¿Querés modificarla de todas formas?')
+    if (!confirmar) return
+  }
+  setGuardandoEdicion(true)
     const { error } = await supabase.from('visitas').update({
       observaciones: formEdicion.observaciones || null,
       costo_pesos: formEdicion.costo_pesos ? Number(formEdicion.costo_pesos) : null,
