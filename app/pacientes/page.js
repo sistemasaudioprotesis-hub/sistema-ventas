@@ -33,6 +33,9 @@ export default function Pacientes() {
   // Turnos
   const [turnos, setTurnos] = useState([])
 
+  // Ventas y pagos
+  const [ventasConPagos, setVentasConPagos] = useState([])
+
   // Historial
   const [historial, setHistorial] = useState([])
   const [provinciasMap, setProvinciasMap] = useState({})
@@ -79,15 +82,8 @@ export default function Pacientes() {
   }
 
   function limpiarFormulario() {
-    setPacienteId(null)
-    setBusqueda('')
-    setResultados([])
-    setGuardado(false)
-    setTab('datos')
-    setVisitas([])
-    setVentasPaciente([])
-    setTurnos([])
-    setHistorial([])
+    setPacienteId(null); setBusqueda(''); setResultados([]); setGuardado(false); setTab('datos')
+    setVisitas([]); setVentasPaciente([]); setTurnos([]); setHistorial([]); setVentasConPagos([])
     setForm({ apellido_paciente: '', nombres_paciente: '', dni: '', telefono: '', domicilio: '', localidad: '', provincia_id: '', mail: '', observaciones: '', obra_social_id: '' })
   }
 
@@ -109,15 +105,10 @@ export default function Pacientes() {
   function cargarDesdeObjeto(p) {
     setPacienteId(p.id)
     setForm({
-      apellido_paciente: p.apellido_paciente || '',
-      nombres_paciente: p.nombres_paciente || '',
-      dni: p.dni || '',
-      telefono: p.telefono || '',
-      domicilio: p.domicilio || '',
-      localidad: p.localidad || '',
-      provincia_id: p.provincia_id ? String(p.provincia_id) : '',
-      mail: p.mail || '',
-      observaciones: p.observaciones || '',
+      apellido_paciente: p.apellido_paciente || '', nombres_paciente: p.nombres_paciente || '',
+      dni: p.dni || '', telefono: p.telefono || '', domicilio: p.domicilio || '',
+      localidad: p.localidad || '', provincia_id: p.provincia_id ? String(p.provincia_id) : '',
+      mail: p.mail || '', observaciones: p.observaciones || '',
       obra_social_id: p.obra_social_id ? String(p.obra_social_id) : '',
     })
     setGuardado(true)
@@ -125,6 +116,7 @@ export default function Pacientes() {
     cargarVentasPaciente(p.id)
     cargarTurnos(p.id)
     cargarHistorial(p.id)
+    cargarVentasConPagos(p.id)
   }
 
   async function cargarPacientePorDni(dni) {
@@ -133,74 +125,67 @@ export default function Pacientes() {
   }
 
   async function cargarVisitas(pid) {
-    const { data } = await supabase
-      .from('visitas')
-      .select(`
-        id, fecha, observaciones, created_at, atendido_por,
-        visita_motivos (motivo),
-        ventas (id, fecha, total_pesos, total_dolares)
-      `)
-      .eq('paciente_id', pid)
-      .order('fecha', { ascending: false })
+    const { data } = await supabase.from('visitas')
+      .select(`id, fecha, observaciones, created_at, atendido_por, visita_motivos (motivo), ventas (id, fecha, total_pesos, total_dolares)`)
+      .eq('paciente_id', pid).order('fecha', { ascending: false })
     setVisitas(data || [])
   }
 
   async function cargarVentasPaciente(pid) {
-    const { data } = await supabase
-      .from('ventas')
-      .select('id, fecha, total_pesos, total_dolares')
-      .eq('paciente_id', pid)
-      .order('fecha', { ascending: false })
+    const { data } = await supabase.from('ventas').select('id, fecha, total_pesos, total_dolares').eq('paciente_id', pid).order('fecha', { ascending: false })
     setVentasPaciente(data || [])
   }
 
-  async function cargarTurnos(pid) {
-    const { data } = await supabase
-      .from('turnos')
+  async function cargarVentasConPagos(pid) {
+    const { data: ventasData } = await supabase.from('ventas')
       .select(`
-        id, fecha, hora, estado, observaciones, asistio,
-        profesionales (nombre),
-        visita_motivos (motivo),
-        obras_sociales (obra_social)
+        id, fecha, confirmada, total_pesos, total_dolares,
+        obras_sociales (obra_social),
+        venta_detalle (
+          id, precio_venta_pesos, precio_venta_usd,
+          numeros_serie (numero_serie, productos (producto)),
+          productos (producto)
+        )
       `)
       .eq('paciente_id', pid)
       .order('fecha', { ascending: false })
-      .order('hora', { ascending: false })
+
+    const ventasConSaldo = await Promise.all((ventasData || []).map(async v => {
+      const { data: pagos } = await supabase.from('pagos')
+        .select('id, monto_pesos, monto_usd, fecha_pago, formas_pago (forma_pago)')
+        .eq('venta_id', v.id).order('fecha_pago')
+      const pagadoP = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_pesos) || 0), 0)
+      const pagadoU = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_usd) || 0), 0)
+      return { ...v, pagos: pagos || [], pagadoPesos: pagadoP, pagadoUSD: pagadoU }
+    }))
+    setVentasConPagos(ventasConSaldo)
+  }
+
+  async function cargarTurnos(pid) {
+    const { data } = await supabase.from('turnos')
+      .select(`id, fecha, hora, estado, observaciones, asistio, profesionales (nombre), visita_motivos (motivo), obras_sociales (obra_social)`)
+      .eq('paciente_id', pid).order('fecha', { ascending: false }).order('hora', { ascending: false })
     setTurnos(data || [])
   }
 
   async function cargarHistorial(pid) {
-    const { data } = await supabase
-      .from('pacientes_historial')
-      .select('*, usuarios:creado_por (nombre)')
-      .eq('paciente_id', pid)
-      .order('created_at', { ascending: false })
+    const { data } = await supabase.from('pacientes_historial')
+      .select('*, usuarios:creado_por (nombre)').eq('paciente_id', pid).order('created_at', { ascending: false })
     setHistorial(data || [])
   }
 
   async function guardar(destino) {
     if (!form.apellido_paciente || !form.nombres_paciente || !form.dni) { alert('Completar campos obligatorios'); return }
     if (!form.provincia_id) { alert('Seleccionar provincia'); return }
-
-    const dataGuardar = {
-      ...form,
-      provincia_id: Number(form.provincia_id),
-      obra_social_id: form.obra_social_id ? Number(form.obra_social_id) : null,
-    }
-
+    const dataGuardar = { ...form, provincia_id: Number(form.provincia_id), obra_social_id: form.obra_social_id ? Number(form.obra_social_id) : null }
     if (pacienteId) {
       const { data: pacienteActual } = await supabase.from('pacientes').select('*').eq('id', pacienteId).single()
       await supabase.from('pacientes_historial').insert([{
-        paciente_id: pacienteId,
-        apellido_paciente: pacienteActual.apellido_paciente,
-        nombres_paciente: pacienteActual.nombres_paciente,
-        telefono: pacienteActual.telefono,
-        domicilio: pacienteActual.domicilio,
-        localidad: pacienteActual.localidad,
-        provincia_id: pacienteActual.provincia_id,
-        mail: pacienteActual.mail,
-        observaciones: pacienteActual.observaciones,
-        creado_por: getUsuarioId(),
+        paciente_id: pacienteId, apellido_paciente: pacienteActual.apellido_paciente,
+        nombres_paciente: pacienteActual.nombres_paciente, telefono: pacienteActual.telefono,
+        domicilio: pacienteActual.domicilio, localidad: pacienteActual.localidad,
+        provincia_id: pacienteActual.provincia_id, mail: pacienteActual.mail,
+        observaciones: pacienteActual.observaciones, creado_por: getUsuarioId(),
       }])
       await supabase.from('pacientes').update(dataGuardar).eq('id', pacienteId)
       alert('Paciente actualizado')
@@ -209,7 +194,6 @@ export default function Pacientes() {
       await supabase.from('pacientes').insert([{ ...dataGuardar, creado_por: getUsuarioId() }])
       alert('Paciente creado')
     }
-
     setGuardado(true)
     if (destino === 'ventas') window.location.href = `/ventas?dni=${form.dni}`
     if (destino === 'pagos') window.location.href = `/pagos?dni=${form.dni}`
@@ -219,34 +203,20 @@ export default function Pacientes() {
   async function guardarVisita() {
     if (!pacienteId) { alert('Primero seleccioná un paciente'); return }
     if (!formVisita.motivo_id) { alert('Seleccionar motivo'); return }
-
     const { error } = await supabase.from('visitas').insert([{
-      paciente_id: pacienteId,
-      fecha: new Date().toISOString(),
-      motivo_id: Number(formVisita.motivo_id),
-      observaciones: formVisita.observaciones || null,
+      paciente_id: pacienteId, fecha: new Date().toISOString(),
+      motivo_id: Number(formVisita.motivo_id), observaciones: formVisita.observaciones || null,
       venta_id: formVisita.venta_id ? Number(formVisita.venta_id) : null,
-      atendido_por: getUsuarioId(),
-      creado_por: getUsuarioId(),
+      atendido_por: getUsuarioId(), creado_por: getUsuarioId(),
     }])
-
     if (error) { alert('Error: ' + error.message); return }
-
     const pid = pacienteId
-    const { data: nuevasVisitas } = await supabase
-      .from('visitas')
-      .select(`
-        id, fecha, observaciones, created_at, atendido_por,
-        visita_motivos (motivo),
-        ventas (id, fecha, total_pesos, total_dolares)
-      `)
-      .eq('paciente_id', pid)
-      .order('fecha', { ascending: false })
-
+    const { data: nuevasVisitas } = await supabase.from('visitas')
+      .select(`id, fecha, observaciones, created_at, atendido_por, visita_motivos (motivo), ventas (id, fecha, total_pesos, total_dolares)`)
+      .eq('paciente_id', pid).order('fecha', { ascending: false })
     setVisitas(nuevasVisitas || [])
     setFormVisita({ motivo_id: '', observaciones: '', venta_id: '' })
-    setMostrarFormVisita(false)
-    setBusquedaMotivo('')
+    setMostrarFormVisita(false); setBusquedaMotivo('')
     alert('✅ Visita registrada')
   }
 
@@ -262,8 +232,7 @@ export default function Pacientes() {
     const { data: existe } = await supabase.from('visita_motivos').select('id').ilike('motivo', nombre).maybeSingle()
     if (existe) { alert('❌ Ese motivo ya existe'); return }
     await supabase.from('visita_motivos').insert([{ motivo: nombre, creado_por: getUsuarioId() }])
-    setNuevoMotivo('')
-    obtenerMotivos()
+    setNuevoMotivo(''); obtenerMotivos()
   }
 
   async function toggleMotivo(m) {
@@ -271,14 +240,12 @@ export default function Pacientes() {
     obtenerMotivos()
   }
 
-  const motivosFiltrados = motivos.filter(m =>
-    m.motivo.toLowerCase().includes(busquedaMotivo.toLowerCase())
-  )
-
+  const motivosFiltrados = motivos.filter(m => m.motivo.toLowerCase().includes(busquedaMotivo.toLowerCase()))
   const fmtFecha = (f) => new Date(f).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
   const fmtHora = (f) => new Date(f).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
+  const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0)
+  const fmtUSD = (n) => `U$S ${Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   const hoy = new Date().toISOString().split('T')[0]
-
   const turnosFuturos = turnos.filter(t => t.fecha >= hoy && t.estado !== 'cancelado')
   const turnosPasados = turnos.filter(t => t.fecha < hoy || t.estado === 'cancelado')
 
@@ -307,28 +274,18 @@ export default function Pacientes() {
       <div style={card}>
         <div style={cardTitle}>🔍 Buscar paciente</div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <input
-            placeholder="DNI o Apellido"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && buscarPaciente()}
-            style={{ ...inputStyle, flex: 1, minWidth: '180px' }}
-          />
+          <input placeholder="DNI o Apellido" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && buscarPaciente()} style={{ ...inputStyle, flex: 1, minWidth: '180px' }} />
           <button onClick={buscarPaciente} style={btnPrimario}>Buscar</button>
           {!pacienteId && <button onClick={limpiarFormulario} style={btnSecundario}>+ Nuevo</button>}
         </div>
-
         {resultados.length > 0 && (
           <select value="" onChange={(e) => {
             const p = resultados.find(x => x.id == e.target.value)
             if (!p) return
-            setResultados([])
-            cargarDesdeObjeto(p)
+            setResultados([]); cargarDesdeObjeto(p)
           }} style={{ ...inputStyle, marginTop: '10px' }}>
             <option value="">Seleccionar paciente ({resultados.length} encontrados)</option>
-            {resultados.map(p => (
-              <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>
-            ))}
+            {resultados.map(p => <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>)}
           </select>
         )}
       </div>
@@ -340,6 +297,7 @@ export default function Pacientes() {
             ['datos', '👤 Datos'],
             ['visitas', `📋 Visitas (${visitas.length})`],
             ['turnos', `📅 Turnos (${turnos.filter(t => t.estado !== 'cancelado').length})`],
+            ['ventas', `💰 Ventas (${ventasConPagos.length})`],
             ['historial', `🕐 Historial datos (${historial.length})`],
           ].map(([val, label]) => (
             <button key={val} onClick={() => setTab(val)} style={{
@@ -347,9 +305,7 @@ export default function Pacientes() {
               background: tab === val ? '#8B1E2D' : 'white',
               color: tab === val ? 'white' : '#374151',
               fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
-            }}>
-              {label}
-            </button>
+            }}>{label}</button>
           ))}
         </div>
       )}
@@ -360,7 +316,6 @@ export default function Pacientes() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div style={cardTitle}>{pacienteId ? '✏️ Editar paciente' : '👤 Nuevo paciente'}</div>
           </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <Field label="Apellido *"><input name="apellido_paciente" placeholder="Apellido" value={form.apellido_paciente} onChange={handleChange} style={inputStyle} /></Field>
@@ -390,7 +345,6 @@ export default function Pacientes() {
               </Field>
             </div>
             <Field label="Observaciones"><textarea name="observaciones" placeholder="Observaciones..." value={form.observaciones} onChange={handleChange} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></Field>
-
             <div style={{ paddingTop: '12px', borderTop: '1px solid #f3f4f6' }}>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
                 <button onClick={() => guardar('')} style={btnPrimario}>💾 Guardar</button>
@@ -412,14 +366,9 @@ export default function Pacientes() {
       {tab === 'visitas' && (
         <>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-            <button onClick={() => setMostrarFormVisita(!mostrarFormVisita)} style={btnPrimario}>
-              {mostrarFormVisita ? '✕ Cancelar' : '+ Nueva visita'}
-            </button>
-            <button onClick={() => setMostrarABMMotivos(!mostrarABMMotivos)} style={btnFantasma}>
-              ⚙️ Gestionar motivos
-            </button>
+            <button onClick={() => setMostrarFormVisita(!mostrarFormVisita)} style={btnPrimario}>{mostrarFormVisita ? '✕ Cancelar' : '+ Nueva visita'}</button>
+            <button onClick={() => setMostrarABMMotivos(!mostrarABMMotivos)} style={btnFantasma}>⚙️ Gestionar motivos</button>
           </div>
-
           {mostrarABMMotivos && (
             <div style={{ ...card, marginBottom: '16px' }}>
               <div style={{ ...cardTitle, marginBottom: '14px' }}>⚙️ Motivos de visita</div>
@@ -439,7 +388,6 @@ export default function Pacientes() {
               </div>
             </div>
           )}
-
           {mostrarFormVisita && (
             <div style={card}>
               <div style={{ ...cardTitle, marginBottom: '14px' }}>📋 Nueva visita</div>
@@ -456,13 +404,7 @@ export default function Pacientes() {
                 <Field label="Venta relacionada (opcional)">
                   <select value={formVisita.venta_id} onChange={(e) => setFormVisita({ ...formVisita, venta_id: e.target.value })} style={inputStyle}>
                     <option value="">Sin venta relacionada</option>
-                    {ventasPaciente.map(v => (
-                      <option key={v.id} value={v.id}>
-                        Venta #{v.id} — {new Date(v.fecha).toLocaleDateString('es-AR')}
-                        {v.total_pesos ? ` · $${v.total_pesos}` : ''}
-                        {v.total_dolares ? ` · U$S ${v.total_dolares}` : ''}
-                      </option>
-                    ))}
+                    {ventasPaciente.map(v => <option key={v.id} value={v.id}>Venta #{v.id} — {new Date(v.fecha).toLocaleDateString('es-AR')}{v.total_pesos ? ` · $${v.total_pesos}` : ''}{v.total_dolares ? ` · U$S ${v.total_dolares}` : ''}</option>)}
                   </select>
                 </Field>
                 <Field label="Observaciones">
@@ -474,12 +416,8 @@ export default function Pacientes() {
               </div>
             </div>
           )}
-
           <div style={card}>
-            <div style={{ ...cardTitle, marginBottom: '14px' }}>
-              Historial de visitas
-              <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({visitas.length} registros)</span>
-            </div>
+            <div style={{ ...cardTitle, marginBottom: '14px' }}>Historial de visitas <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({visitas.length} registros)</span></div>
             {visitas.length === 0 ? (
               <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay visitas registradas</div>
             ) : (
@@ -506,12 +444,8 @@ export default function Pacientes() {
       {/* TAB TURNOS */}
       {tab === 'turnos' && (
         <>
-          {/* Próximos */}
           <div style={card}>
-            <div style={{ ...cardTitle, marginBottom: '14px' }}>
-              📅 Próximos turnos
-              <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({turnosFuturos.length})</span>
-            </div>
+            <div style={{ ...cardTitle, marginBottom: '14px' }}>📅 Próximos turnos <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({turnosFuturos.length})</span></div>
             {turnosFuturos.length === 0 ? (
               <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '16px 0' }}>No hay turnos próximos</div>
             ) : (
@@ -520,32 +454,19 @@ export default function Pacientes() {
                   <div key={t.id} style={{ padding: '12px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', borderLeft: '4px solid #8B1E2D' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                       <div>
-                        <div style={{ fontWeight: '700', fontSize: '14px', color: '#1a1a1a' }}>
-                          {new Date(t.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} · {t.hora.slice(0, 5)} hs
-                        </div>
-                        <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '3px' }}>
-                          {t.profesionales?.nombre}
-                          {t.visita_motivos?.motivo && ` · ${t.visita_motivos.motivo}`}
-                          {t.obras_sociales?.obra_social && ` · ${t.obras_sociales.obra_social}`}
-                        </div>
+                        <div style={{ fontWeight: '700', fontSize: '14px', color: '#1a1a1a' }}>{new Date(t.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} · {t.hora.slice(0, 5)} hs</div>
+                        <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '3px' }}>{t.profesionales?.nombre}{t.visita_motivos?.motivo && ` · ${t.visita_motivos.motivo}`}{t.obras_sociales?.obra_social && ` · ${t.obras_sociales.obra_social}`}</div>
                         {t.observaciones && <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '3px' }}>{t.observaciones}</div>}
                       </div>
-                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', background: coloresEstado[t.estado]?.bg, color: coloresEstado[t.estado]?.color }}>
-                        {t.estado}
-                      </span>
+                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', background: coloresEstado[t.estado]?.bg, color: coloresEstado[t.estado]?.color }}>{t.estado}</span>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-
-          {/* Pasados */}
           <div style={card}>
-            <div style={{ ...cardTitle, marginBottom: '14px' }}>
-              📂 Turnos anteriores
-              <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({turnosPasados.length})</span>
-            </div>
+            <div style={{ ...cardTitle, marginBottom: '14px' }}>📂 Turnos anteriores <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({turnosPasados.length})</span></div>
             {turnosPasados.length === 0 ? (
               <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '16px 0' }}>No hay turnos anteriores</div>
             ) : (
@@ -554,18 +475,10 @@ export default function Pacientes() {
                   <div key={t.id} style={{ padding: '12px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                       <div>
-                        <div style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>
-                          {new Date(t.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} · {t.hora.slice(0, 5)} hs
-                        </div>
-                        <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '3px' }}>
-                          {t.profesionales?.nombre}
-                          {t.visita_motivos?.motivo && ` · ${t.visita_motivos.motivo}`}
-                          {t.obras_sociales?.obra_social && ` · ${t.obras_sociales.obra_social}`}
-                        </div>
+                        <div style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>{new Date(t.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })} · {t.hora.slice(0, 5)} hs</div>
+                        <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '3px' }}>{t.profesionales?.nombre}{t.visita_motivos?.motivo && ` · ${t.visita_motivos.motivo}`}{t.obras_sociales?.obra_social && ` · ${t.obras_sociales.obra_social}`}</div>
                       </div>
-                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', background: coloresEstado[t.estado]?.bg, color: coloresEstado[t.estado]?.color }}>
-                        {t.estado.replace('_', ' ')}
-                      </span>
+                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', background: coloresEstado[t.estado]?.bg, color: coloresEstado[t.estado]?.color }}>{t.estado.replace('_', ' ')}</span>
                     </div>
                   </div>
                 ))}
@@ -575,40 +488,93 @@ export default function Pacientes() {
         </>
       )}
 
-      {/* TAB HISTORIAL */}
+      {/* TAB VENTAS Y PAGOS */}
+      {tab === 'ventas' && (
+        <div style={card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={cardTitle}>💰 Ventas y pagos <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({ventasConPagos.length} ventas)</span></div>
+            <button onClick={() => window.location.href = `/ventas?dni=${form.dni}`} style={{ ...btnFantasma, fontSize: '13px' }}>+ Nueva venta</button>
+          </div>
+          {ventasConPagos.length === 0 ? (
+            <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay ventas registradas para este paciente</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {ventasConPagos.map(v => {
+                const saldoP = (v.total_pesos || 0) - v.pagadoPesos
+                const saldoU = (v.total_dolares || 0) - v.pagadoUSD
+                const pagada = saldoP <= 0 && saldoU <= 0
+                return (
+                  <div key={v.id} style={{ padding: '16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+                    {/* Header venta */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                      <div>
+                        <div style={{ fontWeight: '700', fontSize: '15px', color: '#1a1a1a' }}>Venta #{v.id} — {fmtFecha(v.fecha)}</div>
+                        <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
+                          {v.total_pesos > 0 && fmt(v.total_pesos)}
+                          {v.total_dolares > 0 && ` · ${fmtUSD(v.total_dolares)}`}
+                          {v.obras_sociales?.obra_social && ` · ${v.obras_sociales.obra_social}`}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', background: pagada ? '#dcfce7' : '#fef2f2', color: pagada ? '#16a34a' : '#dc2626' }}>
+                          {pagada ? '✅ Pagada' : `Saldo: ${saldoP > 0 ? fmt(saldoP) : fmtUSD(saldoU)}`}
+                        </span>
+                        {!pagada && (
+                          <button onClick={() => window.location.href = `/pagos?venta_id=${v.id}&dni=${form.dni}`} style={{ ...btnFantasma, fontSize: '12px', padding: '4px 10px' }}>💳 Pagar</button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Productos */}
+                    <div style={{ marginBottom: '10px' }}>
+                      {v.venta_detalle?.map(d => (
+                        <div key={d.id} style={{ fontSize: '13px', color: '#6b7280', marginBottom: '2px' }}>
+                          · {d.numeros_serie?.productos?.producto || d.productos?.producto || '-'}
+                          {d.numeros_serie?.numero_serie ? ` (${d.numeros_serie.numero_serie})` : ''}
+                          {d.precio_venta_pesos ? ` — ${fmt(d.precio_venta_pesos)}` : ''}
+                          {d.precio_venta_usd ? ` — ${fmtUSD(d.precio_venta_usd)}` : ''}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Pagos */}
+                    {v.pagos.length > 0 && (
+                      <div style={{ paddingTop: '10px', borderTop: '1px solid #e5e7eb' }}>
+                        <div style={{ fontSize: '12px', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '6px' }}>Pagos</div>
+                        {v.pagos.map(p => (
+                          <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#374151', marginBottom: '4px' }}>
+                            <span>{fmtFecha(p.fecha_pago)} · {p.formas_pago?.forma_pago}</span>
+                            <span style={{ fontWeight: '600', color: '#16a34a' }}>
+                              {p.monto_pesos ? fmt(p.monto_pesos) : fmtUSD(p.monto_usd)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB HISTORIAL DATOS */}
       {tab === 'historial' && (
         <div style={card}>
-          <div style={{ ...cardTitle, marginBottom: '14px' }}>
-            🕐 Historial de cambios
-            <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({historial.length} registros)</span>
-          </div>
+          <div style={{ ...cardTitle, marginBottom: '14px' }}>🕐 Historial de cambios <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({historial.length} registros)</span></div>
           {historial.length === 0 ? (
-            <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>
-              No hay cambios registrados — los cambios se registran automáticamente al guardar
-            </div>
+            <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay cambios registrados — los cambios se registran automáticamente al guardar</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {historial.map((h, i) => (
                 <div key={h.id} style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>
-                      Versión anterior #{historial.length - i}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#9ca3af' }}>
-                      {fmtFecha(h.created_at)} {fmtHora(h.created_at)}
-                      {h.usuarios?.nombre && ` · por ${h.usuarios.nombre}`}
-                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Versión anterior #{historial.length - i}</div>
+                    <div style={{ fontSize: '12px', color: '#9ca3af' }}>{fmtFecha(h.created_at)} {fmtHora(h.created_at)}{h.usuarios?.nombre && ` · por ${h.usuarios.nombre}`}</div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '13px' }}>
-                    {[
-                      ['Apellido', h.apellido_paciente],
-                      ['Nombre', h.nombres_paciente],
-                      ['Teléfono', h.telefono],
-                      ['Mail', h.mail],
-                      ['Domicilio', h.domicilio],
-                      ['Localidad', h.localidad],
-                      ['Provincia', provinciasMap[h.provincia_id]],
-                    ].filter(([, v]) => v).map(([label, valor]) => (
+                    {[['Apellido', h.apellido_paciente], ['Nombre', h.nombres_paciente], ['Teléfono', h.telefono], ['Mail', h.mail], ['Domicilio', h.domicilio], ['Localidad', h.localidad], ['Provincia', provinciasMap[h.provincia_id]]].filter(([, v]) => v).map(([label, valor]) => (
                       <div key={label} style={{ display: 'flex', gap: '6px' }}>
                         <span style={{ color: '#9ca3af', minWidth: '70px' }}>{label}:</span>
                         <span style={{ color: '#374151' }}>{valor}</span>
