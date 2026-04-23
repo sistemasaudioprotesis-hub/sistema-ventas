@@ -243,14 +243,15 @@ export default function Agenda() {
     setModalBloqueo(true)
   }
 
-  function esBloqueado(fechaStr, hora) {
-    return bloqueos.some(b => {
-      if (fechaStr < b.fecha_inicio || fechaStr > b.fecha_fin) return false
-      if (b.todo_el_dia) return true
-      if (!b.hora_inicio || !b.hora_fin) return true
-      return hora >= b.hora_inicio.slice(0, 5) && hora < b.hora_fin.slice(0, 5)
-    })
-  }
+  function esBloqueado(fechaStr, hora, agendaIdSlot) {
+  return bloqueos.some(b => {
+    if (fechaStr < b.fecha_inicio || fechaStr > b.fecha_fin) return false
+    if (!b.todas_las_agendas && b.profesional_id !== agendaIdSlot) return false
+    if (b.todo_el_dia) return true
+    if (!b.hora_inicio || !b.hora_fin) return true
+    return hora >= b.hora_inicio.slice(0, 5) && hora < b.hora_fin.slice(0, 5)
+  })
+}
 
   function getBloqueosDia(fechaStr) {
     return bloqueos.filter(b => fechaStr >= b.fecha_inicio && fechaStr <= b.fecha_fin && b.todo_el_dia)
@@ -496,7 +497,9 @@ export default function Agenda() {
                   const esSabado = dia.getDay() === 6
                   const fueraHorario = esSabado && hora >= '13:00'
                   const esHoy = fechaStr === hoyStr
-                  const bloqueado = esBloqueado(fechaStr, hora)
+                  // Slot bloqueado solo si TODAS las agendas visibles están bloqueadas
+const agendasVisibles = agendaFiltro === 'todas' ? agendas : agendas.filter(a => String(a.id) === agendaFiltro)
+const bloqueado = agendasVisibles.length > 0 && agendasVisibles.every(a => esBloqueado(fechaStr, hora, a.id))
 
                   if (fueraHorario) return <td key={di} style={{ background: '#f3f4f6', borderLeft: '1px solid #e5e7eb' }} />
 
