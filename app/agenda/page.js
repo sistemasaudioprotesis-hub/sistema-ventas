@@ -34,7 +34,7 @@ function formatFecha(date) {
 }
 
 function formatFechaMostrar(date) {
-  return date.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'numeric' })
+  return date.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'numeric', year: 'numeric' })
 }
 
 const COLORES_AGENDA = ['#8B1E2D', '#1d4ed8', '#15803d', '#b45309', '#7c3aed', '#0e7490']
