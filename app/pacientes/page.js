@@ -144,7 +144,7 @@ export default function Pacientes() {
   async function cargarVisitas(pid) {
     const { data } = await supabase.from('visitas')
       .select(`id, fecha, observaciones, created_at, atendido_por, visita_motivos (motivo), ventas (id, fecha, total_pesos, total_dolares)`)
-      .eq('paciente_id', pid).eq('es_reparacion', false).order('fecha', { ascending: false })
+      .eq('paciente_id', pid).order('fecha', { ascending: false })
     setVisitas(data || [])
   }
 
@@ -221,7 +221,7 @@ export default function Pacientes() {
       paciente_id: pacienteId, fecha: new Date().toISOString(),
       motivo_id: Number(formVisita.motivo_id), observaciones: formVisita.observaciones || null,
       venta_id: formVisita.venta_id ? Number(formVisita.venta_id) : null,
-      atendido_por: getUsuarioId(), creado_por: getUsuarioId(), es_reparacion: false,
+      atendido_por: getUsuarioId(), creado_por: getUsuarioId(), 
     }])
     if (error) { alert('Error: ' + error.message); return }
     const pid = pacienteId
