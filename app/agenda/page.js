@@ -61,6 +61,7 @@ export default function Agenda() {
   const [obrasSociales, setObrasSociales] = useState([])
   const [verCancelados, setVerCancelados] = useState(false)
   const [verBloqueos, setVerBloqueos] = useState(false)
+  const [calAbierto, setCalAbierto] = useState(false)
 
   // Modal nuevo turno
   const [modalNuevo, setModalNuevo] = useState(null)
@@ -308,11 +309,19 @@ export default function Agenda() {
 
       {/* Header */}
       <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
+        <div style={{ position: 'relative' }}>
           <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>Turnos</h1>
-          <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '14px' }}>
-            Semana del {dias[0] && formatFechaMostrar(dias[0])} al {dias[5] && formatFechaMostrar(dias[5])}
-          </p>
+          <button onClick={() => setCalAbierto(!calAbierto)} style={{
+            marginTop: '4px', background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '6px',
+            color: '#6b7280', fontSize: '14px', fontFamily: "'Outfit', sans-serif",
+          }}>
+            <span style={{ fontSize: '14px' }}>📅</span>
+            <span style={{ textDecoration: 'underline dotted' }}>
+              Semana del {dias[0] && formatFechaMostrar(dias[0])} al {dias[5] && formatFechaMostrar(dias[5])}
+            </span>
+            <span style={{ fontSize: '10px', color: '#9ca3af' }}>{calAbierto ? '▲' : '▼'}</span>
+          </button>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => setVerBloqueos(!verBloqueos)} style={{
@@ -329,51 +338,54 @@ export default function Agenda() {
         </div>
       </div>
 
-      {/* CALENDARIO MENSUAL */}
-      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px 20px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <button onClick={mesAnterior} style={btnIcono}>‹</button>
-          <span style={{ fontSize: '14px', fontWeight: '700', color: '#1a1a1a' }}>{MESES[mesCalendario.month]} {mesCalendario.year}</span>
-          <button onClick={mesSiguiente} style={btnIcono}>›</button>
+      {/* CALENDARIO MENSUAL — popover */}
+      {calAbierto && (
+        <div style={{ position: 'absolute', zIndex: 100, marginTop: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '14px 16px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '260px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <button onClick={mesAnterior} style={btnIcono}>‹</button>
+            <span style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a1a' }}>{MESES[mesCalendario.month]} {mesCalendario.year}</span>
+            <button onClick={mesSiguiente} style={btnIcono}>›</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', marginBottom: '3px' }}>
+            {DIAS_SEMANA.map(d => (
+              <div key={d} style={{ textAlign: 'center', fontSize: '10px', fontWeight: '600', color: '#9ca3af', padding: '2px 0' }}>{d}</div>
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px' }}>
+            {getDiasMes().map((dia, i) => {
+              if (!dia) return <div key={i} />
+              const fechaStr = formatFecha(dia)
+              const esHoy = fechaStr === hoyStr
+              const esDomingo = dia.getDay() === 0
+              const semanaDelDia = formatFecha(getLunesDeISemana(dia))
+              const esSemanaActual = semanaDelDia === semanaActualStr
+              const tieneT = tieneTurnos(dia)
+              return (
+                <div key={i} onClick={() => {
+                  if (esDomingo) return
+                  setSemanaBase(getLunesDeISemana(dia))
+                  setMesCalendario({ year: dia.getFullYear(), month: dia.getMonth() })
+                  setCalAbierto(false)
+                }} style={{
+                  textAlign: 'center', padding: '4px 2px', borderRadius: '5px',
+                  cursor: esDomingo ? 'default' : 'pointer',
+                  background: esHoy ? '#8B1E2D' : esSemanaActual ? '#fdf2f4' : 'transparent',
+                  color: esHoy ? 'white' : esDomingo ? '#d1d5db' : '#374151',
+                  fontWeight: esHoy ? '700' : esSemanaActual ? '600' : '400',
+                  fontSize: '11px',
+                  border: esSemanaActual && !esHoy ? '1px solid #f5c2c9' : '1px solid transparent',
+                  opacity: esDomingo ? 0.4 : 1,
+                }}>
+                  {dia.getDate()}
+                  {tieneT && (
+                    <div style={{ width: '3px', height: '3px', borderRadius: '50%', background: esHoy ? 'white' : '#8B1E2D', margin: '0 auto' }} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '4px' }}>
-          {DIAS_SEMANA.map(d => (
-            <div key={d} style={{ textAlign: 'center', fontSize: '11px', fontWeight: '600', color: '#9ca3af', padding: '2px 0' }}>{d}</div>
-          ))}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
-          {getDiasMes().map((dia, i) => {
-            if (!dia) return <div key={i} />
-            const fechaStr = formatFecha(dia)
-            const esHoy = fechaStr === hoyStr
-            const esDomingo = dia.getDay() === 0
-            const semanaDelDia = formatFecha(getLunesDeISemana(dia))
-            const esSemanaActual = semanaDelDia === semanaActualStr
-            const tieneT = tieneTurnos(dia)
-            return (
-              <div key={i} onClick={() => {
-                if (esDomingo) return
-                setSemanaBase(getLunesDeISemana(dia))
-                setMesCalendario({ year: dia.getFullYear(), month: dia.getMonth() })
-              }} style={{
-                textAlign: 'center', padding: '5px 2px', borderRadius: '6px',
-                cursor: esDomingo ? 'default' : 'pointer',
-                background: esHoy ? '#8B1E2D' : esSemanaActual ? '#fdf2f4' : 'transparent',
-                color: esHoy ? 'white' : esDomingo ? '#d1d5db' : '#374151',
-                fontWeight: esHoy ? '700' : esSemanaActual ? '600' : '400',
-                fontSize: '12px',
-                border: esSemanaActual && !esHoy ? '1px solid #f5c2c9' : '1px solid transparent',
-                opacity: esDomingo ? 0.4 : 1,
-              }}>
-                {dia.getDate()}
-                {tieneT && (
-                  <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: esHoy ? 'white' : '#8B1E2D', margin: '1px auto 0' }} />
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
+      )}
 
       {/* Bloqueos de la semana */}
       {verBloqueos && (
