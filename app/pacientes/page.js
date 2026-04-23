@@ -8,6 +8,18 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 import { normalizarTexto } from '../../lib/formatText'
 
+const ESTADOS_REPARACION = {
+  ingresada: { label: 'Ingresada', color: '#4b5563', bg: '#f3f4f6' },
+  en_evaluacion: { label: 'En evaluación', color: '#6d28d9', bg: '#f5f3ff' },
+  esperando_respuesta: { label: 'Esperando respuesta', color: '#92400e', bg: '#fffbeb' },
+  aprobada: { label: 'Aprobada', color: '#0e7490', bg: '#ecfeff' },
+  en_reparacion: { label: 'En reparación', color: '#1d4ed8', bg: '#eff6ff' },
+  lista_entregar: { label: 'Lista para entregar', color: '#15803d', bg: '#f0fdf4' },
+  entregada: { label: 'Entregada', color: '#374151', bg: '#f9fafb' },
+  no_aprobada: { label: 'No aprobada', color: '#dc2626', bg: '#fef2f2' },
+  no_aprobada_devuelta: { label: 'No aprobada - Devuelta', color: '#9ca3af', bg: '#f3f4f6' },
+}
+
 export default function Pacientes() {
   const searchParams = useSearchParams()
   const dniParam = searchParams.get('dni')
@@ -35,6 +47,9 @@ export default function Pacientes() {
 
   // Ventas y pagos
   const [ventasConPagos, setVentasConPagos] = useState([])
+
+  // Reparaciones
+  const [reparaciones, setReparaciones] = useState([])
 
   // Historial
   const [historial, setHistorial] = useState([])
@@ -83,7 +98,8 @@ export default function Pacientes() {
 
   function limpiarFormulario() {
     setPacienteId(null); setBusqueda(''); setResultados([]); setGuardado(false); setTab('datos')
-    setVisitas([]); setVentasPaciente([]); setTurnos([]); setHistorial([]); setVentasConPagos([])
+    setVisitas([]); setVentasPaciente([]); setTurnos([]); setHistorial([])
+    setVentasConPagos([]); setReparaciones([])
     setForm({ apellido_paciente: '', nombres_paciente: '', dni: '', telefono: '', domicilio: '', localidad: '', provincia_id: '', mail: '', observaciones: '', obra_social_id: '' })
   }
 
@@ -117,6 +133,7 @@ export default function Pacientes() {
     cargarTurnos(p.id)
     cargarHistorial(p.id)
     cargarVentasConPagos(p.id)
+    cargarReparaciones(p.id)
   }
 
   async function cargarPacientePorDni(dni) {
@@ -127,7 +144,7 @@ export default function Pacientes() {
   async function cargarVisitas(pid) {
     const { data } = await supabase.from('visitas')
       .select(`id, fecha, observaciones, created_at, atendido_por, visita_motivos (motivo), ventas (id, fecha, total_pesos, total_dolares)`)
-      .eq('paciente_id', pid).order('fecha', { ascending: false })
+      .eq('paciente_id', pid).eq('es_reparacion', false).order('fecha', { ascending: false })
     setVisitas(data || [])
   }
 
@@ -138,22 +155,11 @@ export default function Pacientes() {
 
   async function cargarVentasConPagos(pid) {
     const { data: ventasData } = await supabase.from('ventas')
-      .select(`
-        id, fecha, confirmada, total_pesos, total_dolares,
-        obras_sociales (obra_social),
-        venta_detalle (
-          id, precio_venta_pesos, precio_venta_usd,
-          numeros_serie (numero_serie, productos (producto)),
-          productos (producto)
-        )
-      `)
-      .eq('paciente_id', pid)
-      .order('fecha', { ascending: false })
-
+      .select(`id, fecha, confirmada, total_pesos, total_dolares, obras_sociales (obra_social),
+        venta_detalle (id, precio_venta_pesos, precio_venta_usd, numeros_serie (numero_serie, productos (producto)), productos (producto))`)
+      .eq('paciente_id', pid).order('fecha', { ascending: false })
     const ventasConSaldo = await Promise.all((ventasData || []).map(async v => {
-      const { data: pagos } = await supabase.from('pagos')
-        .select('id, monto_pesos, monto_usd, fecha_pago, formas_pago (forma_pago)')
-        .eq('venta_id', v.id).order('fecha_pago')
+      const { data: pagos } = await supabase.from('pagos').select('id, monto_pesos, monto_usd, fecha_pago, formas_pago (forma_pago)').eq('venta_id', v.id).order('fecha_pago')
       const pagadoP = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_pesos) || 0), 0)
       const pagadoU = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_usd) || 0), 0)
       return { ...v, pagos: pagos || [], pagadoPesos: pagadoP, pagadoUSD: pagadoU }
@@ -166,6 +172,14 @@ export default function Pacientes() {
       .select(`id, fecha, hora, estado, observaciones, asistio, profesionales (nombre), visita_motivos (motivo), obras_sociales (obra_social)`)
       .eq('paciente_id', pid).order('fecha', { ascending: false }).order('hora', { ascending: false })
     setTurnos(data || [])
+  }
+
+  async function cargarReparaciones(pid) {
+    const { data } = await supabase.from('visitas')
+      .select(`id, fecha, observaciones, marca, costo_pesos, costo_usd, respuesta_paciente, fecha_entrega, numero_orden, ventas (id, total_pesos, total_dolares)`)
+      .eq('paciente_id', pid).eq('es_reparacion', true)
+      .order('numero_orden', { ascending: false })
+    setReparaciones(data || [])
   }
 
   async function cargarHistorial(pid) {
@@ -207,13 +221,13 @@ export default function Pacientes() {
       paciente_id: pacienteId, fecha: new Date().toISOString(),
       motivo_id: Number(formVisita.motivo_id), observaciones: formVisita.observaciones || null,
       venta_id: formVisita.venta_id ? Number(formVisita.venta_id) : null,
-      atendido_por: getUsuarioId(), creado_por: getUsuarioId(),
+      atendido_por: getUsuarioId(), creado_por: getUsuarioId(), es_reparacion: false,
     }])
     if (error) { alert('Error: ' + error.message); return }
     const pid = pacienteId
     const { data: nuevasVisitas } = await supabase.from('visitas')
       .select(`id, fecha, observaciones, created_at, atendido_por, visita_motivos (motivo), ventas (id, fecha, total_pesos, total_dolares)`)
-      .eq('paciente_id', pid).order('fecha', { ascending: false })
+      .eq('paciente_id', pid).eq('es_reparacion', false).order('fecha', { ascending: false })
     setVisitas(nuevasVisitas || [])
     setFormVisita({ motivo_id: '', observaciones: '', venta_id: '' })
     setMostrarFormVisita(false); setBusquedaMotivo('')
@@ -242,12 +256,15 @@ export default function Pacientes() {
 
   const motivosFiltrados = motivos.filter(m => m.motivo.toLowerCase().includes(busquedaMotivo.toLowerCase()))
   const fmtFecha = (f) => new Date(f).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
+  const fmtFechaCorta = (f) => f ? new Date(f + 'T12:00:00').toLocaleDateString('es-AR') : '-'
   const fmtHora = (f) => new Date(f).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
   const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0)
   const fmtUSD = (n) => `U$S ${Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   const hoy = new Date().toISOString().split('T')[0]
   const turnosFuturos = turnos.filter(t => t.fecha >= hoy && t.estado !== 'cancelado')
   const turnosPasados = turnos.filter(t => t.fecha < hoy || t.estado === 'cancelado')
+  const reparacionesActivas = reparaciones.filter(r => !['entregada', 'no_aprobada_devuelta'].includes(r.respuesta_paciente))
+  const reparacionesCerradas = reparaciones.filter(r => ['entregada', 'no_aprobada_devuelta'].includes(r.respuesta_paciente))
 
   const coloresEstado = {
     pendiente: { bg: '#fef3c7', color: '#92400e' },
@@ -298,6 +315,7 @@ export default function Pacientes() {
             ['visitas', `📋 Visitas (${visitas.length})`],
             ['turnos', `📅 Turnos (${turnos.filter(t => t.estado !== 'cancelado').length})`],
             ['ventas', `💰 Ventas (${ventasConPagos.length})`],
+            ['reparaciones', `🔧 Reparaciones (${reparaciones.length})`],
             ['historial', `🕐 Historial datos (${historial.length})`],
           ].map(([val, label]) => (
             <button key={val} onClick={() => setTab(val)} style={{
@@ -505,27 +523,20 @@ export default function Pacientes() {
                 const pagada = saldoP <= 0 && saldoU <= 0
                 return (
                   <div key={v.id} style={{ padding: '16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
-                    {/* Header venta */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                       <div>
                         <div style={{ fontWeight: '700', fontSize: '15px', color: '#1a1a1a' }}>Venta #{v.id} — {fmtFecha(v.fecha)}</div>
                         <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
-                          {v.total_pesos > 0 && fmt(v.total_pesos)}
-                          {v.total_dolares > 0 && ` · ${fmtUSD(v.total_dolares)}`}
-                          {v.obras_sociales?.obra_social && ` · ${v.obras_sociales.obra_social}`}
+                          {v.total_pesos > 0 && fmt(v.total_pesos)}{v.total_dolares > 0 && ` · ${fmtUSD(v.total_dolares)}`}{v.obras_sociales?.obra_social && ` · ${v.obras_sociales.obra_social}`}
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', background: pagada ? '#dcfce7' : '#fef2f2', color: pagada ? '#16a34a' : '#dc2626' }}>
                           {pagada ? '✅ Pagada' : `Saldo: ${saldoP > 0 ? fmt(saldoP) : fmtUSD(saldoU)}`}
                         </span>
-                        {!pagada && (
-                          <button onClick={() => window.location.href = `/pagos?venta_id=${v.id}&dni=${form.dni}`} style={{ ...btnFantasma, fontSize: '12px', padding: '4px 10px' }}>💳 Pagar</button>
-                        )}
+                        {!pagada && <button onClick={() => window.location.href = `/pagos?venta_id=${v.id}&dni=${form.dni}`} style={{ ...btnFantasma, fontSize: '12px', padding: '4px 10px' }}>💳 Pagar</button>}
                       </div>
                     </div>
-
-                    {/* Productos */}
                     <div style={{ marginBottom: '10px' }}>
                       {v.venta_detalle?.map(d => (
                         <div key={d.id} style={{ fontSize: '13px', color: '#6b7280', marginBottom: '2px' }}>
@@ -536,17 +547,13 @@ export default function Pacientes() {
                         </div>
                       ))}
                     </div>
-
-                    {/* Pagos */}
                     {v.pagos.length > 0 && (
                       <div style={{ paddingTop: '10px', borderTop: '1px solid #e5e7eb' }}>
                         <div style={{ fontSize: '12px', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '6px' }}>Pagos</div>
                         {v.pagos.map(p => (
                           <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#374151', marginBottom: '4px' }}>
                             <span>{fmtFecha(p.fecha_pago)} · {p.formas_pago?.forma_pago}</span>
-                            <span style={{ fontWeight: '600', color: '#16a34a' }}>
-                              {p.monto_pesos ? fmt(p.monto_pesos) : fmtUSD(p.monto_usd)}
-                            </span>
+                            <span style={{ fontWeight: '600', color: '#16a34a' }}>{p.monto_pesos ? fmt(p.monto_pesos) : fmtUSD(p.monto_usd)}</span>
                           </div>
                         ))}
                       </div>
@@ -557,6 +564,80 @@ export default function Pacientes() {
             </div>
           )}
         </div>
+      )}
+
+      {/* TAB REPARACIONES */}
+      {tab === 'reparaciones' && (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ fontSize: '14px', color: '#6b7280' }}>{reparaciones.length} reparaciones</div>
+            <button onClick={() => window.location.href = `/reparaciones`} style={{ ...btnFantasma, fontSize: '13px' }}>+ Nueva reparación</button>
+          </div>
+
+          {/* Activas */}
+          <div style={card}>
+            <div style={{ ...cardTitle, marginBottom: '14px' }}>🔧 En curso <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({reparacionesActivas.length})</span></div>
+            {reparacionesActivas.length === 0 ? (
+              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '16px 0' }}>No hay reparaciones activas</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {reparacionesActivas.map(r => {
+                  const estado = r.respuesta_paciente || 'ingresada'
+                  const c = ESTADOS_REPARACION[estado] || ESTADOS_REPARACION.ingresada
+                  return (
+                    <div key={r.id} style={{ padding: '12px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', borderLeft: `4px solid ${c.color}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                        <div>
+                          <div style={{ fontWeight: '700', fontSize: '14px', color: '#8B1E2D' }}>#{r.numero_orden} · {r.marca || '-'}</div>
+                          <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>Ingresada: {fmtFecha(r.fecha)}</div>
+                          {(r.costo_pesos || r.costo_usd) && (
+                            <div style={{ fontSize: '12px', fontWeight: '600', color: '#15803d', marginTop: '3px' }}>
+                              {r.costo_pesos ? fmt(r.costo_pesos) : ''}{r.costo_usd ? ` U$S ${r.costo_usd}` : ''}
+                            </div>
+                          )}
+                          {r.observaciones && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', whiteSpace: 'pre-line' }}>{r.observaciones}</div>}
+                        </div>
+                        <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', background: c.bg, color: c.color }}>{c.label}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Cerradas */}
+          {reparacionesCerradas.length > 0 && (
+            <div style={card}>
+              <div style={{ ...cardTitle, marginBottom: '14px' }}>📂 Cerradas <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({reparacionesCerradas.length})</span></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {reparacionesCerradas.map(r => {
+                  const estado = r.respuesta_paciente || 'ingresada'
+                  const c = ESTADOS_REPARACION[estado] || ESTADOS_REPARACION.ingresada
+                  return (
+                    <div key={r.id} style={{ padding: '12px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                        <div>
+                          <div style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>#{r.numero_orden} · {r.marca || '-'}</div>
+                          <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
+                            Ingresada: {fmtFecha(r.fecha)}
+                            {r.fecha_entrega && ` · Entregada: ${fmtFechaCorta(r.fecha_entrega)}`}
+                          </div>
+                          {(r.costo_pesos || r.costo_usd) && (
+                            <div style={{ fontSize: '12px', fontWeight: '600', color: '#15803d', marginTop: '3px' }}>
+                              {r.costo_pesos ? fmt(r.costo_pesos) : ''}{r.costo_usd ? ` U$S ${r.costo_usd}` : ''}
+                            </div>
+                          )}
+                        </div>
+                        <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', background: c.bg, color: c.color }}>{c.label}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* TAB HISTORIAL DATOS */}
