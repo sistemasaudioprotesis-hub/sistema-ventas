@@ -51,10 +51,10 @@ export default function Rentabilidad() {
     const ventasCompletas = await Promise.all(ventasData.map(async v => {
       const [{ data: pagos }, { data: derivador }] = await Promise.all([
         supabase.from('pagos').select('monto_pesos, monto_usd, formas_pago (es_efectivo)').eq('venta_id', v.id),
-        supabase.from('venta_derivadores').select('monto_calculado').eq('venta_id', v.id).maybeSingle(),
+        supabase.from('venta_derivadores').select('monto_calculado, tipo_comision, valor_comision').eq('venta_id', v.id).maybeSingle(),
       ])
 
-      // Factor de cobro
+      // Factor de cobro: todos efectivo = 100%, al menos uno no = 70%
       const todosEfectivo = (pagos || []).length > 0 && (pagos || []).every(p => p.formas_pago?.es_efectivo)
       const factorPago = todosEfectivo ? 1 : 0.7
 
@@ -63,19 +63,29 @@ export default function Rentabilidad() {
 
       const precioVentaUSD = itemsConSerie.reduce((acc, d) => acc + (Number(d.precio_venta_usd) || 0), 0)
       const costoUSD = itemsConSerie.reduce((acc, d) => acc + (Number(d.numeros_serie?.costo_usd) || 0), 0)
-      const gananciaBrutaUSD = precioVentaUSD - costoUSD
 
-      // Convertir comisión de derivador a USD usando cotización de la fecha de venta
+      // Comisión derivador en USD
       let comisionUSD = 0
-      if (derivador?.monto_calculado) {
-        const cotiz = await getCotizacionFecha(v.fecha)
-        if (cotiz) {
-          comisionUSD = Number(derivador.monto_calculado) / cotiz
+      if (derivador) {
+        if (derivador.monto_calculado) {
+          // Ya está calculado en pesos → convertir a USD con cotización de la fecha
+          const cotiz = await getCotizacionFecha(v.fecha)
+          if (cotiz) comisionUSD = Number(derivador.monto_calculado) / cotiz
+        } else if (derivador.tipo_comision === 'monto_fijo' && derivador.valor_comision) {
+          // Monto fijo en pesos sin calcular → convertir
+          const cotiz = await getCotizacionFecha(v.fecha)
+          if (cotiz) comisionUSD = Number(derivador.valor_comision) / cotiz
+        } else if (derivador.tipo_comision === 'porcentaje' && derivador.valor_comision) {
+          // Porcentaje sin calcular → aplicar sobre precio venta USD
+          comisionUSD = precioVentaUSD * Number(derivador.valor_comision) / 100
         }
-        // Si no hay cotización, comisión queda en 0 (no bloquea el cálculo)
       }
 
-      const gananciaNeta = (gananciaBrutaUSD * factorPago) - comisionUSD
+      // Fórmula correcta:
+      // Ganancia bruta = precio - costo - comisión
+      // Ganancia neta = ganancia bruta × factor de cobro
+      const gananciaBrutaUSD = precioVentaUSD - costoUSD - comisionUSD
+      const gananciaNeta = gananciaBrutaUSD * factorPago
       const margenPct = precioVentaUSD > 0 ? ((gananciaNeta / precioVentaUSD) * 100).toFixed(1) : null
 
       return {
@@ -111,6 +121,7 @@ export default function Rentabilidad() {
     v.itemsConSerie.forEach(d => {
       const nombre = d.numeros_serie?.productos?.producto || 'Sin nombre'
       if (!porProducto[nombre]) porProducto[nombre] = { ventas: 0, precioUSD: 0, costoUSD: 0, gananciaNeta: 0 }
+      // Para por producto no descontamos comisión por separado (ya está en ganancia neta de la venta)
       const ganItem = ((Number(d.precio_venta_usd) || 0) - (Number(d.numeros_serie?.costo_usd) || 0)) * v.factorPago
       porProducto[nombre].ventas++
       porProducto[nombre].precioUSD += Number(d.precio_venta_usd) || 0
@@ -131,7 +142,6 @@ export default function Rentabilidad() {
   return (
     <div style={{ maxWidth: '960px' }}>
 
-      {/* Header */}
       <div style={{ marginBottom: '28px' }}>
         <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>Rentabilidad</h1>
         <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '14px' }}>Ganancia por venta, producto y período — solo audífonos</p>
@@ -211,12 +221,12 @@ export default function Rentabilidad() {
                 <tr>
                   <th style={thStyle}>#</th>
                   <th style={thStyle}>Fecha</th>
-                  <th style={{ ...thStyle, maxWidth: '120px' }}>Paciente</th>
-                  <th style={thStyle}>Producto</th>
+                  <th style={{ ...thStyle, maxWidth: '110px' }}>Paciente</th>
+                  <th style={{ ...thStyle, maxWidth: '130px' }}>Producto</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>Precio</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>Costo</th>
-                  <th style={{ ...thStyle, textAlign: 'right' }}>G. Bruta</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>Comisión</th>
+                  <th style={{ ...thStyle, textAlign: 'right' }}>G. Bruta</th>
                   <th style={{ ...thStyle, textAlign: 'center' }}>Cobro</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>G. Neta</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>Margen</th>
@@ -227,18 +237,18 @@ export default function Rentabilidad() {
                   <tr key={v.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
                     <td style={tdStyle}>{v.id}</td>
                     <td style={tdStyle}>{new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</td>
-                    <td style={{ ...tdStyle, maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: '600' }}>
+                    <td style={{ ...tdStyle, maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: '600' }}>
                       {v.pacientes?.apellido_paciente} {v.pacientes?.nombres_paciente}
                     </td>
-                    <td style={{ ...tdStyle, fontSize: '12px', color: '#6b7280', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <td style={{ ...tdStyle, maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '12px', color: '#6b7280' }}>
                       {v.itemsConSerie.map(d => d.numeros_serie?.productos?.producto).filter(Boolean).join(', ')}
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'right' }}>{fmtUSD(v.precioVentaUSD)}</td>
                     <td style={{ ...tdStyle, textAlign: 'right', color: '#dc2626' }}>{fmtUSD(v.costoUSD)}</td>
-                    <td style={{ ...tdStyle, textAlign: 'right' }}>{fmtUSD(v.gananciaBrutaUSD)}</td>
                     <td style={{ ...tdStyle, textAlign: 'right', color: v.comisionUSD > 0 ? '#f59e0b' : '#9ca3af', fontSize: '12px' }}>
                       {v.comisionUSD > 0 ? fmtUSD(v.comisionUSD) : '-'}
                     </td>
+                    <td style={{ ...tdStyle, textAlign: 'right', color: '#374151' }}>{fmtUSD(v.gananciaBrutaUSD)}</td>
                     <td style={{ ...tdStyle, textAlign: 'center' }}>
                       <span style={{
                         fontSize: '11px', padding: '2px 8px', borderRadius: '20px', fontWeight: '600',
@@ -265,8 +275,8 @@ export default function Rentabilidad() {
                   <td colSpan={4} style={{ ...tdStyle, color: 'white', fontWeight: '700' }}>TOTAL ({ventasConAudifonos.length} ventas)</td>
                   <td style={{ ...tdStyle, textAlign: 'right', color: '#93c5fd', fontWeight: '700' }}>{fmtUSD(totalPrecioUSD)}</td>
                   <td style={{ ...tdStyle, textAlign: 'right', color: '#fca5a5', fontWeight: '700' }}>{fmtUSD(totalCostoUSD)}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right', color: '#e5e7eb', fontWeight: '700' }}>{fmtUSD(totalGananciaBruta)}</td>
                   <td style={{ ...tdStyle, textAlign: 'right', color: '#fcd34d', fontWeight: '700' }}>{totalComisionUSD > 0 ? fmtUSD(totalComisionUSD) : '-'}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right', color: '#e5e7eb', fontWeight: '700' }}>{fmtUSD(totalGananciaBruta)}</td>
                   <td style={tdStyle}></td>
                   <td style={{ ...tdStyle, textAlign: 'right', color: '#86efac', fontWeight: '700' }}>{fmtUSD(totalGananciaNeta)}</td>
                   <td style={{ ...tdStyle, textAlign: 'right', color: '#c4b5fd', fontWeight: '700' }}>{fmtPct(margenPromedio)}</td>
@@ -322,7 +332,7 @@ export default function Rentabilidad() {
 
       {ventasConAudifonos.length > 0 && (
         <div style={{ fontSize: '12px', color: '#9ca3af', padding: '0 4px' }}>
-          * Ganancia bruta = precio venta − costo. Ganancia neta aplica factor de cobro (💵 efectivo = 100%, 💳 otro medio = 70%) y descuenta comisión de derivador convertida a USD con cotización de la fecha de venta.
+          * Fórmula: Ganancia bruta = Precio − Costo − Comisión derivador (en U$S). Ganancia neta = Ganancia bruta × factor de cobro (💵 efectivo = 100%, 💳 otro medio = 70%).
         </div>
       )}
 
