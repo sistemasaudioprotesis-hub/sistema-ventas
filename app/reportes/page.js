@@ -6,6 +6,18 @@ import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../lib/supabaseClient'
 
+const ESTADOS_REPARACION = [
+  { key: 'ingresada', label: 'Ingresada' },
+  { key: 'en_evaluacion', label: 'En evaluación' },
+  { key: 'esperando_respuesta', label: 'Esperando respuesta' },
+  { key: 'aprobada', label: 'Aprobada' },
+  { key: 'en_reparacion', label: 'En reparación' },
+  { key: 'lista_entregar', label: 'Lista para entregar' },
+  { key: 'entregada', label: 'Entregada' },
+  { key: 'no_aprobada', label: 'No aprobada' },
+  { key: 'no_aprobada_devuelta', label: 'No aprobada - Devuelta' },
+]
+
 export default function Reportes() {
   const hoy = new Date().toISOString().split('T')[0]
   const [desde, setDesde] = useState(hoy)
@@ -18,6 +30,7 @@ export default function Reportes() {
   const [motivos, setMotivos] = useState([])
   const [agendaId, setAgendaId] = useState('')
   const [agendas, setAgendas] = useState([])
+  const [estadoReparacion, setEstadoReparacion] = useState('')
   const [tab, setTab] = useState('ventas')
   const [cargando, setCargando] = useState(false)
 
@@ -30,6 +43,7 @@ export default function Reportes() {
   const [movimientosCaja, setMovimientosCaja] = useState([])
   const [visitas, setVisitas] = useState([])
   const [turnos, setTurnos] = useState([])
+  const [reparaciones, setReparaciones] = useState([])
 
   useEffect(() => { cargarUsuarios() }, [])
 
@@ -61,7 +75,7 @@ export default function Reportes() {
 
   async function buscar() {
     setCargando(true)
-    await Promise.all([cargarVentas(), cargarPagos(), cargarCaja(), cargarVisitas(), cargarTurnos()])
+    await Promise.all([cargarVentas(), cargarPagos(), cargarCaja(), cargarVisitas(), cargarTurnos(), cargarReparaciones()])
     setCargando(false)
   }
 
@@ -111,6 +125,7 @@ export default function Reportes() {
   async function cargarVisitas() {
     let query = supabase.from('visitas')
       .select(`id, fecha, observaciones, visita_motivos (motivo), pacientes (apellido_paciente, nombres_paciente, dni), ventas (id)`)
+      .eq('es_reparacion', false)
       .gte('fecha', `${desde}T00:00:00`).lte('fecha', `${hasta}T23:59:59`)
       .order('fecha', { ascending: false })
     if (motivoId) query = query.eq('motivo_id', motivoId)
@@ -134,6 +149,23 @@ export default function Reportes() {
     setTurnos(data || [])
   }
 
+  async function cargarReparaciones() {
+    let query = supabase.from('visitas')
+      .select(`
+        id, fecha, observaciones, marca, costo_pesos, costo_usd,
+        respuesta_paciente, fecha_entrega, numero_orden,
+        pacientes (apellido_paciente, nombres_paciente, dni, telefono),
+        ventas (id, total_pesos, total_dolares)
+      `)
+      .eq('es_reparacion', true)
+      .gte('fecha', `${desde}T00:00:00`).lte('fecha', `${hasta}T23:59:59`)
+      .order('numero_orden', { ascending: false })
+    if (estadoReparacion) query = query.eq('respuesta_paciente', estadoReparacion)
+    if (pacienteSeleccionado) query = query.eq('paciente_id', pacienteSeleccionado.id)
+    const { data } = await query
+    setReparaciones(data || [])
+  }
+
   const totalVentasPesos = ventas.reduce((acc, v) => acc + (Number(v.total_pesos) || 0), 0)
   const totalVentasUSD = ventas.reduce((acc, v) => acc + (Number(v.total_dolares) || 0), 0)
   const totalPagadoPesos = pagos.reduce((acc, p) => acc + (Number(p.monto_pesos) || 0), 0)
@@ -144,17 +176,31 @@ export default function Reportes() {
   const egresosUSD = movimientosCaja.filter(m => m.tipo === 'egreso').reduce((acc, m) => acc + (Number(m.monto_usd) || 0), 0)
   const visitasPorMotivo = visitas.reduce((acc, v) => { const m = v.visita_motivos?.motivo || 'Sin motivo'; acc[m] = (acc[m] || 0) + 1; return acc }, {})
   const turnosPorEstado = turnos.reduce((acc, t) => { acc[t.estado] = (acc[t.estado] || 0) + 1; return acc }, {})
+  const reparacionesPorEstado = reparaciones.reduce((acc, r) => { const e = r.respuesta_paciente || 'ingresada'; acc[e] = (acc[e] || 0) + 1; return acc }, {})
+  const totalReparacionesPesos = reparaciones.reduce((acc, r) => acc + (Number(r.costo_pesos) || 0), 0)
+  const totalReparacionesUSD = reparaciones.reduce((acc, r) => acc + (Number(r.costo_usd) || 0), 0)
 
   const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0)
   const fmtUSD = (n) => `U$S ${Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   const fmtFecha = (f) => new Date(f).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
   const fmtHora = (f) => new Date(f).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
-  const tabLabels = { ventas: 'Ventas', pagos: 'Pagos', caja: 'Caja', visitas: 'Visitas', turnos: 'Turnos' }
+  const tabLabels = { ventas: 'Ventas', pagos: 'Pagos', caja: 'Caja', visitas: 'Visitas', turnos: 'Turnos', reparaciones: 'Reparaciones' }
   const coloresEstado = {
     pendiente: { bg: '#fef3c7', color: '#92400e' },
     realizado: { bg: '#dcfce7', color: '#15803d' },
     no_asistio: { bg: '#fef2f2', color: '#dc2626' },
     cancelado: { bg: '#f3f4f6', color: '#6b7280' },
+  }
+  const coloresEstadoRep = {
+    ingresada: { bg: '#f3f4f6', color: '#4b5563' },
+    en_evaluacion: { bg: '#f5f3ff', color: '#6d28d9' },
+    esperando_respuesta: { bg: '#fffbeb', color: '#92400e' },
+    aprobada: { bg: '#ecfeff', color: '#0e7490' },
+    en_reparacion: { bg: '#eff6ff', color: '#1d4ed8' },
+    lista_entregar: { bg: '#f0fdf4', color: '#15803d' },
+    entregada: { bg: '#f9fafb', color: '#374151' },
+    no_aprobada: { bg: '#fef2f2', color: '#dc2626' },
+    no_aprobada_devuelta: { bg: '#f3f4f6', color: '#9ca3af' },
   }
 
   // Excel
@@ -168,14 +214,7 @@ export default function Reportes() {
   function exportarVentas() {
     exportarExcel('ventas', [
       ['#', 'Fecha', 'Paciente', 'DNI', 'Productos', 'Total $', 'Total U$S', 'Estado'],
-      ...ventas.map(v => [
-        v.id, fmtFecha(v.fecha),
-        `${v.pacientes?.apellido_paciente || ''} ${v.pacientes?.nombres_paciente || ''}`,
-        v.pacientes?.dni || '',
-        v.venta_detalle?.map(d => d.numeros_serie?.productos?.producto || d.productos?.producto || '-').join(', ') || '',
-        v.total_pesos || 0, v.total_dolares || 0,
-        v.confirmada ? 'Confirmada' : 'Pendiente',
-      ]),
+      ...ventas.map(v => [v.id, fmtFecha(v.fecha), `${v.pacientes?.apellido_paciente || ''} ${v.pacientes?.nombres_paciente || ''}`, v.pacientes?.dni || '', v.venta_detalle?.map(d => d.numeros_serie?.productos?.producto || d.productos?.producto || '-').join(', ') || '', v.total_pesos || 0, v.total_dolares || 0, v.confirmada ? 'Confirmada' : 'Pendiente']),
       ['', '', '', '', 'TOTAL', totalVentasPesos, totalVentasUSD, ''],
     ])
   }
@@ -183,12 +222,7 @@ export default function Reportes() {
   function exportarPagos() {
     exportarExcel('pagos', [
       ['Fecha', 'Paciente', 'DNI', 'Venta #', 'Forma de pago', 'Monto $', 'Monto U$S'],
-      ...pagos.map(p => [
-        fmtFecha(p.fecha_pago),
-        `${p.ventas?.pacientes?.apellido_paciente || ''} ${p.ventas?.pacientes?.nombres_paciente || ''}`,
-        p.ventas?.pacientes?.dni || '', p.ventas?.id || '',
-        p.formas_pago?.forma_pago || '', p.monto_pesos || 0, p.monto_usd || 0,
-      ]),
+      ...pagos.map(p => [fmtFecha(p.fecha_pago), `${p.ventas?.pacientes?.apellido_paciente || ''} ${p.ventas?.pacientes?.nombres_paciente || ''}`, p.ventas?.pacientes?.dni || '', p.ventas?.id || '', p.formas_pago?.forma_pago || '', p.monto_pesos || 0, p.monto_usd || 0]),
       ['', '', '', '', 'TOTAL', totalPagadoPesos, totalPagadoUSD],
     ])
   }
@@ -196,12 +230,7 @@ export default function Reportes() {
   function exportarCaja() {
     exportarExcel('caja', [
       ['Fecha', 'Concepto', 'Origen', 'Tipo', 'Monto $', 'Monto U$S'],
-      ...movimientosCaja.map(m => [
-        fmtFecha(m.created_at), m.concepto,
-        m.origen === 'pago' ? 'Pago' : 'Manual', m.tipo,
-        m.tipo === 'egreso' ? -(m.monto_pesos || 0) : (m.monto_pesos || 0),
-        m.tipo === 'egreso' ? -(m.monto_usd || 0) : (m.monto_usd || 0),
-      ]),
+      ...movimientosCaja.map(m => [fmtFecha(m.created_at), m.concepto, m.origen === 'pago' ? 'Pago' : 'Manual', m.tipo, m.tipo === 'egreso' ? -(m.monto_pesos || 0) : (m.monto_pesos || 0), m.tipo === 'egreso' ? -(m.monto_usd || 0) : (m.monto_usd || 0)]),
       ['', '', '', 'SALDO', ingresosPesos - egresosPesos, ingresosUSD - egresosUSD],
     ])
   }
@@ -209,26 +238,34 @@ export default function Reportes() {
   function exportarVisitas() {
     exportarExcel('visitas', [
       ['Fecha', 'Hora', 'Paciente', 'DNI', 'Motivo', 'Venta', 'Observaciones'],
-      ...visitas.map(v => [
-        fmtFecha(v.fecha), fmtHora(v.fecha),
-        `${v.pacientes?.apellido_paciente || ''} ${v.pacientes?.nombres_paciente || ''}`,
-        v.pacientes?.dni || '', v.visita_motivos?.motivo || '',
-        v.ventas?.id ? `#${v.ventas.id}` : '', v.observaciones || '',
-      ]),
+      ...visitas.map(v => [fmtFecha(v.fecha), fmtHora(v.fecha), `${v.pacientes?.apellido_paciente || ''} ${v.pacientes?.nombres_paciente || ''}`, v.pacientes?.dni || '', v.visita_motivos?.motivo || '', v.ventas?.id ? `#${v.ventas.id}` : '', v.observaciones || '']),
     ])
   }
 
   function exportarTurnos() {
     exportarExcel('turnos', [
       ['Fecha', 'Hora', 'Paciente', 'DNI', 'Teléfono', 'Agenda', 'Motivo', 'Obra Social', 'Estado', 'Observaciones'],
-      ...turnos.map(t => [
-        new Date(t.fecha + 'T12:00:00').toLocaleDateString('es-AR'),
-        t.hora.slice(0, 5),
-        t.pacientes ? `${t.pacientes.apellido_paciente} ${t.pacientes.nombres_paciente}` : t.nombre_libre || '',
-        t.pacientes?.dni || '', t.pacientes?.telefono || '',
-        t.profesionales?.nombre || '', t.visita_motivos?.motivo || '',
-        t.obras_sociales?.obra_social || '', t.estado.replace('_', ' '), t.observaciones || '',
+      ...turnos.map(t => [new Date(t.fecha + 'T12:00:00').toLocaleDateString('es-AR'), t.hora.slice(0, 5), t.pacientes ? `${t.pacientes.apellido_paciente} ${t.pacientes.nombres_paciente}` : t.nombre_libre || '', t.pacientes?.dni || '', t.pacientes?.telefono || '', t.profesionales?.nombre || '', t.visita_motivos?.motivo || '', t.obras_sociales?.obra_social || '', t.estado.replace('_', ' '), t.observaciones || '']),
+    ])
+  }
+
+  function exportarReparaciones() {
+    exportarExcel('reparaciones', [
+      ['#', 'Fecha ingreso', 'Paciente', 'DNI', 'Teléfono', 'Marca', 'Estado', 'Costo $', 'Costo U$S', 'Fecha entrega', 'Observaciones'],
+      ...reparaciones.map(r => [
+        r.numero_orden,
+        fmtFecha(r.fecha),
+        `${r.pacientes?.apellido_paciente || ''} ${r.pacientes?.nombres_paciente || ''}`,
+        r.pacientes?.dni || '',
+        r.pacientes?.telefono || '',
+        r.marca || '',
+        ESTADOS_REPARACION.find(e => e.key === r.respuesta_paciente)?.label || r.respuesta_paciente || 'Ingresada',
+        r.costo_pesos || 0,
+        r.costo_usd || 0,
+        r.fecha_entrega ? new Date(r.fecha_entrega + 'T12:00:00').toLocaleDateString('es-AR') : '',
+        r.observaciones || '',
       ]),
+      ['', '', '', '', '', '', 'TOTAL', totalReparacionesPesos, totalReparacionesUSD, '', ''],
     ])
   }
 
@@ -261,12 +298,8 @@ export default function Reportes() {
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a' }}>
-              Reporte de {tabLabels[tab]} — {fmtFecha(desde)} al {fmtFecha(hasta)}
-            </div>
-            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
-              Impreso: {new Date().toLocaleDateString('es-AR')} {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-            </div>
+            <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a' }}>Reporte de {tabLabels[tab]} — {fmtFecha(desde)} al {fmtFecha(hasta)}</div>
+            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Impreso: {new Date().toLocaleDateString('es-AR')} {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</div>
           </div>
         </div>
       </div>
@@ -274,7 +307,7 @@ export default function Reportes() {
       {/* Header pantalla */}
       <div style={{ marginBottom: '28px' }} className="no-print">
         <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>Reportes</h1>
-        <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '14px' }}>Ventas, pagos, caja, visitas y turnos por período</p>
+        <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '14px' }}>Ventas, pagos, caja, visitas, turnos y reparaciones por período</p>
       </div>
 
       {/* Filtros */}
@@ -309,30 +342,36 @@ export default function Reportes() {
               </select>
             </div>
           </Field>
-          <Field label="Paciente">
-            {pacienteSeleccionado ? (
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <div style={{ ...inputStyle, padding: '10px 14px', background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600', fontSize: '13px' }}>
-                  {pacienteSeleccionado.apellido_paciente} {pacienteSeleccionado.nombres_paciente}
+          <Field label="Paciente / Estado reparación">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {pacienteSeleccionado ? (
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <div style={{ ...inputStyle, padding: '10px 14px', background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600', fontSize: '13px' }}>
+                    {pacienteSeleccionado.apellido_paciente} {pacienteSeleccionado.nombres_paciente}
+                  </div>
+                  <button onClick={() => { setPacienteSeleccionado(null); setBusquedaPaciente(''); setResultadosPaciente([]) }} style={{ padding: '10px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>✕</button>
                 </div>
-                <button onClick={() => { setPacienteSeleccionado(null); setBusquedaPaciente(''); setResultadosPaciente([]) }} style={{ padding: '10px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>✕</button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <input placeholder="DNI o apellido..." value={busquedaPaciente} onChange={(e) => setBusquedaPaciente(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && buscarPacientes()} style={{ ...inputStyle, flex: 1 }} />
-                <button onClick={buscarPacientes} style={{ padding: '10px 14px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>Buscar</button>
-              </div>
-            )}
-            {resultadosPaciente.length > 0 && !pacienteSeleccionado && (
-              <select value="" onChange={(e) => {
-                const p = resultadosPaciente.find(x => x.id == e.target.value)
-                if (!p) return
-                setPacienteSeleccionado(p); setResultadosPaciente([]); setBusquedaPaciente('')
-              }} style={{ ...inputStyle, marginTop: '6px' }}>
-                <option value="">Seleccionar ({resultadosPaciente.length} encontrados)</option>
-                {resultadosPaciente.map(p => <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>)}
+              ) : (
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input placeholder="DNI o apellido..." value={busquedaPaciente} onChange={(e) => setBusquedaPaciente(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && buscarPacientes()} style={{ ...inputStyle, flex: 1 }} />
+                  <button onClick={buscarPacientes} style={{ padding: '10px 14px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>Buscar</button>
+                </div>
+              )}
+              {resultadosPaciente.length > 0 && !pacienteSeleccionado && (
+                <select value="" onChange={(e) => {
+                  const p = resultadosPaciente.find(x => x.id == e.target.value)
+                  if (!p) return
+                  setPacienteSeleccionado(p); setResultadosPaciente([]); setBusquedaPaciente('')
+                }} style={inputStyle}>
+                  <option value="">Seleccionar ({resultadosPaciente.length} encontrados)</option>
+                  {resultadosPaciente.map(p => <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>)}
+                </select>
+              )}
+              <select value={estadoReparacion} onChange={(e) => setEstadoReparacion(e.target.value)} style={inputStyle}>
+                <option value="">Todos los estados (reparaciones)</option>
+                {ESTADOS_REPARACION.map(e => <option key={e.key} value={e.key}>{e.label}</option>)}
               </select>
-            )}
+            </div>
           </Field>
         </div>
         <button onClick={buscar} disabled={cargando} style={{ ...btnPrimario, opacity: cargando ? 0.7 : 1 }}>
@@ -348,6 +387,7 @@ export default function Reportes() {
           ['caja', '💰 Caja'],
           ['visitas', `🏥 Visitas${visitas.length > 0 ? ` (${visitas.length})` : ''}`],
           ['turnos', `📅 Turnos${turnos.length > 0 ? ` (${turnos.length})` : ''}`],
+          ['reparaciones', `🔧 Reparaciones${reparaciones.length > 0 ? ` (${reparaciones.length})` : ''}`],
         ].map(([val, label]) => (
           <button key={val} onClick={() => setTab(val)} style={{
             padding: '9px 20px', borderRadius: '8px', border: '1px solid #e5e7eb',
@@ -369,16 +409,13 @@ export default function Reportes() {
             </div>
           </div>
           <div style={card}>
-            {ventas.length === 0 ? (
-              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay ventas para el período seleccionado</div>
-            ) : (
+            {ventas.length === 0 ? <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay ventas para el período seleccionado</div> : (
               <table style={tableStyle}>
                 <thead><tr><th style={thStyle}>#</th><th style={thStyle}>Fecha</th><th style={thStyle}>Paciente</th><th style={thStyle}>DNI</th><th style={thStyle}>Productos</th><th style={{ ...thStyle, textAlign: 'right' }}>Total $</th><th style={{ ...thStyle, textAlign: 'right' }}>Total U$S</th><th style={thStyle}>Estado</th></tr></thead>
                 <tbody>
                   {ventas.map((v, i) => (
                     <tr key={v.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
-                      <td style={tdStyle}>{v.id}</td>
-                      <td style={tdStyle}>{fmtFecha(v.fecha)}</td>
+                      <td style={tdStyle}>{v.id}</td><td style={tdStyle}>{fmtFecha(v.fecha)}</td>
                       <td style={{ ...tdStyle, fontWeight: '600' }}>{v.pacientes?.apellido_paciente} {v.pacientes?.nombres_paciente}</td>
                       <td style={tdStyle}>{v.pacientes?.dni}</td>
                       <td style={tdStyle}>{v.venta_detalle?.map(d => <div key={d.id} style={{ fontSize: '12px', color: '#6b7280' }}>{d.numeros_serie?.productos?.producto || d.productos?.producto || '-'}{d.numeros_serie?.numero_serie ? ` (${d.numeros_serie.numero_serie})` : ''}</div>)}</td>
@@ -411,9 +448,7 @@ export default function Reportes() {
             </div>
           </div>
           <div style={card}>
-            {pagos.length === 0 ? (
-              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay pagos para el período seleccionado</div>
-            ) : (
+            {pagos.length === 0 ? <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay pagos para el período seleccionado</div> : (
               <table style={tableStyle}>
                 <thead><tr><th style={thStyle}>Fecha</th><th style={thStyle}>Paciente</th><th style={thStyle}>DNI</th><th style={thStyle}>Venta #</th><th style={thStyle}>Forma de pago</th><th style={{ ...thStyle, textAlign: 'right' }}>Monto $</th><th style={{ ...thStyle, textAlign: 'right' }}>Monto U$S</th></tr></thead>
                 <tbody>
@@ -464,9 +499,7 @@ export default function Reportes() {
             ))}
           </div>
           <div style={card}>
-            {movimientosCaja.length === 0 ? (
-              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay movimientos para el período seleccionado</div>
-            ) : (
+            {movimientosCaja.length === 0 ? <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay movimientos para el período seleccionado</div> : (
               <table style={tableStyle}>
                 <thead><tr><th style={thStyle}>Fecha</th><th style={thStyle}>Concepto</th><th style={thStyle}>Origen</th><th style={thStyle}>Tipo</th><th style={{ ...thStyle, textAlign: 'right' }}>Monto $</th><th style={{ ...thStyle, textAlign: 'right' }}>Monto U$S</th></tr></thead>
                 <tbody>
@@ -505,9 +538,7 @@ export default function Reportes() {
             </div>
           </div>
           <div style={card}>
-            {visitas.length === 0 ? (
-              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay visitas para el período seleccionado</div>
-            ) : (
+            {visitas.length === 0 ? <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay visitas para el período seleccionado</div> : (
               <table style={tableStyle}>
                 <thead><tr><th style={thStyle}>Fecha</th><th style={thStyle}>Hora</th><th style={thStyle}>Paciente</th><th style={thStyle}>DNI</th><th style={thStyle}>Motivo</th><th style={thStyle}>Venta</th><th style={thStyle}>Observaciones</th></tr></thead>
                 <tbody>
@@ -546,9 +577,7 @@ export default function Reportes() {
             </div>
           </div>
           <div style={card}>
-            {turnos.length === 0 ? (
-              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay turnos para el período seleccionado</div>
-            ) : (
+            {turnos.length === 0 ? <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay turnos para el período seleccionado</div> : (
               <table style={tableStyle}>
                 <thead><tr><th style={thStyle}>Fecha</th><th style={thStyle}>Hora</th><th style={thStyle}>Paciente</th><th style={thStyle}>DNI</th><th style={thStyle}>Teléfono</th><th style={thStyle}>Agenda</th><th style={thStyle}>Motivo</th><th style={thStyle}>Obra Social</th><th style={thStyle}>Estado</th><th style={thStyle}>Observaciones</th></tr></thead>
                 <tbody>
@@ -566,6 +595,89 @@ export default function Reportes() {
                       <td style={{ ...tdStyle, fontSize: '12px', color: '#6b7280' }}>{t.observaciones || '-'}</td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* REPORTE REPARACIONES */}
+      {tab === 'reparaciones' && (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ fontSize: '14px', color: '#6b7280', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <span><strong>{reparaciones.length}</strong> reparaciones</span>
+              {Object.entries(reparacionesPorEstado).map(([estado, cant]) => {
+                const c = coloresEstadoRep[estado] || { bg: '#f3f4f6', color: '#6b7280' }
+                const label = ESTADOS_REPARACION.find(e => e.key === estado)?.label || estado
+                return (
+                  <span key={estado} style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '11px', background: c.bg, color: c.color }}>
+                    {label}: <strong>{cant}</strong>
+                  </span>
+                )
+              })}
+              {(totalReparacionesPesos > 0 || totalReparacionesUSD > 0) && (
+                <span style={{ marginLeft: '4px' }}>
+                  {totalReparacionesPesos > 0 && `· ${fmt(totalReparacionesPesos)}`}
+                  {totalReparacionesUSD > 0 && ` · ${fmtUSD(totalReparacionesUSD)}`}
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }} className="no-print">
+              <button onClick={exportarReparaciones} style={btnExcel}>📥 Excel</button>
+              <button onClick={() => window.print()} style={btnImprimir}>🖨️ Imprimir</button>
+            </div>
+          </div>
+          <div style={card}>
+            {reparaciones.length === 0 ? (
+              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay reparaciones para el período seleccionado</div>
+            ) : (
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>#</th>
+                    <th style={thStyle}>Fecha ingreso</th>
+                    <th style={thStyle}>Paciente</th>
+                    <th style={thStyle}>DNI</th>
+                    <th style={thStyle}>Teléfono</th>
+                    <th style={thStyle}>Marca</th>
+                    <th style={thStyle}>Estado</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Costo $</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Costo U$S</th>
+                    <th style={thStyle}>Fecha entrega</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reparaciones.map((r, i) => {
+                    const estado = r.respuesta_paciente || 'ingresada'
+                    const c = coloresEstadoRep[estado] || { bg: '#f3f4f6', color: '#6b7280' }
+                    const labelEstado = ESTADOS_REPARACION.find(e => e.key === estado)?.label || estado
+                    return (
+                      <tr key={r.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
+                        <td style={{ ...tdStyle, fontWeight: '700', color: '#8B1E2D' }}>#{r.numero_orden}</td>
+                        <td style={tdStyle}>{fmtFecha(r.fecha)}</td>
+                        <td style={{ ...tdStyle, fontWeight: '600' }}>{r.pacientes?.apellido_paciente} {r.pacientes?.nombres_paciente}</td>
+                        <td style={tdStyle}>{r.pacientes?.dni || '-'}</td>
+                        <td style={tdStyle}>{r.pacientes?.telefono || '-'}</td>
+                        <td style={tdStyle}>{r.marca || '-'}</td>
+                        <td style={tdStyle}>
+                          <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: c.bg, color: c.color }}>
+                            {labelEstado}
+                          </span>
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: 'right', color: '#16a34a', fontWeight: '600' }}>{r.costo_pesos ? fmt(r.costo_pesos) : '-'}</td>
+                        <td style={{ ...tdStyle, textAlign: 'right', color: '#2563eb', fontWeight: '600' }}>{r.costo_usd ? fmtUSD(r.costo_usd) : '-'}</td>
+                        <td style={tdStyle}>{r.fecha_entrega ? new Date(r.fecha_entrega + 'T12:00:00').toLocaleDateString('es-AR') : '-'}</td>
+                      </tr>
+                    )
+                  })}
+                  <tr style={{ background: '#1a1a1a' }}>
+                    <td colSpan={7} style={{ ...tdStyle, color: 'white', fontWeight: '700' }}>TOTAL ({reparaciones.length} reparaciones)</td>
+                    <td style={{ ...tdStyle, textAlign: 'right', color: '#86efac', fontWeight: '700' }}>{totalReparacionesPesos > 0 ? fmt(totalReparacionesPesos) : '-'}</td>
+                    <td style={{ ...tdStyle, textAlign: 'right', color: '#93c5fd', fontWeight: '700' }}>{totalReparacionesUSD > 0 ? fmtUSD(totalReparacionesUSD) : '-'}</td>
+                    <td style={tdStyle}></td>
+                  </tr>
                 </tbody>
               </table>
             )}
