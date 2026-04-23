@@ -10,7 +10,6 @@ import { formatearPesos } from '../../lib/format'
 
 export default function Pagos() {
   const searchParams = useSearchParams()
-
   const ventaIdParam = searchParams.get('venta_id')
   const dniParam = searchParams.get('dni')
 
@@ -25,26 +24,38 @@ export default function Pagos() {
   const [pagosVenta, setPagosVenta] = useState([])
   const [totalPesos, setTotalPesos] = useState(0)
   const [totalUSD, setTotalUSD] = useState(0)
-  const [pagadoPesos, setPagadoPesos] = useState(0)
-  const [pagadoUSD, setPagadoUSD] = useState(0)
 
-  const [form, setForm] = useState({
-    forma_pago_id: '',
-    monto_pesos: '',
-    monto_usd: '',
-  })
+  // Cotización
+  const [cotizacion, setCotizacion] = useState(null)
+  const [cotizacionManual, setCotizacionManual] = useState('')
+  const [cotizacionFecha, setCotizacionFecha] = useState('')
+
+  const [form, setForm] = useState({ forma_pago_id: '', monto_pesos: '', monto_usd: '' })
 
   useEffect(() => {
     obtenerFormasPago()
+    cargarCotizacion()
     if (dniParam) buscarPacienteAutomatico(dniParam)
   }, [])
 
   useEffect(() => {
-    if (ventaIdParam) {
-      setVentaSeleccionada(ventaIdParam)
-      cargarDetalleVenta(ventaIdParam)
-    }
+    if (ventaIdParam) { setVentaSeleccionada(ventaIdParam); cargarDetalleVenta(ventaIdParam) }
   }, [ventaIdParam])
+
+  async function cargarCotizacion() {
+    const hoy = new Date().toISOString().split('T')[0]
+    const { data } = await supabase.from('valor_dolar_bna')
+      .select('fecha, dolar_vendedor')
+      .lte('fecha', hoy)
+      .order('fecha', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (data) {
+      setCotizacion(data.dolar_vendedor)
+      setCotizacionFecha(data.fecha)
+      setCotizacionManual(String(data.dolar_vendedor))
+    }
+  }
 
   async function obtenerFormasPago() {
     const { data } = await supabase.from('formas_pago').select('*').order('forma_pago')
@@ -53,41 +64,30 @@ export default function Pagos() {
 
   async function buscarPacienteAutomatico(dniValor) {
     const { data } = await supabase.from('pacientes').select('*').eq('dni', dniValor).maybeSingle()
-    if (data) {
-      setPaciente(data)
-      await cargarVentasPaciente(data.id)
-    }
+    if (data) { setPaciente(data); await cargarVentasPaciente(data.id) }
   }
 
   async function cargarVentasPaciente(pacienteId) {
-    const { data: ventasData } = await supabase
-      .from('ventas')
+    const { data: ventasData } = await supabase.from('ventas')
       .select(`*, venta_detalle (precio_venta_pesos, precio_venta_usd)`)
-      .eq('paciente_id', pacienteId)
-      .order('fecha', { ascending: false })
-
-    // Para cada venta calcular saldo
+      .eq('paciente_id', pacienteId).order('fecha', { ascending: false })
     const ventasConSaldo = await Promise.all((ventasData || []).map(async v => {
-      const { data: pagos } = await supabase.from('pagos').select('monto_pesos, monto_usd').eq('venta_id', v.id)
-      const pagadoP = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_pesos) || 0), 0)
-      const pagadoU = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_usd) || 0), 0)
+      const { data: pagos } = await supabase.from('pagos')
+        .select('monto_pesos, monto_usd, monto_equivalente_pesos, monto_equivalente_usd')
+        .eq('venta_id', v.id)
+      // Saldo en moneda de venta usando equivalentes
+      const pagadoP = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_equivalente_pesos) || Number(p.monto_pesos) || 0), 0)
+      const pagadoU = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_equivalente_usd) || Number(p.monto_usd) || 0), 0)
       return { ...v, pagadoPesos: pagadoP, pagadoUSD: pagadoU }
     }))
-
     setVentas(ventasConSaldo)
   }
 
   async function buscarPaciente() {
     const valor = busqueda.trim()
     if (!valor) { alert('Ingresar DNI o apellido'); return }
-
     let query = supabase.from('pacientes').select('*')
-    if (/^\d+$/.test(valor)) {
-      query = query.eq('dni', Number(valor))
-    } else {
-      query = query.ilike('apellido_paciente', `%${valor}%`)
-    }
-
+    if (/^\d+$/.test(valor)) { query = query.eq('dni', Number(valor)) } else { query = query.ilike('apellido_paciente', `%${valor}%`) }
     const { data, error } = await query.order('apellido_paciente')
     if (error) { alert('Error buscando pacientes'); return }
     if (!data || data.length === 0) { alert('No se encontraron resultados'); setResultados([]); return }
@@ -95,31 +95,29 @@ export default function Pagos() {
   }
 
   async function cargarDetalleVenta(ventaId) {
-    const { data: detalle } = await supabase
-      .from('venta_detalle')
+    const { data: detalle } = await supabase.from('venta_detalle')
       .select(`*, numeros_serie (numero_serie, productos (producto)), productos (producto)`)
       .eq('venta_id', ventaId)
-
     setDetalleVenta(detalle || [])
-
     const totalPesosCalc = (detalle || []).reduce((acc, d) => acc + (Number(d.precio_venta_pesos) || 0), 0)
     const totalUSDCalc = (detalle || []).reduce((acc, d) => acc + (Number(d.precio_venta_usd) || 0), 0)
     setTotalPesos(totalPesosCalc)
     setTotalUSD(totalUSDCalc)
-
     await cargarPagosVenta(ventaId)
   }
 
   async function cargarPagosVenta(ventaId) {
-    const { data: pagos } = await supabase
-      .from('pagos')
-      .select(`*, formas_pago (forma_pago)`)
-      .eq('venta_id', ventaId)
-      .order('fecha_pago')
-
+    const { data: pagos } = await supabase.from('pagos')
+      .select(`*, formas_pago (forma_pago, es_efectivo)`)
+      .eq('venta_id', ventaId).order('fecha_pago')
     setPagosVenta(pagos || [])
-    setPagadoPesos((pagos || []).reduce((acc, p) => acc + (Number(p.monto_pesos) || 0), 0))
-    setPagadoUSD((pagos || []).reduce((acc, p) => acc + (Number(p.monto_usd) || 0), 0))
+  }
+
+  // Calcular saldo usando equivalentes
+  function calcularPagado() {
+    const pagadoP = pagosVenta.reduce((acc, p) => acc + (Number(p.monto_equivalente_pesos) || Number(p.monto_pesos) || 0), 0)
+    const pagadoU = pagosVenta.reduce((acc, p) => acc + (Number(p.monto_equivalente_usd) || Number(p.monto_usd) || 0), 0)
+    return { pagadoP, pagadoU }
   }
 
   async function eliminarPago(id) {
@@ -129,31 +127,42 @@ export default function Pagos() {
     if (paciente) await cargarVentasPaciente(paciente.id)
   }
 
-  function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value })
-  }
+  function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }) }
 
   async function guardarPago() {
     if (!ventaSeleccionada) { alert('Seleccionar venta'); return }
+    if (!form.forma_pago_id) { alert('Seleccionar forma de pago'); return }
 
     const montoPesos = Number(form.monto_pesos) || 0
     const montoUsd = Number(form.monto_usd) || 0
+    if (!montoPesos && !montoUsd) { alert('Ingresar monto en pesos o USD'); return }
+    if (montoPesos && montoUsd) { alert('Ingresar el pago en una sola moneda'); return }
 
-    if (!montoPesos && !montoUsd) { alert('Debe ingresar monto en pesos o USD'); return }
-    if (montoPesos && montoUsd) { alert('No se puede cargar pago en ambas monedas'); return }
-    if (!form.forma_pago_id) { alert('Seleccionar forma de pago'); return }
+    const cotizUsada = Number(cotizacionManual) || cotizacion
+    const { pagadoP, pagadoU } = calcularPagado()
+    const saldoP = totalPesos - pagadoP
+    const saldoU = totalUSD - pagadoU
 
-    const usaPesos = pagosVenta.some(p => p.monto_pesos)
-    const usaUsd = pagosVenta.some(p => p.monto_usd)
+    let montoEquivPesos = null
+    let montoEquivUSD = null
 
-    if (usaPesos && montoUsd) { alert('Esta venta ya tiene pagos en PESOS'); return }
-    if (usaUsd && montoPesos) { alert('Esta venta ya tiene pagos en USD'); return }
+    // Venta en pesos, pago en USD → convertir a pesos
+    if (totalPesos > 0 && totalUSD === 0 && montoUsd > 0) {
+      if (!cotizUsada) { alert('No hay cotización disponible. Ingresala manualmente.'); return }
+      montoEquivPesos = Math.round(montoUsd * cotizUsada)
+      if (montoEquivPesos > saldoP + 1) { alert(`El pago en USD equivale a ${fmt(montoEquivPesos)} y supera el saldo de ${fmt(saldoP)}`); return }
+    }
 
-    const saldoPesos = totalPesos - pagadoPesos
-    const saldoUSD = totalUSD - pagadoUSD
+    // Venta en USD, pago en pesos → convertir a USD
+    if (totalUSD > 0 && totalPesos === 0 && montoPesos > 0) {
+      if (!cotizUsada) { alert('No hay cotización disponible. Ingresala manualmente.'); return }
+      montoEquivUSD = montoPesos / cotizUsada
+      if (montoEquivUSD > saldoU + 0.01) { alert(`El pago en pesos equivale a U$S ${montoEquivUSD.toFixed(2)} y supera el saldo de U$S ${saldoU}`); return }
+    }
 
-    if (montoPesos > saldoPesos) { alert('El pago en pesos supera el saldo'); return }
-    if (montoUsd > saldoUSD) { alert('El pago en USD supera el saldo'); return }
+    // Pago directo en misma moneda
+    if (totalPesos > 0 && montoPesos > 0 && montoPesos > saldoP + 1) { alert('El pago supera el saldo en pesos'); return }
+    if (totalUSD > 0 && montoUsd > 0 && montoUsd > saldoU + 0.01) { alert('El pago supera el saldo en USD'); return }
 
     const { error } = await supabase.from('pagos').insert([{
       venta_id: Number(ventaSeleccionada),
@@ -161,6 +170,9 @@ export default function Pagos() {
       forma_pago_id: Number(form.forma_pago_id),
       monto_pesos: montoPesos || null,
       monto_usd: montoUsd || null,
+      cotizacion_usada: (montoEquivPesos || montoEquivUSD) ? cotizUsada : null,
+      monto_equivalente_pesos: montoEquivPesos || null,
+      monto_equivalente_usd: montoEquivUSD ? Number(montoEquivUSD.toFixed(2)) : null,
       creado_por: getUsuarioId(),
     }])
 
@@ -172,14 +184,21 @@ export default function Pagos() {
     if (paciente) await cargarVentasPaciente(paciente.id)
   }
 
-  const saldoPesos = totalPesos - pagadoPesos
-  const saldoUSD = totalUSD - pagadoUSD
+  const { pagadoP, pagadoU } = calcularPagado()
+  const saldoPesos = totalPesos - pagadoP
+  const saldoUSD = totalUSD - pagadoU
+  const ventaSaldada = saldoPesos <= 0.01 && saldoUSD <= 0.01
   const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0)
+  const fmtUSD = (n) => `U$S ${Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+  // Determinar si el nuevo pago necesita cotización
+  const ventaEsUSD = totalUSD > 0 && totalPesos === 0
+  const ventaEsPesos = totalPesos > 0 && totalUSD === 0
+  const pagoEnMonedaDistinta = (ventaEsUSD && Number(form.monto_pesos) > 0) || (ventaEsPesos && Number(form.monto_usd) > 0)
 
   return (
     <div style={{ maxWidth: '750px' }}>
 
-      {/* Título */}
       <div style={{ marginBottom: '28px' }}>
         <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>Pagos</h1>
         <p style={{ color: '#6b7280', marginTop: '6px', fontSize: '14px' }}>Registrar y gestionar pagos de ventas</p>
@@ -189,16 +208,9 @@ export default function Pagos() {
       <div style={card}>
         <div style={cardTitle}>🔍 Buscar paciente</div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <input
-            placeholder="DNI o Apellido"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && buscarPaciente()}
-            style={{ ...inputStyle, flex: 1, minWidth: '180px' }}
-          />
+          <input placeholder="DNI o Apellido" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && buscarPaciente()} style={{ ...inputStyle, flex: 1, minWidth: '180px' }} />
           <button onClick={buscarPaciente} style={btnPrimario}>Buscar</button>
         </div>
-
         {resultados.length > 0 && (
           <select value="" onChange={(e) => {
             const p = resultados.find(x => x.id == e.target.value)
@@ -207,35 +219,41 @@ export default function Pagos() {
             buscarPacienteAutomatico(p.dni)
           }} style={{ ...inputStyle, marginTop: '10px' }}>
             <option value="">Seleccionar paciente ({resultados.length} encontrados)</option>
-            {resultados.map(p => (
-              <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>
-            ))}
+            {resultados.map(p => <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>)}
           </select>
         )}
-
         {paciente && (
-          <div style={{
-            marginTop: '14px', padding: '14px 16px',
-            background: '#fdf2f4', borderRadius: '8px',
-            border: '1px solid #f5c2c9',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px',
-          }}>
+          <div style={{ marginTop: '14px', padding: '14px 16px', background: '#fdf2f4', borderRadius: '8px', border: '1px solid #f5c2c9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <div>
-              <div style={{ fontWeight: '700', fontSize: '16px', color: '#8B1E2D' }}>
-                {paciente.apellido_paciente} {paciente.nombres_paciente}
-              </div>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
-                DNI: {paciente.dni} {paciente.telefono ? `· Tel: ${paciente.telefono}` : ''}
-              </div>
+              <div style={{ fontWeight: '700', fontSize: '16px', color: '#8B1E2D' }}>{paciente.apellido_paciente} {paciente.nombres_paciente}</div>
+              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>DNI: {paciente.dni} {paciente.telefono ? `· Tel: ${paciente.telefono}` : ''}</div>
             </div>
-            <button onClick={() => window.location.href = `/pacientes?dni=${paciente.dni}`} style={btnSecundario}>
-              ✏️ Editar
-            </button>
+            <button onClick={() => window.location.href = `/pacientes?dni=${paciente.dni}`} style={btnSecundario}>✏️ Editar</button>
           </div>
         )}
       </div>
 
-      {/* Historial de ventas del paciente */}
+      {/* Cotización del dólar */}
+      {(ventas.some(v => v.total_dolares > 0) || totalUSD > 0) && (
+        <div style={{ ...card, padding: '14px 20px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>
+              💱 Cotización U$S
+              {cotizacionFecha && <span style={{ fontWeight: '400', color: '#9ca3af', marginLeft: '6px' }}>({new Date(cotizacionFecha + 'T12:00:00').toLocaleDateString('es-AR')})</span>}
+            </div>
+            <input
+              type="number"
+              placeholder="Cotización..."
+              value={cotizacionManual}
+              onChange={(e) => setCotizacionManual(e.target.value)}
+              style={{ ...inputStyle, width: '140px', fontSize: '14px' }}
+            />
+            {!cotizacion && <span style={{ fontSize: '12px', color: '#dc2626' }}>⚠️ Sin cotización cargada — editala manualmente</span>}
+          </div>
+        </div>
+      )}
+
+      {/* Historial de ventas */}
       {ventas.length > 0 && (
         <div style={card}>
           <div style={cardTitle}>🧾 Ventas del paciente</div>
@@ -245,37 +263,25 @@ export default function Pagos() {
               const totalVusd = v.total_dolares || 0
               const saldoV = totalV - v.pagadoPesos
               const saldoVusd = totalVusd - v.pagadoUSD
-              const pagada = saldoV <= 0 && saldoVusd <= 0
+              const pagada = saldoV <= 0.01 && saldoVusd <= 0.01
               const seleccionada = ventaSeleccionada == v.id
-
               return (
-                <div
-                  key={v.id}
-                  onClick={() => { setVentaSeleccionada(String(v.id)); cargarDetalleVenta(v.id) }}
-                  style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '12px 16px', borderRadius: '8px',
-                    border: `2px solid ${seleccionada ? '#8B1E2D' : '#e5e7eb'}`,
-                    background: seleccionada ? '#fdf2f4' : '#f9fafb',
-                    cursor: 'pointer', flexWrap: 'wrap', gap: '8px',
-                    transition: '0.15s',
-                  }}
-                >
+                <div key={v.id} onClick={() => { setVentaSeleccionada(String(v.id)); cargarDetalleVenta(v.id) }} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '12px 16px', borderRadius: '8px',
+                  border: `2px solid ${seleccionada ? '#8B1E2D' : '#e5e7eb'}`,
+                  background: seleccionada ? '#fdf2f4' : '#f9fafb',
+                  cursor: 'pointer', flexWrap: 'wrap', gap: '8px', transition: '0.15s',
+                }}>
                   <div>
-                    <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a' }}>
-                      Venta #{v.id} — {new Date(v.fecha).toLocaleDateString('es-AR')}
-                    </div>
+                    <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a' }}>Venta #{v.id} — {new Date(v.fecha).toLocaleDateString('es-AR')}</div>
                     <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
                       {totalV > 0 && `Total: ${fmt(totalV)}`}
                       {totalVusd > 0 && ` · U$S ${totalVusd}`}
                     </div>
                   </div>
-                  <span style={{
-                    padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
-                    background: pagada ? '#dcfce7' : '#fef2f2',
-                    color: pagada ? '#16a34a' : '#dc2626',
-                  }}>
-                    {pagada ? '✅ Pagada' : `Saldo: ${saldoV > 0 ? fmt(saldoV) : `U$S ${saldoVusd}`}`}
+                  <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', background: pagada ? '#dcfce7' : '#fef2f2', color: pagada ? '#16a34a' : '#dc2626' }}>
+                    {pagada ? '✅ Pagada' : saldoVusd > 0 ? `Saldo: ${fmtUSD(saldoVusd)}` : `Saldo: ${fmt(saldoV)}`}
                   </span>
                 </div>
               )
@@ -291,11 +297,7 @@ export default function Pagos() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
             {detalleVenta.map(d => (
-              <div key={d.id} style={{
-                display: 'flex', justifyContent: 'space-between',
-                padding: '10px 14px', background: '#f9fafb',
-                borderRadius: '8px', border: '1px solid #e5e7eb',
-              }}>
+              <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
                 <span style={{ fontWeight: '500', color: '#1a1a1a' }}>
                   {d.numeros_serie?.productos?.producto || d.productos?.producto || '-'}
                   {d.numeros_serie?.numero_serie ? ` (${d.numeros_serie.numero_serie})` : ''}
@@ -309,57 +311,54 @@ export default function Pagos() {
           </div>
 
           {/* Saldos */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: totalPesos > 0 && totalUSD > 0 ? '1fr 1fr' : '1fr', gap: '12px', marginBottom: '16px' }}>
             {totalPesos > 0 && (
-              <div style={{ padding: '14px', borderRadius: '10px', background: saldoPesos > 0 ? '#fef2f2' : '#f0fdf4', border: `1px solid ${saldoPesos > 0 ? '#fecaca' : '#bbf7d0'}` }}>
+              <div style={{ padding: '14px', borderRadius: '10px', background: saldoPesos > 0.01 ? '#fef2f2' : '#f0fdf4', border: `1px solid ${saldoPesos > 0.01 ? '#fecaca' : '#bbf7d0'}` }}>
                 <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', color: '#6b7280', marginBottom: '8px' }}>Pesos</div>
-                <div style={{ fontSize: '13px', color: '#6b7280' }}>Total: {formatearPesos(totalPesos)}</div>
-                <div style={{ fontSize: '13px', color: '#6b7280' }}>Pagado: {formatearPesos(pagadoPesos)}</div>
-                <div style={{ fontSize: '16px', fontWeight: '700', marginTop: '4px', color: saldoPesos > 0 ? '#dc2626' : '#16a34a' }}>
-                  Saldo: {formatearPesos(saldoPesos)}
-                </div>
+                <div style={{ fontSize: '13px', color: '#6b7280' }}>Total: {fmt(totalPesos)}</div>
+                <div style={{ fontSize: '13px', color: '#6b7280' }}>Pagado: {fmt(pagadoP)}</div>
+                <div style={{ fontSize: '16px', fontWeight: '700', marginTop: '4px', color: saldoPesos > 0.01 ? '#dc2626' : '#16a34a' }}>Saldo: {fmt(saldoPesos)}</div>
               </div>
             )}
             {totalUSD > 0 && (
-              <div style={{ padding: '14px', borderRadius: '10px', background: saldoUSD > 0 ? '#fef2f2' : '#f0fdf4', border: `1px solid ${saldoUSD > 0 ? '#fecaca' : '#bbf7d0'}` }}>
+              <div style={{ padding: '14px', borderRadius: '10px', background: saldoUSD > 0.01 ? '#fef2f2' : '#f0fdf4', border: `1px solid ${saldoUSD > 0.01 ? '#fecaca' : '#bbf7d0'}` }}>
                 <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', color: '#6b7280', marginBottom: '8px' }}>USD</div>
-                <div style={{ fontSize: '13px', color: '#6b7280' }}>Total: U$S {totalUSD}</div>
-                <div style={{ fontSize: '13px', color: '#6b7280' }}>Pagado: U$S {pagadoUSD}</div>
-                <div style={{ fontSize: '16px', fontWeight: '700', marginTop: '4px', color: saldoUSD > 0 ? '#dc2626' : '#16a34a' }}>
-                  Saldo: U$S {saldoUSD}
-                </div>
+                <div style={{ fontSize: '13px', color: '#6b7280' }}>Total: {fmtUSD(totalUSD)}</div>
+                <div style={{ fontSize: '13px', color: '#6b7280' }}>Pagado: {fmtUSD(pagadoU)}</div>
+                <div style={{ fontSize: '16px', fontWeight: '700', marginTop: '4px', color: saldoUSD > 0.01 ? '#dc2626' : '#16a34a' }}>Saldo: {fmtUSD(saldoUSD)}</div>
               </div>
             )}
           </div>
 
-          {/* Pagos ya cargados */}
+          {/* Pagos registrados */}
           {pagosVenta.length > 0 && (
             <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                Pagos registrados ({pagosVenta.length})
-              </div>
+              <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>Pagos registrados ({pagosVenta.length})</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {pagosVenta.map(p => (
-                  <div key={p.id} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '10px 14px', background: '#f0fdf4',
-                    borderRadius: '8px', border: '1px solid #bbf7d0',
-                  }}>
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a1a1a' }}>
-                        {p.formas_pago?.forma_pago}
-                      </div>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a1a1a' }}>{p.formas_pago?.forma_pago}</div>
                       <div style={{ fontSize: '12px', color: '#6b7280' }}>
                         {new Date(p.fecha_pago).toLocaleDateString('es-AR')}
+                        {/* Si hubo conversión, mostrarla */}
+                        {p.cotizacion_usada && p.monto_pesos && p.monto_equivalente_usd && (
+                          <span style={{ marginLeft: '8px', color: '#9ca3af' }}>
+                            {fmt(p.monto_pesos)} → {fmtUSD(p.monto_equivalente_usd)} (cotiz. {fmt(p.cotizacion_usada)})
+                          </span>
+                        )}
+                        {p.cotizacion_usada && p.monto_usd && p.monto_equivalente_pesos && (
+                          <span style={{ marginLeft: '8px', color: '#9ca3af' }}>
+                            {fmtUSD(p.monto_usd)} → {fmt(p.monto_equivalente_pesos)} (cotiz. {fmt(p.cotizacion_usada)})
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <span style={{ fontWeight: '700', color: '#16a34a' }}>
-                        {p.monto_pesos ? formatearPesos(p.monto_pesos) : `U$S ${p.monto_usd}`}
+                        {p.monto_pesos ? fmt(p.monto_pesos) : fmtUSD(p.monto_usd)}
                       </span>
-                      <button onClick={() => eliminarPago(p.id)} style={{
-                        background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#ef4444'
-                      }}>✕</button>
+                      <button onClick={() => eliminarPago(p.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#ef4444' }}>✕</button>
                     </div>
                   </div>
                 ))}
@@ -367,12 +366,28 @@ export default function Pagos() {
             </div>
           )}
 
-          {/* Formulario nuevo pago — solo si hay saldo */}
-          {(saldoPesos > 0 || saldoUSD > 0) && (
+          {/* Formulario nuevo pago */}
+          {!ventaSaldada && (
             <div style={{ paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
-              <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
-                💳 Registrar nuevo pago
-              </div>
+              <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>💳 Registrar nuevo pago</div>
+
+              {/* Aviso pago en otra moneda */}
+              {pagoEnMonedaDistinta && (
+                <div style={{ padding: '10px 14px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', fontSize: '13px', color: '#92400e', marginBottom: '12px' }}>
+                  💱 Pago en moneda distinta a la venta.
+                  {ventaEsUSD && Number(form.monto_pesos) > 0 && cotizacionManual && (
+                    <span style={{ fontWeight: '600', marginLeft: '6px' }}>
+                      {fmt(Number(form.monto_pesos))} = {fmtUSD(Number(form.monto_pesos) / Number(cotizacionManual))} (cotiz. {fmt(Number(cotizacionManual))})
+                    </span>
+                  )}
+                  {ventaEsPesos && Number(form.monto_usd) > 0 && cotizacionManual && (
+                    <span style={{ fontWeight: '600', marginLeft: '6px' }}>
+                      {fmtUSD(Number(form.monto_usd))} = {fmt(Number(form.monto_usd) * Number(cotizacionManual))} (cotiz. {fmt(Number(cotizacionManual))})
+                    </span>
+                  )}
+                </div>
+              )}
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={labelStyle}>Forma de pago</label>
@@ -396,13 +411,11 @@ export default function Pagos() {
             </div>
           )}
 
-          {/* Venta saldada */}
-          {saldoPesos <= 0 && saldoUSD <= 0 && (
+          {ventaSaldada && (
             <div style={{ padding: '12px 16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', textAlign: 'center', color: '#16a34a', fontWeight: '600' }}>
               ✅ Venta completamente pagada
             </div>
           )}
-
         </div>
       )}
 
@@ -410,33 +423,9 @@ export default function Pagos() {
   )
 }
 
-const inputStyle = {
-  width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb',
-  fontSize: '15px', fontFamily: "'Outfit', sans-serif", background: 'white',
-  color: '#1a1a1a', outline: 'none', boxSizing: 'border-box',
-}
-
-const labelStyle = {
-  fontSize: '13px', fontWeight: '600', color: '#6b7280', marginBottom: '4px', display: 'block',
-}
-
-const card = {
-  background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px',
-  padding: '20px 24px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-}
-
-const cardTitle = {
-  fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '14px',
-}
-
-const btnPrimario = {
-  padding: '10px 20px', background: '#8B1E2D', color: 'white', border: 'none',
-  borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer',
-  fontFamily: "'Outfit', sans-serif",
-}
-
-const btnSecundario = {
-  padding: '10px 20px', background: 'white', color: '#374151', border: '1px solid #e5e7eb',
-  borderRadius: '8px', fontSize: '15px', fontWeight: '500', cursor: 'pointer',
-  fontFamily: "'Outfit', sans-serif",
-}
+const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '15px', fontFamily: "'Outfit', sans-serif", background: 'white', color: '#1a1a1a', outline: 'none', boxSizing: 'border-box' }
+const labelStyle = { fontSize: '13px', fontWeight: '600', color: '#6b7280', marginBottom: '4px', display: 'block' }
+const card = { background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px 24px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }
+const cardTitle = { fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '14px' }
+const btnPrimario = { padding: '10px 20px', background: '#8B1E2D', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
+const btnSecundario = { padding: '10px 20px', background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '15px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
