@@ -8,15 +8,15 @@ import { supabase } from '../../lib/supabaseClient'
 import { normalizarTexto } from '../../lib/formatText'
 
 const ESTADOS = [
-  { key: 'ingresada', label: 'Ingresada', color: '#6b7280', bg: '#f3f4f6' },
-  { key: 'en_evaluacion', label: 'En evaluación', color: '#7c3aed', bg: '#f5f3ff' },
-  { key: 'esperando_respuesta', label: 'Esperando respuesta', color: '#b45309', bg: '#fffbeb' },
-  { key: 'aprobada', label: 'Aprobada', color: '#0e7490', bg: '#ecfeff' },
-  { key: 'en_reparacion', label: 'En reparación', color: '#1d4ed8', bg: '#eff6ff' },
-  { key: 'lista_entregar', label: 'Lista para entregar', color: '#15803d', bg: '#f0fdf4' },
-  { key: 'entregada', label: 'Entregada', color: '#374151', bg: '#f9fafb' },
-  { key: 'no_aprobada', label: 'No aprobada', color: '#dc2626', bg: '#fef2f2' },
-  { key: 'no_aprobada_devuelta', label: 'No aprobada - Devuelta', color: '#9ca3af', bg: '#f3f4f6' },
+  { key: 'ingresada', label: 'Ingresada', color: '#4b5563', bg: '#f3f4f6', border: '#d1d5db' },
+  { key: 'en_evaluacion', label: 'En evaluación', color: '#6d28d9', bg: '#f5f3ff', border: '#c4b5fd' },
+  { key: 'esperando_respuesta', label: 'Esperando respuesta', color: '#92400e', bg: '#fffbeb', border: '#fcd34d' },
+  { key: 'aprobada', label: 'Aprobada', color: '#0e7490', bg: '#ecfeff', border: '#a5f3fc' },
+  { key: 'en_reparacion', label: 'En reparación', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
+  { key: 'lista_entregar', label: 'Lista para entregar', color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
+  { key: 'entregada', label: 'Entregada', color: '#374151', bg: '#f9fafb', border: '#e5e7eb' },
+  { key: 'no_aprobada', label: 'No aprobada', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+  { key: 'no_aprobada_devuelta', label: 'No aprobada - Devuelta', color: '#9ca3af', bg: '#f3f4f6', border: '#e5e7eb' },
 ]
 
 const ESTADOS_ACTIVOS = ['ingresada', 'en_evaluacion', 'esperando_respuesta', 'aprobada', 'en_reparacion', 'lista_entregar']
@@ -32,7 +32,6 @@ export default function Reparaciones() {
   const [modalVer, setModalVer] = useState(null)
   const [cargando, setCargando] = useState(false)
 
-  // Búsqueda paciente
   const [busquedaPaciente, setBusquedaPaciente] = useState('')
   const [pacientesResultados, setPacientesResultados] = useState([])
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null)
@@ -40,13 +39,7 @@ export default function Reparaciones() {
   const [altaRapida, setAltaRapida] = useState(false)
   const [formAltaRapida, setFormAltaRapida] = useState({ apellido: '', nombre: '', dni: '', telefono: '' })
 
-  // Form nueva reparación
-  const [formNueva, setFormNueva] = useState({
-    marca: '', motivo_reparacion: '', observaciones: '',
-    costo_pesos: '', costo_usd: '',
-  })
-
-  // Form edición en modal ver
+  const [formNueva, setFormNueva] = useState({ marca: '', motivo_reparacion: '', observaciones: '', costo_pesos: '', costo_usd: '' })
   const [formEdicion, setFormEdicion] = useState({})
   const [guardandoEdicion, setGuardandoEdicion] = useState(false)
 
@@ -54,7 +47,7 @@ export default function Reparaciones() {
 
   async function cargarReparaciones() {
     setCargando(true)
-    let query = supabase.from('visitas')
+    const { data } = await supabase.from('visitas')
       .select(`
         id, fecha, observaciones, created_at,
         marca, costo_pesos, costo_usd, respuesta_paciente, fecha_entrega, numero_orden,
@@ -65,12 +58,6 @@ export default function Reparaciones() {
       .eq('es_reparacion', true)
       .order('numero_orden', { ascending: false })
 
-    if (soloActivas) {
-      query = query.in('respuesta_paciente', [...ESTADOS_ACTIVOS, null, ''])
-    }
-
-    const { data } = await query
-    // Filtrar nulos para soloActivas
     let resultado = data || []
     if (soloActivas) {
       resultado = resultado.filter(r => !r.respuesta_paciente || ESTADOS_ACTIVOS.includes(r.respuesta_paciente))
@@ -100,16 +87,12 @@ export default function Reparaciones() {
     const { data: existe } = await supabase.from('pacientes').select('id').eq('dni', formAltaRapida.dni).maybeSingle()
     if (existe) { alert('❌ Ya existe un paciente con ese DNI'); return }
     const { data: nuevo, error } = await supabase.from('pacientes').insert([{
-      apellido_paciente: formAltaRapida.apellido,
-      nombres_paciente: formAltaRapida.nombre,
-      dni: formAltaRapida.dni,
-      telefono: formAltaRapida.telefono || null,
-      creado_por: getUsuarioId(),
+      apellido_paciente: formAltaRapida.apellido, nombres_paciente: formAltaRapida.nombre,
+      dni: formAltaRapida.dni, telefono: formAltaRapida.telefono || null, creado_por: getUsuarioId(),
     }]).select().single()
     if (error) { alert('Error: ' + error.message); return }
     setPacienteSeleccionado(nuevo)
-    setAltaRapida(false)
-    setFormAltaRapida({ apellido: '', nombre: '', dni: '', telefono: '' })
+    setAltaRapida(false); setFormAltaRapida({ apellido: '', nombre: '', dni: '', telefono: '' })
     setBusquedaPaciente(''); setPacientesResultados([]); setBuscoPaciente(false)
   }
 
@@ -118,18 +101,18 @@ export default function Reparaciones() {
     if (!formNueva.marca) { alert('Ingresar marca'); return }
     if (!formNueva.motivo_reparacion) { alert('Ingresar motivo'); return }
 
-    // Obtener próximo número de orden
     const { data: ultimaOrden } = await supabase.from('visitas')
       .select('numero_orden').eq('es_reparacion', true)
       .order('numero_orden', { ascending: false }).limit(1).maybeSingle()
     const proximoOrden = (ultimaOrden?.numero_orden || 0) + 1
 
-    // Buscar o crear motivo REPARACION
     let { data: motivo } = await supabase.from('visita_motivos').select('id').ilike('motivo', 'REPARACION').maybeSingle()
     if (!motivo) {
       const { data: nuevoMotivo } = await supabase.from('visita_motivos').insert([{ motivo: 'REPARACION', creado_por: getUsuarioId() }]).select().single()
       motivo = nuevoMotivo
     }
+
+    const obsCompleta = `MOTIVO: ${normalizarTexto(formNueva.motivo_reparacion)}${formNueva.observaciones ? '\n\nOBS TÉCNICAS: ' + formNueva.observaciones : ''}`
 
     const { error } = await supabase.from('visitas').insert([{
       paciente_id: pacienteSeleccionado.id,
@@ -138,14 +121,12 @@ export default function Reparaciones() {
       es_reparacion: true,
       numero_orden: proximoOrden,
       marca: normalizarTexto(formNueva.marca),
-      observaciones: formNueva.observaciones || null,
+      observaciones: obsCompleta,
       costo_pesos: formNueva.costo_pesos ? Number(formNueva.costo_pesos) : null,
       costo_usd: formNueva.costo_usd ? Number(formNueva.costo_usd) : null,
       respuesta_paciente: 'ingresada',
       atendido_por: getUsuarioId(),
       creado_por: getUsuarioId(),
-      // motivo libre guardado en observaciones con prefijo
-      ...(formNueva.motivo_reparacion ? { observaciones: `MOTIVO: ${normalizarTexto(formNueva.motivo_reparacion)}${formNueva.observaciones ? '\n\nOBS TÉCNICAS: ' + formNueva.observaciones : ''}` } : {}),
     }])
 
     if (error) { alert('Error: ' + error.message); return }
@@ -188,12 +169,6 @@ export default function Reparaciones() {
     cargarReparaciones()
   }
 
-  async function cambiarEstadoRapido(id, nuevoEstado) {
-    await supabase.from('visitas').update({ respuesta_paciente: nuevoEstado }).eq('id', id)
-    cargarReparaciones()
-  }
-
-  // Agrupar por estado
   const porEstado = ESTADOS.reduce((acc, e) => {
     acc[e.key] = reparaciones.filter(r => (r.respuesta_paciente || 'ingresada') === e.key)
     return acc
@@ -202,10 +177,10 @@ export default function Reparaciones() {
   const estadosMostrar = soloActivas ? ESTADOS.filter(e => ESTADOS_ACTIVOS.includes(e.key)) : ESTADOS
 
   const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0)
-  const fmtFecha = (f) => f ? new Date(f).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) : '-'
+  const fmtFecha = (f) => f ? new Date(f + (f.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('es-AR') : '-'
 
   return (
-    <div style={{ maxWidth: '100%' }}>
+    <div style={{ maxWidth: '860px' }}>
 
       {/* Header */}
       <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
@@ -216,86 +191,93 @@ export default function Reparaciones() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setSoloActivas(!soloActivas)}
-            style={{
-              padding: '8px 16px', borderRadius: '8px', cursor: 'pointer',
-              border: '1px solid #e5e7eb', fontSize: '13px', fontWeight: '600',
-              background: soloActivas ? '#1a1a1a' : 'white',
-              color: soloActivas ? 'white' : '#374151',
-              fontFamily: "'Outfit', sans-serif",
-            }}
-          >
+          <button onClick={() => setSoloActivas(!soloActivas)} style={{
+            padding: '8px 16px', borderRadius: '8px', cursor: 'pointer',
+            border: '1px solid #e5e7eb', fontSize: '13px', fontWeight: '600',
+            background: soloActivas ? '#1a1a1a' : 'white',
+            color: soloActivas ? 'white' : '#374151',
+            fontFamily: "'Outfit', sans-serif",
+          }}>
             {soloActivas ? '👁 Ver todas' : '🔧 Solo activas'}
           </button>
           <button onClick={() => setModalNueva(true)} style={btnPrimario}>+ Nueva reparación</button>
         </div>
       </div>
 
-      {/* Tablero kanban */}
+      {/* Grilla 2 columnas */}
       {cargando ? (
         <div style={{ color: '#9ca3af', textAlign: 'center', padding: '40px' }}>Cargando...</div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <div style={{ display: 'flex', gap: '16px', minWidth: `${estadosMostrar.length * 240}px`, alignItems: 'flex-start' }}>
-            {estadosMostrar.map(estado => (
-              <div key={estado.key} style={{ width: '230px', flexShrink: 0 }}>
-                {/* Header columna */}
-                <div style={{
-                  padding: '8px 12px', borderRadius: '8px', marginBottom: '10px',
-                  background: estado.bg, border: `1px solid ${estado.color}20`,
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          {estadosMostrar.map(estado => (
+            <div key={estado.key} style={{
+              background: 'white', border: '1px solid #e5e7eb',
+              borderRadius: '12px', overflow: 'hidden',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+            }}>
+              {/* Header estado */}
+              <div style={{
+                padding: '10px 14px', background: estado.bg,
+                borderBottom: `1px solid ${estado.border}`,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: estado.color }}>{estado.label.toUpperCase()}</span>
+                <span style={{
+                  fontSize: '11px', fontWeight: '700', color: estado.color,
+                  background: 'white', borderRadius: '20px',
+                  padding: '1px 8px', border: `1px solid ${estado.border}`,
                 }}>
-                  <span style={{ fontSize: '12px', fontWeight: '700', color: estado.color }}>{estado.label.toUpperCase()}</span>
-                  <span style={{ fontSize: '12px', fontWeight: '700', color: estado.color, background: 'white', borderRadius: '20px', padding: '1px 8px' }}>
-                    {porEstado[estado.key]?.length || 0}
-                  </span>
-                </div>
+                  {porEstado[estado.key]?.length || 0}
+                </span>
+              </div>
 
-                {/* Cards */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {(porEstado[estado.key] || []).map(r => (
+              {/* Cards */}
+              <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {(porEstado[estado.key] || []).length === 0 ? (
+                  <div style={{
+                    textAlign: 'center', color: '#d1d5db', fontSize: '12px',
+                    padding: '16px 0', border: '1px dashed #e5e7eb', borderRadius: '8px',
+                  }}>
+                    Sin reparaciones
+                  </div>
+                ) : (
+                  (porEstado[estado.key] || []).map(r => (
                     <div
                       key={r.id}
                       onClick={() => abrirVer(r)}
                       style={{
-                        padding: '12px', background: 'white', borderRadius: '10px',
-                        border: '1px solid #e5e7eb', cursor: 'pointer',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                        borderLeft: `4px solid ${estado.color}`,
-                        transition: '0.15s',
+                        padding: '10px 12px', background: 'white', borderRadius: '8px',
+                        border: '1px solid #e5e7eb', borderLeft: `3px solid ${estado.color}`,
+                        cursor: 'pointer', transition: '0.15s',
                       }}
-                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'}
-                      onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#fafafa'; e.currentTarget.style.borderColor = '#d1d5db' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#e5e7eb' }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                         <span style={{ fontSize: '11px', fontWeight: '700', color: '#8B1E2D' }}>#{r.numero_orden}</span>
                         <span style={{ fontSize: '10px', color: '#9ca3af' }}>{fmtFecha(r.fecha)}</span>
                       </div>
-                      <div style={{ fontWeight: '700', fontSize: '13px', color: '#1a1a1a', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontWeight: '700', fontSize: '13px', color: '#1a1a1a', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {r.pacientes?.apellido_paciente} {r.pacientes?.nombres_paciente}
                       </div>
-                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>{r.marca || '-'}</div>
+                      <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: r.costo_pesos || r.costo_usd ? '4px' : '0' }}>
+                        {r.marca || '-'}
+                      </div>
                       {(r.costo_pesos || r.costo_usd) && (
-                        <div style={{ fontSize: '12px', fontWeight: '600', color: '#16a34a' }}>
+                        <div style={{ fontSize: '11px', fontWeight: '600', color: '#15803d' }}>
                           {r.costo_pesos ? fmt(r.costo_pesos) : ''}
                           {r.costo_usd ? ` U$S ${r.costo_usd}` : ''}
                         </div>
                       )}
                       {r.fecha_entrega && (
-                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>📦 {fmtFecha(r.fecha_entrega)}</div>
+                        <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '3px' }}>📦 {fmtFecha(r.fecha_entrega)}</div>
                       )}
                     </div>
-                  ))}
-                  {(porEstado[estado.key] || []).length === 0 && (
-                    <div style={{ padding: '16px', textAlign: 'center', color: '#d1d5db', fontSize: '12px', border: '1px dashed #e5e7eb', borderRadius: '8px' }}>
-                      Sin reparaciones
-                    </div>
-                  )}
-                </div>
+                  ))
+                )}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -304,10 +286,8 @@ export default function Reparaciones() {
         <div style={overlay}>
           <div style={modalBox}>
             <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a', marginBottom: '20px' }}>🔧 Nueva reparación</div>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-              {/* Paciente */}
               <div>
                 <label style={labelStyle}>Paciente *</label>
                 {pacienteSeleccionado ? (
@@ -361,17 +341,14 @@ export default function Reparaciones() {
                 <label style={labelStyle}>Marca *</label>
                 <input placeholder="Ej: Oticon, Siemens, Signia..." value={formNueva.marca} onChange={(e) => setFormNueva({ ...formNueva, marca: e.target.value })} style={inputStyle} />
               </div>
-
               <div>
                 <label style={labelStyle}>Motivo de la reparación *</label>
                 <textarea placeholder="Describí el problema..." value={formNueva.motivo_reparacion} onChange={(e) => setFormNueva({ ...formNueva, motivo_reparacion: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
               </div>
-
               <div>
                 <label style={labelStyle}>Observaciones técnicas (opcional)</label>
                 <textarea placeholder="Diagnóstico inicial, notas técnicas..." value={formNueva.observaciones} onChange={(e) => setFormNueva({ ...formNueva, observaciones: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
               </div>
-
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={labelStyle}>Costo en pesos</label>
@@ -382,9 +359,7 @@ export default function Reparaciones() {
                   <input type="number" placeholder="U$S 0" value={formNueva.costo_usd} onChange={(e) => setFormNueva({ ...formNueva, costo_usd: e.target.value })} style={inputStyle} />
                 </div>
               </div>
-
             </div>
-
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
               <button onClick={guardarNuevaReparacion} style={btnPrimario}>💾 Guardar reparación</button>
               <button onClick={cerrarModalNueva} style={btnSecundario}>Cancelar</button>
@@ -393,18 +368,14 @@ export default function Reparaciones() {
         </div>
       )}
 
-      {/* MODAL VER / EDITAR REPARACIÓN */}
+      {/* MODAL VER / EDITAR */}
       {modalVer && (
         <div style={overlay}>
-          <div style={{ ...modalBox, maxWidth: '580px' }}>
+          <div style={{ ...modalBox, maxWidth: '560px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div>
-                <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a' }}>
-                  🔧 Reparación #{modalVer.numero_orden}
-                </div>
-                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
-                  Ingresada: {fmtFecha(modalVer.fecha)}
-                </div>
+                <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a' }}>🔧 Reparación #{modalVer.numero_orden}</div>
+                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Ingresada: {fmtFecha(modalVer.fecha)}</div>
               </div>
               <span style={{
                 padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '700',
@@ -415,23 +386,17 @@ export default function Reparaciones() {
               </span>
             </div>
 
-            {/* Info paciente */}
             <div style={{ padding: '12px 16px', background: '#fdf2f4', borderRadius: '8px', marginBottom: '16px' }}>
               <div style={{ fontWeight: '700', fontSize: '15px', color: '#8B1E2D' }}>
                 {modalVer.pacientes?.apellido_paciente} {modalVer.pacientes?.nombres_paciente}
               </div>
               <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
-                DNI: {modalVer.pacientes?.dni}
-                {modalVer.pacientes?.telefono && ` · Tel: ${modalVer.pacientes.telefono}`}
+                DNI: {modalVer.pacientes?.dni}{modalVer.pacientes?.telefono && ` · Tel: ${modalVer.pacientes.telefono}`}
               </div>
-              <div style={{ fontSize: '13px', color: '#374151', marginTop: '4px', fontWeight: '600' }}>
-                {modalVer.marca}
-              </div>
+              <div style={{ fontSize: '13px', color: '#374151', marginTop: '4px', fontWeight: '600' }}>{modalVer.marca}</div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-
-              {/* Estado */}
               <div>
                 <label style={labelStyle}>Estado</label>
                 <select value={formEdicion.respuesta_paciente} onChange={(e) => setFormEdicion({ ...formEdicion, respuesta_paciente: e.target.value })} style={inputStyle}>
@@ -439,13 +404,11 @@ export default function Reparaciones() {
                 </select>
               </div>
 
-              {/* Observaciones */}
               <div>
                 <label style={labelStyle}>Observaciones / Notas técnicas</label>
                 <textarea value={formEdicion.observaciones} onChange={(e) => setFormEdicion({ ...formEdicion, observaciones: e.target.value })} rows={4} style={{ ...inputStyle, resize: 'vertical' }} />
               </div>
 
-              {/* Costo */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={labelStyle}>Costo en pesos</label>
@@ -457,13 +420,11 @@ export default function Reparaciones() {
                 </div>
               </div>
 
-              {/* Fecha de entrega */}
               <div>
                 <label style={labelStyle}>Fecha de entrega</label>
                 <input type="date" value={formEdicion.fecha_entrega} onChange={(e) => setFormEdicion({ ...formEdicion, fecha_entrega: e.target.value })} style={inputStyle} />
               </div>
 
-              {/* Venta vinculada */}
               {modalVer.ventas && (
                 <div style={{ padding: '10px 14px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '13px' }}>
                   🔗 Cobro vinculado: Venta #{modalVer.ventas.id}
@@ -471,13 +432,12 @@ export default function Reparaciones() {
                 </div>
               )}
 
-              {/* Accesos rápidos de estado */}
               <div>
                 <label style={labelStyle}>Cambio rápido de estado</label>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   {ESTADOS.filter(e => e.key !== formEdicion.respuesta_paciente).map(e => (
                     <button key={e.key} onClick={() => setFormEdicion({ ...formEdicion, respuesta_paciente: e.key })} style={{
-                      padding: '5px 10px', borderRadius: '20px', border: `1px solid ${e.color}`,
+                      padding: '4px 10px', borderRadius: '20px', border: `1px solid ${e.color}`,
                       background: 'white', color: e.color, fontSize: '11px', fontWeight: '600',
                       cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
                     }}>
@@ -486,10 +446,9 @@ export default function Reparaciones() {
                   ))}
                 </div>
               </div>
-
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #f3f4f6' }}>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #f3f4f6', flexWrap: 'wrap' }}>
               <button onClick={guardarEdicion} disabled={guardandoEdicion} style={{ ...btnPrimario, opacity: guardandoEdicion ? 0.7 : 1 }}>
                 {guardandoEdicion ? 'Guardando...' : '💾 Guardar cambios'}
               </button>
