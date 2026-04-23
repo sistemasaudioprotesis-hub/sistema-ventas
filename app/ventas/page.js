@@ -32,6 +32,13 @@ export default function Ventas() {
   const [ventasPaciente, setVentasPaciente] = useState([])
   const [tab, setTab] = useState('nueva')
 
+  // Derivadores
+  const [derivadores, setDerivadores] = useState([])
+  const [derivadorId, setDerivadorId] = useState('')
+  const [tipoComision, setTipoComision] = useState('porcentaje')
+  const [valorComision, setValorComision] = useState('')
+  const [montoCalculado, setMontoCalculado] = useState('')
+
   // Edición
   const [ventaEditando, setVentaEditando] = useState(null)
   const [itemsEdicion, setItemsEdicion] = useState([])
@@ -45,12 +52,18 @@ export default function Ventas() {
     obtenerSeries()
     obtenerProductos()
     obtenerObrasSociales()
+    obtenerDerivadores()
     const dniParam = searchParams.get('dni')
     if (dniParam) {
       setDni(dniParam)
       setTimeout(() => { buscarPacienteAutomatico(dniParam) }, 300)
     }
   }, [])
+
+  // Recalcular comisión cuando cambia derivador, tipo o total
+  useEffect(() => {
+    calcularComision()
+  }, [derivadorId, tipoComision, valorComision, items])
 
   async function obtenerSeries() {
     const { data } = await supabase.from('numeros_serie').select(`id, numero_serie, producto_id, en_stock, productos (producto), depositos (deposito)`).order('numero_serie')
@@ -66,6 +79,36 @@ export default function Ventas() {
   async function obtenerObrasSociales() {
     const { data } = await supabase.from('obras_sociales').select('*').order('obra_social')
     setObrasSociales(data || [])
+  }
+
+  async function obtenerDerivadores() {
+    const { data } = await supabase.from('derivadores').select('*').eq('activo', true).order('derivador')
+    setDerivadores(data || [])
+  }
+
+  function calcularComision() {
+    if (!derivadorId || !valorComision) { setMontoCalculado(''); return }
+    const totalPesosActual = items.reduce((acc, i) => acc + (Number(i.precio_pesos) || 0), 0)
+    if (tipoComision === 'porcentaje') {
+      const monto = Math.round(totalPesosActual * Number(valorComision) / 100)
+      setMontoCalculado(monto > 0 ? String(monto) : '')
+    } else {
+      setMontoCalculado(valorComision)
+    }
+  }
+
+  function seleccionarDerivador(id) {
+    setDerivadorId(id)
+    if (!id) { setValorComision(''); setTipoComision('porcentaje'); setMontoCalculado(''); return }
+    const d = derivadores.find(x => String(x.id) === id)
+    if (!d) return
+    if (d.porcentaje) {
+      setTipoComision('porcentaje')
+      setValorComision(String(d.porcentaje))
+    } else if (d.monto_fijo) {
+      setTipoComision('monto_fijo')
+      setValorComision(String(d.monto_fijo))
+    }
   }
 
   async function buscarPacienteAutomatico(dniParam) {
@@ -92,7 +135,9 @@ export default function Ventas() {
       const { data: pagos } = await supabase.from('pagos').select('monto_pesos, monto_usd').eq('venta_id', v.id)
       const pagadoP = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_pesos) || 0), 0)
       const pagadoU = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_usd) || 0), 0)
-      return { ...v, pagadoPesos: pagadoP, pagadoUSD: pagadoU }
+      // Cargar derivador si tiene
+      const { data: deriv } = await supabase.from('venta_derivadores').select('*, derivadores (derivador)').eq('venta_id', v.id).maybeSingle()
+      return { ...v, pagadoPesos: pagadoP, pagadoUSD: pagadoU, derivador: deriv || null }
     }))
     setVentasPaciente(ventasConSaldo)
   }
@@ -121,21 +166,13 @@ export default function Ventas() {
     const { data: existe } = await supabase.from('pacientes').select('id').eq('dni', formAltaRapida.dni).maybeSingle()
     if (existe) { alert('❌ Ya existe un paciente con ese DNI'); return }
     const { data: nuevo, error } = await supabase.from('pacientes').insert([{
-      apellido_paciente: formAltaRapida.apellido,
-      nombres_paciente: formAltaRapida.nombre,
-      dni: formAltaRapida.dni,
-      telefono: formAltaRapida.telefono || null,
-      creado_por: getUsuarioId(),
+      apellido_paciente: formAltaRapida.apellido, nombres_paciente: formAltaRapida.nombre,
+      dni: formAltaRapida.dni, telefono: formAltaRapida.telefono || null, creado_por: getUsuarioId(),
     }]).select().single()
     if (error) { alert('Error: ' + error.message); return }
-    setPaciente(nuevo)
-    setDni(nuevo.dni)
-    setObraSocialId('')
-    setAltaRapida(false)
-    setFormAltaRapida({ apellido: '', nombre: '', dni: '', telefono: '' })
-    setBusqueda('')
-    setResultados([])
-    setBuscoPaciente(false)
+    setPaciente(nuevo); setDni(nuevo.dni); setObraSocialId('')
+    setAltaRapida(false); setFormAltaRapida({ apellido: '', nombre: '', dni: '', telefono: '' })
+    setBusqueda(''); setResultados([]); setBuscoPaciente(false)
     cargarVentasPaciente(nuevo.id)
     alert('✅ Paciente creado')
   }
@@ -203,8 +240,25 @@ export default function Ventas() {
 
   async function confirmarVenta() {
     if (!ventaId) return alert('No hay venta')
-    const { error } = await supabase.from('ventas').update({ confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD, obra_social_id: obraSocialId ? Number(obraSocialId) : null }).eq('id', ventaId)
+    const { error } = await supabase.from('ventas').update({
+      confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD,
+      obra_social_id: obraSocialId ? Number(obraSocialId) : null,
+    }).eq('id', ventaId)
     if (error) { alert('Error: ' + error.message); return }
+
+    // Guardar derivador si se seleccionó
+    if (derivadorId && valorComision) {
+      await supabase.from('venta_derivadores').insert([{
+        venta_id: ventaId,
+        derivador_id: Number(derivadorId),
+        tipo_comision: tipoComision,
+        valor_comision: Number(valorComision),
+        monto_calculado: montoCalculado ? Number(montoCalculado) : null,
+        pagado: false,
+        creado_por: getUsuarioId(),
+      }])
+    }
+
     setVentaConfirmada(true)
     alert('✅ Venta confirmada')
     if (paciente) cargarVentasPaciente(paciente.id)
@@ -217,12 +271,26 @@ export default function Ventas() {
 
   async function finalizarVenta() {
     if (!ventaId) return alert('No hay venta')
-    const { error } = await supabase.from('ventas').update({ confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD, obra_social_id: obraSocialId ? Number(obraSocialId) : null }).eq('id', ventaId)
+    const { error } = await supabase.from('ventas').update({
+      confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD,
+      obra_social_id: obraSocialId ? Number(obraSocialId) : null,
+    }).eq('id', ventaId)
     if (error) { alert('Error: ' + error.message); return }
+
+    if (derivadorId && valorComision) {
+      await supabase.from('venta_derivadores').insert([{
+        venta_id: ventaId, derivador_id: Number(derivadorId),
+        tipo_comision: tipoComision, valor_comision: Number(valorComision),
+        monto_calculado: montoCalculado ? Number(montoCalculado) : null,
+        pagado: false, creado_por: getUsuarioId(),
+      }])
+    }
+
     alert('✅ Venta finalizada sin pagos')
     setVentaId(null); setPaciente(null); setDni(''); setItems([])
     setVentaConfirmada(false); setBusqueda(''); setVentasPaciente([])
     setObraSocialId(''); setBuscoPaciente(false); setResultados([])
+    setDerivadorId(''); setValorComision(''); setMontoCalculado(''); setTipoComision('porcentaje')
   }
 
   function abrirEdicion(venta) {
@@ -329,60 +397,34 @@ export default function Ventas() {
       <div style={card}>
         <div style={cardTitle}>🔍 Buscar paciente</div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <input
-            placeholder="DNI o Apellido"
-            value={busqueda}
-            onChange={(e) => { setBusqueda(e.target.value); setBuscoPaciente(false); setAltaRapida(false) }}
-            onKeyDown={(e) => e.key === 'Enter' && buscarPaciente()}
-            style={{ ...inputStyle, flex: 1, minWidth: '180px' }}
-          />
+          <input placeholder="DNI o Apellido" value={busqueda} onChange={(e) => { setBusqueda(e.target.value); setBuscoPaciente(false); setAltaRapida(false) }} onKeyDown={(e) => e.key === 'Enter' && buscarPaciente()} style={{ ...inputStyle, flex: 1, minWidth: '180px' }} />
           <button onClick={buscarPaciente} style={btnPrimario}>Buscar</button>
         </div>
-
         {resultados.length > 0 && (
           <select value="" onChange={(e) => {
             const p = resultados.find(x => x.id == e.target.value)
             if (!p) return
             setPaciente(p); setDni(p.dni); setResultados([])
             setObraSocialId(p.obra_social_id ? String(p.obra_social_id) : '')
-            setBuscoPaciente(false)
-            cargarVentasPaciente(p.id)
+            setBuscoPaciente(false); cargarVentasPaciente(p.id)
           }} style={{ ...inputStyle, marginTop: '10px' }}>
             <option value="">Seleccionar paciente ({resultados.length} encontrados)</option>
-            {resultados.map(p => (
-              <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>
-            ))}
+            {resultados.map(p => <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>)}
           </select>
         )}
-
-        {/* Botón alta rápida */}
         {buscoPaciente && resultados.length === 0 && !altaRapida && !paciente && (
           <button onClick={() => setAltaRapida(true)} style={{ ...btnFantasma, marginTop: '10px', width: '100%', textAlign: 'center' }}>
             + No encontrado — Dar de alta como nuevo paciente
           </button>
         )}
-
-        {/* Formulario alta rápida */}
         {altaRapida && (
           <div style={{ marginTop: '12px', padding: '14px', background: '#fdf2f4', borderRadius: '8px', border: '1px solid #f5c2c9' }}>
             <div style={{ fontSize: '13px', fontWeight: '600', color: '#8B1E2D', marginBottom: '10px' }}>Alta rápida de paciente</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <div>
-                <label style={labelStyle}>Apellido *</label>
-                <input placeholder="APELLIDO" value={formAltaRapida.apellido} onChange={(e) => setFormAltaRapida(f => ({ ...f, apellido: e.target.value.toUpperCase() }))} style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Nombre *</label>
-                <input placeholder="NOMBRE" value={formAltaRapida.nombre} onChange={(e) => setFormAltaRapida(f => ({ ...f, nombre: e.target.value.toUpperCase() }))} style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>DNI *</label>
-                <input placeholder="DNI" value={formAltaRapida.dni} onChange={(e) => setFormAltaRapida(f => ({ ...f, dni: e.target.value }))} style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Teléfono</label>
-                <input placeholder="11 1234-5678" value={formAltaRapida.telefono} onChange={(e) => setFormAltaRapida(f => ({ ...f, telefono: e.target.value }))} style={inputStyle} />
-              </div>
+              <div><label style={labelStyle}>Apellido *</label><input placeholder="APELLIDO" value={formAltaRapida.apellido} onChange={(e) => setFormAltaRapida(f => ({ ...f, apellido: e.target.value.toUpperCase() }))} style={inputStyle} /></div>
+              <div><label style={labelStyle}>Nombre *</label><input placeholder="NOMBRE" value={formAltaRapida.nombre} onChange={(e) => setFormAltaRapida(f => ({ ...f, nombre: e.target.value.toUpperCase() }))} style={inputStyle} /></div>
+              <div><label style={labelStyle}>DNI *</label><input placeholder="DNI" value={formAltaRapida.dni} onChange={(e) => setFormAltaRapida(f => ({ ...f, dni: e.target.value }))} style={inputStyle} /></div>
+              <div><label style={labelStyle}>Teléfono</label><input placeholder="11 1234-5678" value={formAltaRapida.telefono} onChange={(e) => setFormAltaRapida(f => ({ ...f, telefono: e.target.value }))} style={inputStyle} /></div>
             </div>
             <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
               <button onClick={guardarAltaRapida} style={{ ...btnPrimario, fontSize: '13px', padding: '8px 14px' }}>💾 Guardar y continuar</button>
@@ -390,7 +432,6 @@ export default function Ventas() {
             </div>
           </div>
         )}
-
         {paciente && (
           <div style={{ marginTop: '14px', padding: '14px 16px', background: '#fdf2f4', borderRadius: '8px', border: '1px solid #f5c2c9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <div>
@@ -497,6 +538,44 @@ export default function Ventas() {
                 </div>
               </div>
             )}
+
+            {/* Derivador */}
+            {items.length > 0 && (
+              <div style={{ marginTop: '16px', padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>👤 Derivador (opcional)</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={labelStyle}>Derivador</label>
+                    <select value={derivadorId} onChange={(e) => seleccionarDerivador(e.target.value)} style={inputStyle}>
+                      <option value="">Sin derivador</option>
+                      {derivadores.map(d => <option key={d.id} value={d.id}>{d.derivador}</option>)}
+                    </select>
+                  </div>
+                  {derivadorId && (
+                    <div>
+                      <label style={labelStyle}>Tipo de comisión</label>
+                      <select value={tipoComision} onChange={(e) => setTipoComision(e.target.value)} style={inputStyle}>
+                        <option value="porcentaje">Porcentaje (%)</option>
+                        <option value="monto_fijo">Monto fijo ($)</option>
+                      </select>
+                    </div>
+                  )}
+                  {derivadorId && (
+                    <div>
+                      <label style={labelStyle}>{tipoComision === 'porcentaje' ? 'Porcentaje (%)' : 'Monto fijo ($)'}</label>
+                      <input type="number" placeholder={tipoComision === 'porcentaje' ? 'Ej: 5' : 'Ej: 50000'} value={valorComision} onChange={(e) => setValorComision(e.target.value)} style={inputStyle} />
+                    </div>
+                  )}
+                  {derivadorId && (
+                    <div>
+                      <label style={labelStyle}>Comisión a pagar ($) <span style={{ fontWeight: '400', color: '#9ca3af' }}>— editable</span></label>
+                      <input type="number" placeholder="$0" value={montoCalculado} onChange={(e) => setMontoCalculado(e.target.value)} style={{ ...inputStyle, background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600' }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
               <button onClick={confirmarVenta} style={btnPrimario}>✅ Confirmar venta</button>
               <button onClick={irAPagos} style={btnSecundario}>💳 Ingresar pago</button>
@@ -527,15 +606,14 @@ export default function Ventas() {
                           {v.total_pesos > 0 && `Total: ${fmt(v.total_pesos)}`}
                           {v.total_dolares > 0 && ` · U$S ${v.total_dolares}`}
                           {v.obras_sociales?.obra_social && ` · ${v.obras_sociales.obra_social}`}
+                          {v.derivador && <span style={{ color: '#8B1E2D', marginLeft: '6px' }}>· 👤 {v.derivador.derivadores?.derivador} {v.derivador.monto_calculado ? `(${fmt(v.derivador.monto_calculado)})` : ''}</span>}
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                         <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', background: pagada ? '#dcfce7' : '#fef2f2', color: pagada ? '#16a34a' : '#dc2626' }}>
                           {pagada ? '✅ Pagada' : `Saldo: ${saldoP > 0 ? fmt(saldoP) : `U$S ${saldoU}`}`}
                         </span>
-                        {!pagada && (
-                          <button onClick={() => window.location.href = `/pagos?venta_id=${v.id}&dni=${dni}`} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px' }}>💳 Pagar</button>
-                        )}
+                        {!pagada && <button onClick={() => window.location.href = `/pagos?venta_id=${v.id}&dni=${dni}`} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px' }}>💳 Pagar</button>}
                         <button onClick={() => abrirEdicion(v)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px', color: '#8B1E2D', borderColor: '#f5c2c9' }}>✏️ Editar</button>
                       </div>
                     </div>
@@ -575,9 +653,7 @@ export default function Ventas() {
                       <label style={labelStyle}>Cambiar número de serie</label>
                       <select value={item.numero_serie_id || ''} onChange={(e) => guardarCambioItem(item, 'numero_serie_id', Number(e.target.value))} style={inputStyle}>
                         <option value={item.numero_serie_id}>{item.numeros_serie?.numero_serie} (actual)</option>
-                        {seriesAll.filter(s => s.en_stock && s.producto_id === seriesAll.find(x => x.id === item.numero_serie_id)?.producto_id).map(s => (
-                          <option key={s.id} value={s.id}>{s.numero_serie}</option>
-                        ))}
+                        {seriesAll.filter(s => s.en_stock && s.producto_id === seriesAll.find(x => x.id === item.numero_serie_id)?.producto_id).map(s => <option key={s.id} value={s.id}>{s.numero_serie}</option>)}
                       </select>
                     </div>
                   )}
