@@ -62,7 +62,36 @@ export default function Ventas() {
 
   // Recalcular comisión cuando cambia derivador, tipo o total
   useEffect(() => {
-    calcularComision()
+    async function calcularComision() {
+  if (!derivadorId || !valorComision) { setMontoCalculado(''); return }
+
+  const totalPesosActual = items.reduce((acc, i) => acc + (Number(i.precio_pesos) || 0), 0)
+  const totalUSDActual = items.reduce((acc, i) => acc + (Number(i.precio_usd) || 0), 0)
+
+  if (tipoComision === 'monto_fijo') {
+    setMontoCalculado(valorComision)
+    return
+  }
+
+  // Porcentaje — si hay USD, convertir a pesos con cotización del día
+  if (totalUSDActual > 0) {
+    const hoy = new Date().toISOString().split('T')[0]
+    const { data } = await supabase.from('valor_dolar_bna')
+      .select('dolar_vendedor').lte('fecha', hoy)
+      .order('fecha', { ascending: false }).limit(1).maybeSingle()
+    const cotiz = data?.dolar_vendedor
+    if (cotiz) {
+      const baseEnPesos = totalPesosActual + (totalUSDActual * cotiz)
+      const monto = Math.round(baseEnPesos * Number(valorComision) / 100)
+      setMontoCalculado(monto > 0 ? String(monto) : '')
+      return
+    }
+  }
+
+  // Solo pesos o sin cotización
+  const monto = Math.round(totalPesosActual * Number(valorComision) / 100)
+  setMontoCalculado(monto > 0 ? String(monto) : '')
+}
   }, [derivadorId, tipoComision, valorComision, items])
 
   async function obtenerSeries() {
@@ -247,18 +276,32 @@ export default function Ventas() {
     if (error) { alert('Error: ' + error.message); return }
 
     // Guardar derivador si se seleccionó
-    if (derivadorId && valorComision) {
-      await supabase.from('venta_derivadores').insert([{
-        venta_id: ventaId,
-        derivador_id: Number(derivadorId),
-        tipo_comision: tipoComision,
-        valor_comision: Number(valorComision),
-        monto_calculado: montoCalculado ? Number(montoCalculado) : null,
-        pagado: false,
-        creado_por: getUsuarioId(),
-      }])
-    }
+   if (derivadorId && valorComision) {
+  // Si monto no está calculado, intentar calcularlo ahora
+  let montoFinal = montoCalculado ? Number(montoCalculado) : null
+  if (!montoFinal && tipoComision === 'monto_fijo') {
+    montoFinal = Number(valorComision)
+  }
+  if (!montoFinal && tipoComision === 'porcentaje') {
+    const hoy = new Date().toISOString().split('T')[0]
+    const { data: cotizData } = await supabase.from('valor_dolar_bna')
+      .select('dolar_vendedor').lte('fecha', hoy)
+      .order('fecha', { ascending: false }).limit(1).maybeSingle()
+    const cotiz = cotizData?.dolar_vendedor
+    const base = totalPesos + (cotiz ? totalUSD * cotiz : 0)
+    montoFinal = Math.round(base * Number(valorComision) / 100) || null
+  }
 
+  await supabase.from('venta_derivadores').insert([{
+    venta_id: ventaId,
+    derivador_id: Number(derivadorId),
+    tipo_comision: tipoComision,
+    valor_comision: Number(valorComision),
+    monto_calculado: montoFinal,
+    pagado: false,
+    creado_por: getUsuarioId(),
+  }])
+}
     setVentaConfirmada(true)
     alert('✅ Venta confirmada')
     if (paciente) cargarVentasPaciente(paciente.id)
@@ -277,14 +320,32 @@ export default function Ventas() {
     }).eq('id', ventaId)
     if (error) { alert('Error: ' + error.message); return }
 
-    if (derivadorId && valorComision) {
-      await supabase.from('venta_derivadores').insert([{
-        venta_id: ventaId, derivador_id: Number(derivadorId),
-        tipo_comision: tipoComision, valor_comision: Number(valorComision),
-        monto_calculado: montoCalculado ? Number(montoCalculado) : null,
-        pagado: false, creado_por: getUsuarioId(),
-      }])
-    }
+   if (derivadorId && valorComision) {
+  // Si monto no está calculado, intentar calcularlo ahora
+  let montoFinal = montoCalculado ? Number(montoCalculado) : null
+  if (!montoFinal && tipoComision === 'monto_fijo') {
+    montoFinal = Number(valorComision)
+  }
+  if (!montoFinal && tipoComision === 'porcentaje') {
+    const hoy = new Date().toISOString().split('T')[0]
+    const { data: cotizData } = await supabase.from('valor_dolar_bna')
+      .select('dolar_vendedor').lte('fecha', hoy)
+      .order('fecha', { ascending: false }).limit(1).maybeSingle()
+    const cotiz = cotizData?.dolar_vendedor
+    const base = totalPesos + (cotiz ? totalUSD * cotiz : 0)
+    montoFinal = Math.round(base * Number(valorComision) / 100) || null
+  }
+
+  await supabase.from('venta_derivadores').insert([{
+    venta_id: ventaId,
+    derivador_id: Number(derivadorId),
+    tipo_comision: tipoComision,
+    valor_comision: Number(valorComision),
+    monto_calculado: montoFinal,
+    pagado: false,
+    creado_por: getUsuarioId(),
+  }])
+}
 
     alert('✅ Venta finalizada sin pagos')
     setVentaId(null); setPaciente(null); setDni(''); setItems([])
