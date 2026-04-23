@@ -1,0 +1,200 @@
+[
+  {
+    "id": 1,
+    "venta_detalle_id": 49,
+    "venta_id": 37,
+    "numero_serie_id": 29,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 1000,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:47:29.652352-03:00"
+  },
+  {
+    "id": 2,
+    "venta_detalle_id": 44,
+    "venta_id": 34,
+    "numero_serie_id": 27,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 500,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:47:38.085853-03:00"
+  },
+  {
+    "id": 3,
+    "venta_detalle_id": 44,
+    "venta_id": 34,
+    "numero_serie_id": 30,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 500,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:48:48.140019-03:00"
+  },
+  {
+    "id": 4,
+    "venta_detalle_id": 44,
+    "venta_id": 34,
+    "numero_serie_id": 27,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 500,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:49:09.319046-03:00"
+  },
+  {
+    "id": 5,
+    "venta_detalle_id": 44,
+    "venta_id": 34,
+    "numero_serie_id": 30,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 500,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:49:15.299327-03:00"
+  },
+  {
+    "id": 6,
+    "venta_detalle_id": 44,
+    "venta_id": 34,
+    "numero_serie_id": 33,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 500,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:49:17.950469-03:00"
+  },
+  {
+    "id": 7,
+    "venta_detalle_id": 44,
+    "venta_id": 34,
+    "numero_serie_id": 30,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 500,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:49:20.554444-03:00"
+  },
+  {
+    "id": 8,
+    "venta_detalle_id": 44,
+    "venta_id": 34,
+    "numero_serie_id": 33,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 500,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:49:22.463991-03:00"
+  },
+  {
+    "id": 9,
+    "venta_detalle_id": 44,
+    "venta_id": 34,
+    "numero_serie_id": 30,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 500,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:49:24.930965-03:00"
+  },
+  {
+    "id": 10,
+    "venta_detalle_id": 44,
+    "venta_id": 34,
+    "numero_serie_id": 27,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 500,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:49:29.085493-03:00"
+  },
+  {
+    "id": 11,
+    "venta_detalle_id": 44,
+    "venta_id": 34,
+    "numero_serie_id": 33,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 500,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:49:36.568472-03:00"
+  },
+  {
+    "id": 12,
+    "venta_detalle_id": 49,
+    "venta_id": 37,
+    "numero_serie_id": 29,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 1001,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:50:45.301387-03:00"
+  },
+  {
+    "id": 13,
+    "venta_detalle_id": 49,
+    "venta_id": 37,
+    "numero_serie_id": 30,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 1001,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:50:47.6-03:00"
+  },
+  {
+    "id": 14,
+    "venta_detalle_id": 49,
+    "venta_id": 37,
+    "numero_serie_id": 33,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 1001,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:50:49.298789-03:00"
+  },
+  {
+    "id": 15,
+    "venta_detalle_id": 52,
+    "venta_id": 39,
+    "numero_serie_id": 30,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 1000,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:52:25.158175-03:00"
+  },
+  {
+    "id": 16,
+    "venta_detalle_id": 52,
+    "venta_id": 39,
+    "numero_serie_id": 33,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 1000,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:58:37.076042-03:00"
+  },
+  {
+    "id": 17,
+    "venta_detalle_id": 52,
+    "venta_id": 39,
+    "numero_serie_id": 30,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 1000,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:58:56.280306-03:00"
+  },
+  {
+    "id": 18,
+    "venta_detalle_id": 52,
+    "venta_id": 39,
+    "numero_serie_id": 33,
+    "producto_id": null,
+    "precio_venta_pesos": null,
+    "precio_venta_usd": 1000,
+    "modificado_por": 1,
+    "created_at": "2026-04-21T12:59:09.56616-03:00"
+  }
+]
