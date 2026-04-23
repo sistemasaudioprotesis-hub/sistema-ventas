@@ -500,6 +500,7 @@ export default function Agenda() {
                   // Slot bloqueado solo si TODAS las agendas visibles están bloqueadas
 const agendasVisibles = agendaFiltro === 'todas' ? agendas : agendas.filter(a => String(a.id) === agendaFiltro)
 const bloqueado = agendasVisibles.length > 0 && agendasVisibles.every(a => esBloqueado(fechaStr, hora, a.id))
+const bloqueadoParcial = !bloqueado && agendas.some(a => esBloqueado(fechaStr, hora, a.id))
 
                   if (fueraHorario) return <td key={di} style={{ background: '#f3f4f6', borderLeft: '1px solid #e5e7eb' }} />
 
@@ -510,6 +511,17 @@ const bloqueado = agendasVisibles.length > 0 && agendasVisibles.every(a => esBlo
                       </div>
                     </td>
                   )
+                             if (bloqueadoParcial) return (
+  <td key={di} style={{ background: '#fff7f0', borderLeft: '1px solid #fed7aa', cursor: 'pointer' }}
+    onClick={() => {
+      setModalNuevo({ fecha: fechaStr, hora, agenda_id: agendaFiltro !== 'todas' ? agendaFiltro : '' })
+      setFormTurno(f => ({ ...f, agenda_id: agendaFiltro !== 'todas' ? agendaFiltro : '' }))
+    }}>
+    <div style={{ height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span style={{ fontSize: '10px', color: '#fb923c' }}>⚠️</span>
+    </div>
+  </td>
+)
 
                   const turnosSlot = getTurnosSlot(fechaStr, hora)
                   const turnosFiltrados = agendaFiltro === 'todas' ? turnosSlot : turnosSlot.filter(t => String(t.profesionales?.id) === agendaFiltro)
