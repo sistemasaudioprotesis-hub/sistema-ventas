@@ -60,7 +60,7 @@ export default function Pagos() {
 
     // 2. No hay → buscar en la API
     try {
-      const res = await fetch('https://dolarapi.com/v1/dolares/oficial')
+      const res = await fetch('https://dolarapi.com/v1/dolares/blue')
       const json = await res.json()
       const venta = json.venta
       if (venta) {
