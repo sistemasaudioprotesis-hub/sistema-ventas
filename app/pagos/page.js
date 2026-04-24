@@ -274,7 +274,7 @@ export default function Pagos() {
       <div style={{ ...card, padding: '14px 20px', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
           <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>
-            💱 Cotización U$S BNA
+            💱 Cotización U$S Blue
             {cotizacionFecha && (
               <span style={{ fontWeight: '400', color: '#9ca3af', marginLeft: '6px' }}>
                 ({new Date(cotizacionFecha + 'T12:00:00').toLocaleDateString('es-AR')})
