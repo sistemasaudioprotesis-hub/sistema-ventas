@@ -4,11 +4,13 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { usePermiso } from '../../lib/usePermisos'
 
 export default function Usuarios() {
   const [usuarios, setUsuarios] = useState([])
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [editando, setEditando] = useState(null)
+  const { verificando, permitido } = usePermiso('usuarios')
 
   const [form, setForm] = useState({
     usuario: '',
@@ -21,6 +23,8 @@ export default function Usuarios() {
   useEffect(() => {
     obtenerUsuarios()
   }, [])
+
+  if (verificando || !permitido) return null
 
   async function obtenerUsuarios() {
     const { data } = await supabase
