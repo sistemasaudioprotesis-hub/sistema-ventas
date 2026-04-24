@@ -6,11 +6,13 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { normalizarTexto } from '../../lib/formatText'
 import { getUsuarioId } from '../../lib/getUsuario'
+import { usePermiso } from '../../lib/usePermisos'
 
 export default function FormasPago() {
   const [formasPago, setFormasPago] = useState([])
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [editando, setEditando] = useState(null)
+  const { verificando, permitido } = usePermiso('formas-pago')
 
   const [form, setForm] = useState({
     forma_pago: '',
@@ -20,6 +22,8 @@ export default function FormasPago() {
   useEffect(() => {
     obtenerFormasPago()
   }, [])
+
+  if (verificando || !permitido) return null
 
   async function obtenerFormasPago() {
     const { data } = await supabase
