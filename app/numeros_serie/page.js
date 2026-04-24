@@ -18,7 +18,7 @@ export default function NumerosSerie() {
   const [filtroProducto, setFiltroProducto] = useState('')
   const [filtroDeposito, setFiltroDeposito] = useState('')
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
-  const { verificando, permitido } = usePermiso('numeros_serie')
+  const { verificando, permitido } = usePermiso('stock_series')
 
   // Modales de alta
   const [modal, setModal] = useState(null)
