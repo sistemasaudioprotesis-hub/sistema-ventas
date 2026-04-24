@@ -249,7 +249,7 @@ export default function Caja() {
       <div style={{ ...card, marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           <div>
-            <div style={cardTitle}>💵 Cotización dólar BNA</div>
+            <div style={cardTitle}>💵 Cotización dólar Blue</div>
             {cotizacion ? (
               <div style={{ fontSize: '22px', fontWeight: '700', color: '#1a1a1a' }}>
                 {fmt(cotizacion)} <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: '400' }}>/ U$S 1</span>
