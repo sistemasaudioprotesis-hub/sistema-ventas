@@ -24,7 +24,7 @@ export default function StockProductos() {
 
   async function cargarDatos() {
     setCargando(true)
-    const [{ data: prods }, { da<<<ta: stockData }] = await Promise.all([
+    const [{ data: prods }, { data: stockData }] = await Promise.all([
       supabase.from('productos').select('id, producto, controla_stock, tipo_producto (requiere_serie)').eq('activo', true).order('producto'),
       supabase.from('stock_general').select('*, productos (producto)'),
     ])
