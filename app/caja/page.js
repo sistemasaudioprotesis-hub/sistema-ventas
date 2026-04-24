@@ -89,7 +89,7 @@ export default function Caja() {
     if (!valor) { alert('Ingresar valor del dólar'); return }
     const { data: existe } = await supabase.from('valor_dolar_bna').select('id').eq('fecha', fecha).maybeSingle()
     if (existe) {
-      await supabase.from('valor_dolar_bna').update({ dolar_vendedor: valor }).eq('fecha', fecha)
+      await supabase.from('valor_dolar_bna').update({ dolar_vendedor: valor, creado_por: getUsuarioId() }).eq('fecha', fecha)
     } else {
       await supabase.from('valor_dolar_bna').insert([{ fecha, dolar_vendedor: valor, creado_por: getUsuarioId() }])
     }
