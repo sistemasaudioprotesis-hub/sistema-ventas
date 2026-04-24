@@ -189,7 +189,7 @@ export default function Pacientes() {
   }
 
   async function guardar(destino) {
-    if (!form.apellido_paciente || !form.nombres_paciente || !form.dni) { alert('Completar campos obligatorios'); return }
+   if (!form.apellido_paciente || !form.nombres_paciente || !form.dni || !form.telefono) { alert('Completar campos obligatorios'); return }
     if (!form.provincia_id) { alert('Seleccionar provincia'); return }
     const dataGuardar = { ...form, provincia_id: Number(form.provincia_id), obra_social_id: form.obra_social_id ? Number(form.obra_social_id) : null }
     if (pacienteId) {
@@ -341,7 +341,7 @@ export default function Pacientes() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <Field label="DNI *"><input name="dni" placeholder="DNI" value={form.dni} onChange={handleChange} disabled={pacienteId !== null} style={{ ...inputStyle, background: pacienteId ? '#f9fafb' : 'white', color: pacienteId ? '#9ca3af' : '#1a1a1a' }} /></Field>
-              <Field label="Teléfono"><input name="telefono" placeholder="Teléfono" value={form.telefono} onChange={handleChange} style={inputStyle} /></Field>
+              <Field label="Teléfono *"><input name="telefono" placeholder="Teléfono" value={form.telefono} onChange={handleChange} style={inputStyle} /></Field>
             </div>
             <Field label="Domicilio"><input name="domicilio" placeholder="Domicilio" value={form.domicilio} onChange={handleChange} style={inputStyle} /></Field>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
