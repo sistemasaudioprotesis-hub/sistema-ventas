@@ -6,11 +6,13 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { normalizarTexto } from '../../lib/formatText'
 import { getUsuarioId } from '../../lib/getUsuario'
+import { usePermiso } from '../../lib/usePermisos'
 
 export default function ObrasSociales() {
   const [obrasSociales, setObrasSociales] = useState([])
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [editando, setEditando] = useState(null)
+  const { verificando, permitido } = usePermiso('obras-sociales')
 
   const [form, setForm] = useState({
     obra_social: '',
@@ -20,6 +22,8 @@ export default function ObrasSociales() {
   useEffect(() => {
     obtenerObrasSociales()
   }, [])
+
+    if (verificando || !permitido) return null
 
   async function obtenerObrasSociales() {
     const { data } = await supabase
