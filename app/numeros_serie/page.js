@@ -6,6 +6,7 @@ import { getUsuarioId } from '../../lib/getUsuario'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { normalizarTexto } from '../../lib/formatText'
+import { usePermiso } from '../../lib/usePermisos'
 
 export default function NumerosSerie() {
   const [series, setSeries] = useState([])
@@ -17,6 +18,7 @@ export default function NumerosSerie() {
   const [filtroProducto, setFiltroProducto] = useState('')
   const [filtroDeposito, setFiltroDeposito] = useState('')
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
+  const { verificando, permitido } = usePermiso('numeros_serie')
 
   // Modales de alta
   const [modal, setModal] = useState(null)
@@ -29,6 +31,8 @@ export default function NumerosSerie() {
   })
 
   useEffect(() => { obtenerDatos() }, [])
+
+  if (verificando || !permitido) return null
 
   async function obtenerDatos() {
     const [{ data: seriesData }, { data: tiposData }, { data: productosData }, { data: depositosData }] = await Promise.all([
