@@ -5,12 +5,14 @@ export const dynamic = 'force-dynamic'
 import { getUsuarioId } from '../../lib/getUsuario'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { usePermiso } from '../../lib/usePermisos'
 
 export default function DerivadoresReporte() {
   const [derivadores, setDerivadores] = useState([])
   const [seleccionado, setSeleccionado] = useState(null)
   const [comisiones, setComisiones] = useState([])
   const [cargando, setCargando] = useState(false)
+  const { verificando, permitido } = usePermiso('derivadores-reporte')
 
   // Filtros reporte
   const [filtroEstado, setFiltroEstado] = useState('todas')
@@ -27,6 +29,8 @@ export default function DerivadoresReporte() {
   const [fechaPago, setFechaPago] = useState(new Date().toISOString().split('T')[0])
 
   useEffect(() => { cargarResumen() }, [])
+
+    if (verificando || !permitido) return null
 
   async function cargarResumen() {
     setCargando(true)
