@@ -6,6 +6,7 @@ import { getUsuarioId } from '../../lib/getUsuario'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { normalizarTexto } from '../../lib/formatText'
+import { usePermiso } from '../../lib/usePermisos'
 
 export default function Derivadores() {
   const [derivadores, setDerivadores] = useState([])
@@ -15,8 +16,11 @@ export default function Derivadores() {
     derivador: '', especialidad: '', telefono: '', mail: '',
     observaciones: '', porcentaje: '', monto_fijo: '',
   })
+  const { verificando, permitido } = usePermiso('derivadores')
 
   useEffect(() => { cargarDerivadores() }, [])
+
+  if (verificando || !permitido) return null
 
   async function cargarDerivadores() {
     const { data } = await supabase.from('derivadores').select('*').order('derivador')
