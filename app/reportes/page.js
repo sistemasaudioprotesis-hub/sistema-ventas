@@ -29,6 +29,8 @@ export default function Reportes() {
   const [motivoId, setMotivoId] = useState('')
   const [motivos, setMotivos] = useState([])
   const [agendaId, setAgendaId] = useState('')
+  const [formaPagoId, setFormaPagoId] = useState('')
+  const [formasPago, setFormasPago] = useState([])
   const [agendas, setAgendas] = useState([])
   const [estadoReparacion, setEstadoReparacion] = useState('')
   const [tab, setTab] = useState('ventas')
@@ -48,16 +50,18 @@ export default function Reportes() {
   useEffect(() => { cargarUsuarios() }, [])
 
   async function cargarUsuarios() {
-    const [{ data }, { data: os }, { data: mv }, { data: ags }] = await Promise.all([
-      supabase.from('usuarios').select('id, nombre').eq('activo', true).order('nombre'),
-      supabase.from('obras_sociales').select('*').order('obra_social'),
-      supabase.from('visita_motivos').select('*').eq('activo', true).order('motivo'),
-      supabase.from('profesionales').select('*').eq('activo', true).order('nombre'),
-    ])
-    setUsuarios(data || [])
-    setObrasSociales(os || [])
-    setMotivos(mv || [])
-    setAgendas(ags || [])
+    const [{ data }, { data: os }, { data: mv }, { data: ags }, { data: fps }] = await Promise.all([
+  supabase.from('usuarios').select('id, nombre').eq('activo', true).order('nombre'),
+  supabase.from('obras_sociales').select('*').order('obra_social'),
+  supabase.from('visita_motivos').select('*').eq('activo', true).order('motivo'),
+  supabase.from('profesionales').select('*').eq('activo', true).order('nombre'),
+  supabase.from('formas_pago').select('*').order('forma_pago'),
+])
+setUsuarios(data || [])
+setObrasSociales(os || [])
+setMotivos(mv || [])
+setAgendas(ags || [])
+setFormasPago(fps || [])
   }
 
   async function buscarPacientes() {
@@ -105,6 +109,7 @@ export default function Reportes() {
       .gte('fecha_pago', `${desde}T00:00:00`).lte('fecha_pago', `${hasta}T23:59:59`)
       .order('fecha_pago', { ascending: false })
     if (operadorId) query = query.eq('creado_por', operadorId)
+    if (formaPagoId) query = query.eq('forma_pago_id', formaPagoId)
     const { data } = await query
     setPagos(data || [])
   }
@@ -323,13 +328,19 @@ export default function Reportes() {
             </select>
           </Field>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '14px' }}>
           <Field label="Obra social">
-            <select value={obraSocialId} onChange={(e) => setObraSocialId(e.target.value)} style={inputStyle}>
-              <option value="">Todas</option>
-              {obrasSociales.map(o => <option key={o.id} value={o.id}>{o.obra_social}</option>)}
-            </select>
-          </Field>
+  <select value={obraSocialId} onChange={(e) => setObraSocialId(e.target.value)} style={inputStyle}>
+    <option value="">Todas</option>
+    {obrasSociales.map(o => <option key={o.id} value={o.id}>{o.obra_social}</option>)}
+  </select>
+</Field>
+<Field label="Forma de pago">
+  <select value={formaPagoId} onChange={(e) => setFormaPagoId(e.target.value)} style={inputStyle}>
+    <option value="">Todas</option>
+    {formasPago.map(f => <option key={f.id} value={f.id}>{f.forma_pago}</option>)}
+  </select>
+</Field>
           <Field label="Motivo / Agenda">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <select value={motivoId} onChange={(e) => setMotivoId(e.target.value)} style={inputStyle}>
