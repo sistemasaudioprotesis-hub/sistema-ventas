@@ -12,7 +12,7 @@ export default function FormasPago() {
   const [formasPago, setFormasPago] = useState([])
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [editando, setEditando] = useState(null)
-  const { verificando, permitido } = usePermiso('formas-pago')
+  const { verificando, permitido } = usePermiso('configuracion')
 
   const [form, setForm] = useState({
     forma_pago: '',
