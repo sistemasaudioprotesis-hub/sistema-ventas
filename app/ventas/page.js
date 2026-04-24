@@ -26,11 +26,17 @@ export default function Ventas() {
   const [obrasSociales, setObrasSociales] = useState([])
   const [obraSocialId, setObraSocialId] = useState('')
   const [modoConSerie, setModoConSerie] = useState(true)
+  const [controlaStock, setControlaStock] = useState(false)
+  const [stockDisponible, setStockDisponible] = useState(null)
   const [ventaId, setVentaId] = useState(null)
   const [ventaConfirmada, setVentaConfirmada] = useState(false)
   const [items, setItems] = useState([])
   const [ventasPaciente, setVentasPaciente] = useState([])
   const [tab, setTab] = useState('nueva')
+
+  // Modal sin stock
+  const [modalSinStock, setModalSinStock] = useState(null) // { producto_id, cantidad }
+  const [stockACarguar, setStockACargar] = useState('')
 
   // Derivadores
   const [derivadores, setDerivadores] = useState([])
@@ -46,7 +52,7 @@ export default function Ventas() {
   const [modoConSerieEdicion, setModoConSerieEdicion] = useState(true)
   const [seriesFiltradasEdicion, setSeriesFiltradasEdicion] = useState([])
 
-  const [form, setForm] = useState({ numero_serie_id: '', producto_id: '', precio_pesos: '', precio_usd: '' })
+  const [form, setForm] = useState({ numero_serie_id: '', producto_id: '', precio_pesos: '', precio_usd: '', cantidad: '1' })
 
   useEffect(() => {
     obtenerSeries()
@@ -60,38 +66,26 @@ export default function Ventas() {
     }
   }, [])
 
-  // Recalcular comisión cuando cambia derivador, tipo o total
   useEffect(() => {
     async function calcularComision() {
-  if (!derivadorId || !valorComision) { setMontoCalculado(''); return }
-
-  const totalPesosActual = items.reduce((acc, i) => acc + (Number(i.precio_pesos) || 0), 0)
-  const totalUSDActual = items.reduce((acc, i) => acc + (Number(i.precio_usd) || 0), 0)
-
-  if (tipoComision === 'monto_fijo') {
-    setMontoCalculado(valorComision)
-    return
-  }
-
-  // Porcentaje — si hay USD, convertir a pesos con cotización del día
-  if (totalUSDActual > 0) {
-    const hoy = new Date().toISOString().split('T')[0]
-    const { data } = await supabase.from('valor_dolar_bna')
-      .select('dolar_vendedor').lte('fecha', hoy)
-      .order('fecha', { ascending: false }).limit(1).maybeSingle()
-    const cotiz = data?.dolar_vendedor
-    if (cotiz) {
-      const baseEnPesos = totalPesosActual + (totalUSDActual * cotiz)
-      const monto = Math.round(baseEnPesos * Number(valorComision) / 100)
+      if (!derivadorId || !valorComision) { setMontoCalculado(''); return }
+      const totalPesosActual = items.reduce((acc, i) => acc + (Number(i.precio_pesos) * (Number(i.cantidad) || 1) || 0), 0)
+      const totalUSDActual = items.reduce((acc, i) => acc + (Number(i.precio_usd) * (Number(i.cantidad) || 1) || 0), 0)
+      if (tipoComision === 'monto_fijo') { setMontoCalculado(valorComision); return }
+      if (totalUSDActual > 0) {
+        const hoy = new Date().toISOString().split('T')[0]
+        const { data } = await supabase.from('valor_dolar_bna').select('dolar_vendedor').lte('fecha', hoy).order('fecha', { ascending: false }).limit(1).maybeSingle()
+        const cotiz = data?.dolar_vendedor
+        if (cotiz) {
+          const baseEnPesos = totalPesosActual + (totalUSDActual * cotiz)
+          const monto = Math.round(baseEnPesos * Number(valorComision) / 100)
+          setMontoCalculado(monto > 0 ? String(monto) : ''); return
+        }
+      }
+      const monto = Math.round(totalPesosActual * Number(valorComision) / 100)
       setMontoCalculado(monto > 0 ? String(monto) : '')
-      return
     }
-  }
-
-  // Solo pesos o sin cotización
-  const monto = Math.round(totalPesosActual * Number(valorComision) / 100)
-  setMontoCalculado(monto > 0 ? String(monto) : '')
-}
+    calcularComision()
   }, [derivadorId, tipoComision, valorComision, items])
 
   async function obtenerSeries() {
@@ -101,7 +95,7 @@ export default function Ventas() {
   }
 
   async function obtenerProductos() {
-    const { data } = await supabase.from('productos').select(`id, producto, tipo_producto (requiere_serie)`)
+    const { data } = await supabase.from('productos').select(`id, producto, controla_stock, tipo_producto (requiere_serie)`).eq('activo', true)
     setProductos(data || [])
   }
 
@@ -115,15 +109,9 @@ export default function Ventas() {
     setDerivadores(data || [])
   }
 
-  function calcularComision() {
-    if (!derivadorId || !valorComision) { setMontoCalculado(''); return }
-    const totalPesosActual = items.reduce((acc, i) => acc + (Number(i.precio_pesos) || 0), 0)
-    if (tipoComision === 'porcentaje') {
-      const monto = Math.round(totalPesosActual * Number(valorComision) / 100)
-      setMontoCalculado(monto > 0 ? String(monto) : '')
-    } else {
-      setMontoCalculado(valorComision)
-    }
+  async function verificarStock(productoId) {
+    const { data } = await supabase.from('stock_general').select('cantidad').eq('producto_id', productoId).maybeSingle()
+    return data?.cantidad || 0
   }
 
   function seleccionarDerivador(id) {
@@ -131,13 +119,8 @@ export default function Ventas() {
     if (!id) { setValorComision(''); setTipoComision('porcentaje'); setMontoCalculado(''); return }
     const d = derivadores.find(x => String(x.id) === id)
     if (!d) return
-    if (d.porcentaje) {
-      setTipoComision('porcentaje')
-      setValorComision(String(d.porcentaje))
-    } else if (d.monto_fijo) {
-      setTipoComision('monto_fijo')
-      setValorComision(String(d.monto_fijo))
-    }
+    if (d.porcentaje) { setTipoComision('porcentaje'); setValorComision(String(d.porcentaje)) }
+    else if (d.monto_fijo) { setTipoComision('monto_fijo'); setValorComision(String(d.monto_fijo)) }
   }
 
   async function buscarPacienteAutomatico(dniParam) {
@@ -154,17 +137,15 @@ export default function Ventas() {
         id, fecha, confirmada, total_pesos, total_dolares, obra_social_id,
         obras_sociales (obra_social),
         venta_detalle (
-          id, precio_venta_pesos, precio_venta_usd, numero_serie_id, producto_id,
+          id, precio_venta_pesos, precio_venta_usd, numero_serie_id, producto_id, cantidad,
           numeros_serie (id, numero_serie, productos (producto)),
           productos (id, producto)
         )`)
       .eq('paciente_id', pacienteId).order('fecha', { ascending: false })
-
     const ventasConSaldo = await Promise.all((data || []).map(async v => {
       const { data: pagos } = await supabase.from('pagos').select('monto_pesos, monto_usd').eq('venta_id', v.id)
       const pagadoP = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_pesos) || 0), 0)
       const pagadoU = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_usd) || 0), 0)
-      // Cargar derivador si tiene
       const { data: deriv } = await supabase.from('venta_derivadores').select('*, derivadores (derivador)').eq('venta_id', v.id).maybeSingle()
       return { ...v, pagadoPesos: pagadoP, pagadoUSD: pagadoU, derivador: deriv || null }
     }))
@@ -176,22 +157,17 @@ export default function Ventas() {
     if (!valor) { alert('Ingresar DNI o apellido'); return }
     let data, error
     if (/^\d+$/.test(valor)) {
-      const res = await supabase.from('pacientes').select('*').eq('dni', Number(valor))
-      data = res.data; error = res.error
+      const res = await supabase.from('pacientes').select('*').eq('dni', Number(valor)); data = res.data; error = res.error
     } else {
-      const res = await supabase.from('pacientes').select('*').ilike('apellido_paciente', `%${valor}%`)
-      data = res.data; error = res.error
+      const res = await supabase.from('pacientes').select('*').ilike('apellido_paciente', `%${valor}%`); data = res.data; error = res.error
     }
     if (error) { alert('Error buscando pacientes'); return }
-    setResultados(data || [])
-    setBuscoPaciente(true)
+    setResultados(data || []); setBuscoPaciente(true)
     if (!data || data.length === 0) setResultados([])
   }
 
   async function guardarAltaRapida() {
-    if (!formAltaRapida.apellido || !formAltaRapida.nombre || !formAltaRapida.dni) {
-      alert('Apellido, nombre y DNI son obligatorios'); return
-    }
+    if (!formAltaRapida.apellido || !formAltaRapida.nombre || !formAltaRapida.dni) { alert('Apellido, nombre y DNI son obligatorios'); return }
     const { data: existe } = await supabase.from('pacientes').select('id').eq('dni', formAltaRapida.dni).maybeSingle()
     if (existe) { alert('❌ Ya existe un paciente con ese DNI'); return }
     const { data: nuevo, error } = await supabase.from('pacientes').insert([{
@@ -206,13 +182,23 @@ export default function Ventas() {
     alert('✅ Paciente creado')
   }
 
-  function handleChange(e) {
+  async function handleChange(e) {
     const { name, value } = e.target
     if (name === 'producto_id') {
       const prod = productos.find(p => p.id === Number(value))
-      setModoConSerie(prod?.tipo_producto?.requiere_serie)
+      const requiereSerie = prod?.tipo_producto?.requiere_serie
+      const ctrlStock = prod?.controla_stock || false
+      setModoConSerie(requiereSerie)
+      setControlaStock(ctrlStock)
       setSeriesFiltradas(series.filter(s => s.producto_id === Number(value)))
-      setForm({ ...form, producto_id: value, numero_serie_id: '' })
+      setForm({ ...form, producto_id: value, numero_serie_id: '', cantidad: '1' })
+      // Verificar stock si aplica
+      if (ctrlStock && !requiereSerie) {
+        const stock = await verificarStock(Number(value))
+        setStockDisponible(stock)
+      } else {
+        setStockDisponible(null)
+      }
       return
     }
     setForm({ ...form, [name]: value })
@@ -224,6 +210,22 @@ export default function Ventas() {
     if (modoConSerie && !form.numero_serie_id) return alert('Seleccionar serie')
     if (!modoConSerie && !form.producto_id) return alert('Seleccionar producto')
 
+    const cantidad = Number(form.cantidad) || 1
+
+    // Verificar stock si el producto lo controla
+    if (controlaStock && !modoConSerie) {
+      const stockActual = await verificarStock(Number(form.producto_id))
+      if (stockActual < cantidad) {
+        // Sin stock suficiente — mostrar modal
+        setModalSinStock({ producto_id: Number(form.producto_id), cantidad })
+        return
+      }
+    }
+
+    await _agregarItemConfirmado(cantidad)
+  }
+
+  async function _agregarItemConfirmado(cantidad) {
     const fecha = new Date().toISOString()
     let ventaActualId = ventaId
     if (!ventaActualId) {
@@ -241,27 +243,83 @@ export default function Ventas() {
       producto_id: !modoConSerie ? Number(form.producto_id) : null,
       precio_venta_pesos: form.precio_pesos || null,
       precio_venta_usd: form.precio_usd || null,
+      cantidad: modoConSerie ? 1 : cantidad,
       creado_por: getUsuarioId(),
     }]).select().single()
 
     if (modoConSerie) {
       await supabase.from('numeros_serie').update({ en_stock: false, fecha_salida: fecha }).eq('id', form.numero_serie_id)
+    } else if (controlaStock) {
+      // Descontar stock general
+      const { data: stockRow } = await supabase.from('stock_general').select('id, cantidad').eq('producto_id', form.producto_id).maybeSingle()
+      if (stockRow) {
+        const nuevaCantidad = stockRow.cantidad - cantidad
+        await supabase.from('stock_general').update({ cantidad: nuevaCantidad }).eq('id', stockRow.id)
+        await supabase.from('stock_general_movimientos').insert([{
+          stock_general_id: stockRow.id,
+          tipo: 'egreso',
+          cantidad,
+          concepto: `Venta #${ventaActualId}`,
+          venta_id: ventaActualId,
+          creado_por: getUsuarioId(),
+        }])
+      }
     }
 
+    const prod = productos.find(p => p.id == form.producto_id)
     setItems([...items, {
       id: detalle.id, numero_serie_id: form.numero_serie_id,
-      producto: modoConSerie ? series.find(s => s.id == form.numero_serie_id)?.productos?.producto : productos.find(p => p.id == form.producto_id)?.producto,
+      producto: modoConSerie ? series.find(s => s.id == form.numero_serie_id)?.productos?.producto : prod?.producto,
       serie: modoConSerie ? series.find(s => s.id == form.numero_serie_id)?.numero_serie : '-',
       precio_pesos: form.precio_pesos, precio_usd: form.precio_usd,
+      cantidad: modoConSerie ? 1 : cantidad,
     }])
-    setForm({ numero_serie_id: '', producto_id: '', precio_pesos: '', precio_usd: '' })
+    setForm({ numero_serie_id: '', producto_id: '', precio_pesos: '', precio_usd: '', cantidad: '1' })
+    setStockDisponible(null); setControlaStock(false)
     obtenerSeries()
+    setModalSinStock(null)
+  }
+
+  async function cargarStockYAgregar() {
+    const cantidadCargar = Number(stockACarguar)
+    if (!cantidadCargar || cantidadCargar <= 0) { alert('Ingresar cantidad válida'); return }
+    const { data: stockRow } = await supabase.from('stock_general').select('id, cantidad').eq('producto_id', modalSinStock.producto_id).maybeSingle()
+    if (stockRow) {
+      await supabase.from('stock_general').update({ cantidad: stockRow.cantidad + cantidadCargar }).eq('id', stockRow.id)
+      await supabase.from('stock_general_movimientos').insert([{
+        stock_general_id: stockRow.id, tipo: 'ingreso', cantidad: cantidadCargar,
+        concepto: 'Carga manual desde ventas', creado_por: getUsuarioId(),
+      }])
+    } else {
+      const prod = productos.find(p => p.id === modalSinStock.producto_id)
+      const { data: newStock } = await supabase.from('stock_general').insert([{
+        producto_id: modalSinStock.producto_id, cantidad: cantidadCargar, creado_por: getUsuarioId(),
+      }]).select().single()
+      await supabase.from('stock_general_movimientos').insert([{
+        stock_general_id: newStock.id, tipo: 'ingreso', cantidad: cantidadCargar,
+        concepto: 'Carga manual desde ventas', creado_por: getUsuarioId(),
+      }])
+    }
+    setStockACargar('')
+    await _agregarItemConfirmado(modalSinStock.cantidad)
   }
 
   async function eliminarItem(item) {
     await supabase.from('venta_detalle').delete().eq('id', item.id)
     if (item.numero_serie_id) {
       await supabase.from('numeros_serie').update({ en_stock: true, fecha_salida: null }).eq('id', item.numero_serie_id)
+    } else if (item.producto_id) {
+      const prod = productos.find(p => p.id == item.producto_id)
+      if (prod?.controla_stock) {
+        const { data: stockRow } = await supabase.from('stock_general').select('id, cantidad').eq('producto_id', item.producto_id).maybeSingle()
+        if (stockRow) {
+          await supabase.from('stock_general').update({ cantidad: stockRow.cantidad + (item.cantidad || 1) }).eq('id', stockRow.id)
+          await supabase.from('stock_general_movimientos').insert([{
+            stock_general_id: stockRow.id, tipo: 'ingreso', cantidad: item.cantidad || 1,
+            concepto: 'Devolución por eliminación de ítem en venta', creado_por: getUsuarioId(),
+          }])
+        }
+      }
     }
     setItems(items.filter(i => i.id !== item.id))
     obtenerSeries()
@@ -274,34 +332,21 @@ export default function Ventas() {
       obra_social_id: obraSocialId ? Number(obraSocialId) : null,
     }).eq('id', ventaId)
     if (error) { alert('Error: ' + error.message); return }
-
-    // Guardar derivador si se seleccionó
-   if (derivadorId && valorComision) {
-  // Si monto no está calculado, intentar calcularlo ahora
-  let montoFinal = montoCalculado ? Number(montoCalculado) : null
-  if (!montoFinal && tipoComision === 'monto_fijo') {
-    montoFinal = Number(valorComision)
-  }
-  if (!montoFinal && tipoComision === 'porcentaje') {
-    const hoy = new Date().toISOString().split('T')[0]
-    const { data: cotizData } = await supabase.from('valor_dolar_bna')
-      .select('dolar_vendedor').lte('fecha', hoy)
-      .order('fecha', { ascending: false }).limit(1).maybeSingle()
-    const cotiz = cotizData?.dolar_vendedor
-    const base = totalPesos + (cotiz ? totalUSD * cotiz : 0)
-    montoFinal = Math.round(base * Number(valorComision) / 100) || null
-  }
-
-  await supabase.from('venta_derivadores').insert([{
-    venta_id: ventaId,
-    derivador_id: Number(derivadorId),
-    tipo_comision: tipoComision,
-    valor_comision: Number(valorComision),
-    monto_calculado: montoFinal,
-    pagado: false,
-    creado_por: getUsuarioId(),
-  }])
-}
+    if (derivadorId && valorComision) {
+      let montoFinal = montoCalculado ? Number(montoCalculado) : null
+      if (!montoFinal && tipoComision === 'monto_fijo') montoFinal = Number(valorComision)
+      if (!montoFinal && tipoComision === 'porcentaje') {
+        const hoy = new Date().toISOString().split('T')[0]
+        const { data: cotizData } = await supabase.from('valor_dolar_bna').select('dolar_vendedor').lte('fecha', hoy).order('fecha', { ascending: false }).limit(1).maybeSingle()
+        const cotiz = cotizData?.dolar_vendedor
+        const base = totalPesos + (cotiz ? totalUSD * cotiz : 0)
+        montoFinal = Math.round(base * Number(valorComision) / 100) || null
+      }
+      await supabase.from('venta_derivadores').insert([{
+        venta_id: ventaId, derivador_id: Number(derivadorId), tipo_comision: tipoComision,
+        valor_comision: Number(valorComision), monto_calculado: montoFinal, pagado: false, creado_por: getUsuarioId(),
+      }])
+    }
     setVentaConfirmada(true)
     alert('✅ Venta confirmada')
     if (paciente) cargarVentasPaciente(paciente.id)
@@ -319,34 +364,21 @@ export default function Ventas() {
       obra_social_id: obraSocialId ? Number(obraSocialId) : null,
     }).eq('id', ventaId)
     if (error) { alert('Error: ' + error.message); return }
-
-   if (derivadorId && valorComision) {
-  // Si monto no está calculado, intentar calcularlo ahora
-  let montoFinal = montoCalculado ? Number(montoCalculado) : null
-  if (!montoFinal && tipoComision === 'monto_fijo') {
-    montoFinal = Number(valorComision)
-  }
-  if (!montoFinal && tipoComision === 'porcentaje') {
-    const hoy = new Date().toISOString().split('T')[0]
-    const { data: cotizData } = await supabase.from('valor_dolar_bna')
-      .select('dolar_vendedor').lte('fecha', hoy)
-      .order('fecha', { ascending: false }).limit(1).maybeSingle()
-    const cotiz = cotizData?.dolar_vendedor
-    const base = totalPesos + (cotiz ? totalUSD * cotiz : 0)
-    montoFinal = Math.round(base * Number(valorComision) / 100) || null
-  }
-
-  await supabase.from('venta_derivadores').insert([{
-    venta_id: ventaId,
-    derivador_id: Number(derivadorId),
-    tipo_comision: tipoComision,
-    valor_comision: Number(valorComision),
-    monto_calculado: montoFinal,
-    pagado: false,
-    creado_por: getUsuarioId(),
-  }])
-}
-
+    if (derivadorId && valorComision) {
+      let montoFinal = montoCalculado ? Number(montoCalculado) : null
+      if (!montoFinal && tipoComision === 'monto_fijo') montoFinal = Number(valorComision)
+      if (!montoFinal && tipoComision === 'porcentaje') {
+        const hoy = new Date().toISOString().split('T')[0]
+        const { data: cotizData } = await supabase.from('valor_dolar_bna').select('dolar_vendedor').lte('fecha', hoy).order('fecha', { ascending: false }).limit(1).maybeSingle()
+        const cotiz = cotizData?.dolar_vendedor
+        const base = totalPesos + (cotiz ? totalUSD * cotiz : 0)
+        montoFinal = Math.round(base * Number(valorComision) / 100) || null
+      }
+      await supabase.from('venta_derivadores').insert([{
+        venta_id: ventaId, derivador_id: Number(derivadorId), tipo_comision: tipoComision,
+        valor_comision: Number(valorComision), monto_calculado: montoFinal, pagado: false, creado_por: getUsuarioId(),
+      }])
+    }
     alert('✅ Venta finalizada sin pagos')
     setVentaId(null); setPaciente(null); setDni(''); setItems([])
     setVentaConfirmada(false); setBusqueda(''); setVentasPaciente([])
@@ -354,12 +386,7 @@ export default function Ventas() {
     setDerivadorId(''); setValorComision(''); setMontoCalculado(''); setTipoComision('porcentaje')
   }
 
-  function abrirEdicion(venta) {
-    setVentaEditando(venta)
-    setItemsEdicion(venta.venta_detalle || [])
-    setFormEdicion({ producto_id: '', numero_serie_id: '', precio_pesos: '', precio_usd: '' })
-  }
-
+  function abrirEdicion(venta) { setVentaEditando(venta); setItemsEdicion(venta.venta_detalle || []); setFormEdicion({ producto_id: '', numero_serie_id: '', precio_pesos: '', precio_usd: '' }) }
   function cerrarEdicion() { setVentaEditando(null); setItemsEdicion([]) }
 
   function handleChangeEdicion(e) {
@@ -368,19 +395,13 @@ export default function Ventas() {
       const prod = productos.find(p => p.id === Number(value))
       setModoConSerieEdicion(prod?.tipo_producto?.requiere_serie)
       setSeriesFiltradasEdicion(seriesAll.filter(s => s.producto_id === Number(value) && s.en_stock))
-      setFormEdicion({ ...formEdicion, producto_id: value, numero_serie_id: '' })
-      return
+      setFormEdicion({ ...formEdicion, producto_id: value, numero_serie_id: '' }); return
     }
     setFormEdicion({ ...formEdicion, [name]: value })
   }
 
   async function guardarCambioItem(item, campo, valor) {
-    await supabase.from('venta_detalle_historial').insert([{
-      venta_detalle_id: item.id, venta_id: ventaEditando.id,
-      numero_serie_id: item.numero_serie_id, producto_id: item.producto_id,
-      precio_venta_pesos: item.precio_venta_pesos, precio_venta_usd: item.precio_venta_usd,
-      modificado_por: getUsuarioId(),
-    }])
+    await supabase.from('venta_detalle_historial').insert([{ venta_detalle_id: item.id, venta_id: ventaEditando.id, numero_serie_id: item.numero_serie_id, producto_id: item.producto_id, precio_venta_pesos: item.precio_venta_pesos, precio_venta_usd: item.precio_venta_usd, modificado_por: getUsuarioId() }])
     if (campo === 'numero_serie_id') {
       if (item.numero_serie_id) await supabase.from('numeros_serie').update({ en_stock: true, fecha_salida: null }).eq('id', item.numero_serie_id)
       if (valor) await supabase.from('numeros_serie').update({ en_stock: false, fecha_salida: new Date().toISOString() }).eq('id', valor)
@@ -413,6 +434,7 @@ export default function Ventas() {
       producto_id: !modoConSerieEdicion ? Number(formEdicion.producto_id) : null,
       precio_venta_pesos: formEdicion.precio_pesos || null,
       precio_venta_usd: formEdicion.precio_usd || null,
+      cantidad: 1,
       creado_por: getUsuarioId(),
     }]).select().single()
     if (modoConSerieEdicion) await supabase.from('numeros_serie').update({ en_stock: false, fecha_salida: fecha }).eq('id', formEdicion.numero_serie_id)
@@ -424,6 +446,7 @@ export default function Ventas() {
       producto_id: !modoConSerieEdicion ? Number(formEdicion.producto_id) : null,
       precio_venta_pesos: formEdicion.precio_pesos || null,
       precio_venta_usd: formEdicion.precio_usd || null,
+      cantidad: 1,
       numeros_serie: nuevaSerieInfo ? { id: nuevaSerieInfo.id, numero_serie: nuevaSerieInfo.numero_serie, productos: nuevaSerieInfo.productos } : null,
       productos: nuevoProductoInfo ? { id: nuevoProductoInfo.id, producto: nuevoProductoInfo.producto } : null,
     }])
@@ -432,8 +455,8 @@ export default function Ventas() {
   }
 
   async function guardarTotalesVenta() {
-    const nuevoTotalPesos = itemsEdicion.reduce((acc, i) => acc + (Number(i.precio_venta_pesos) || 0), 0)
-    const nuevoTotalUSD = itemsEdicion.reduce((acc, i) => acc + (Number(i.precio_venta_usd) || 0), 0)
+    const nuevoTotalPesos = itemsEdicion.reduce((acc, i) => acc + ((Number(i.precio_venta_pesos) || 0) * (Number(i.cantidad) || 1)), 0)
+    const nuevoTotalUSD = itemsEdicion.reduce((acc, i) => acc + ((Number(i.precio_venta_usd) || 0) * (Number(i.cantidad) || 1)), 0)
     await supabase.from('ventas_historial').insert([{ venta_id: ventaEditando.id, total_pesos: ventaEditando.total_pesos, total_dolares: ventaEditando.total_dolares, confirmada: ventaEditando.confirmada, modificado_por: getUsuarioId() }])
     await supabase.from('ventas').update({ total_pesos: nuevoTotalPesos, total_dolares: nuevoTotalUSD }).eq('id', ventaEditando.id)
     alert('✅ Venta actualizada')
@@ -442,8 +465,8 @@ export default function Ventas() {
     obtenerSeries()
   }
 
-  const totalPesos = items.reduce((acc, i) => acc + (Number(i.precio_pesos) || 0), 0)
-  const totalUSD = items.reduce((acc, i) => acc + (Number(i.precio_usd) || 0), 0)
+  const totalPesos = items.reduce((acc, i) => acc + ((Number(i.precio_pesos) || 0) * (Number(i.cantidad) || 1)), 0)
+  const totalUSD = items.reduce((acc, i) => acc + ((Number(i.precio_usd) || 0) * (Number(i.cantidad) || 1)), 0)
   const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0)
 
   return (
@@ -510,8 +533,7 @@ export default function Ventas() {
           {[['nueva', '➕ Nueva venta'], ['historial', `📋 Historial (${ventasPaciente.length})`]].map(([val, label]) => (
             <button key={val} onClick={() => setTab(val)} style={{
               padding: '9px 20px', borderRadius: '8px', border: '1px solid #e5e7eb',
-              background: tab === val ? '#8B1E2D' : 'white',
-              color: tab === val ? 'white' : '#374151',
+              background: tab === val ? '#8B1E2D' : 'white', color: tab === val ? 'white' : '#374151',
               fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
             }}>{label}</button>
           ))}
@@ -552,6 +574,19 @@ export default function Ventas() {
                   </select>
                 </div>
               )}
+              {!modoConSerie && form.producto_id && (
+                <div>
+                  <label style={labelStyle}>
+                    Cantidad
+                    {stockDisponible !== null && (
+                      <span style={{ marginLeft: '8px', fontWeight: '400', color: stockDisponible > 0 ? '#16a34a' : '#dc2626' }}>
+                        (Stock: {stockDisponible})
+                      </span>
+                    )}
+                  </label>
+                  <input name="cantidad" type="number" min="1" placeholder="1" value={form.cantidad} onChange={handleChange} style={inputStyle} />
+                </div>
+              )}
               <div>
                 <label style={labelStyle}>Precio en pesos</label>
                 <input name="precio_pesos" placeholder="$0" value={form.precio_pesos} onChange={handleChange} style={inputStyle} />
@@ -575,11 +610,14 @@ export default function Ventas() {
                 {items.map(item => (
                   <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', flexWrap: 'wrap', gap: '8px' }}>
                     <div>
-                      <div style={{ fontWeight: '600', fontSize: '15px', color: '#1a1a1a' }}>{item.producto}</div>
+                      <div style={{ fontWeight: '600', fontSize: '15px', color: '#1a1a1a' }}>
+                        {item.producto}
+                        {item.cantidad > 1 && <span style={{ marginLeft: '8px', fontSize: '13px', color: '#6b7280' }}>× {item.cantidad}</span>}
+                      </div>
                       <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                        Serie: {item.serie}
-                        {item.precio_pesos && ` · ${formatearPesos(item.precio_pesos)}`}
-                        {item.precio_usd && ` · USD ${formatearUSD(item.precio_usd)}`}
+                        {item.serie !== '-' ? `Serie: ${item.serie}` : ''}
+                        {item.precio_pesos && ` · ${formatearPesos(item.precio_pesos)}${item.cantidad > 1 ? ` c/u = ${fmt(item.precio_pesos * item.cantidad)}` : ''}`}
+                        {item.precio_usd && ` · USD ${formatearUSD(item.precio_usd)}${item.cantidad > 1 ? ` c/u = U$S ${(item.precio_usd * item.cantidad).toFixed(2)}` : ''}`}
                       </div>
                     </div>
                     <button onClick={() => eliminarItem(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#ef4444' }}>✕</button>
@@ -612,27 +650,9 @@ export default function Ventas() {
                       {derivadores.map(d => <option key={d.id} value={d.id}>{d.derivador}</option>)}
                     </select>
                   </div>
-                  {derivadorId && (
-                    <div>
-                      <label style={labelStyle}>Tipo de comisión</label>
-                      <select value={tipoComision} onChange={(e) => setTipoComision(e.target.value)} style={inputStyle}>
-                        <option value="porcentaje">Porcentaje (%)</option>
-                        <option value="monto_fijo">Monto fijo ($)</option>
-                      </select>
-                    </div>
-                  )}
-                  {derivadorId && (
-                    <div>
-                      <label style={labelStyle}>{tipoComision === 'porcentaje' ? 'Porcentaje (%)' : 'Monto fijo ($)'}</label>
-                      <input type="number" placeholder={tipoComision === 'porcentaje' ? 'Ej: 5' : 'Ej: 50000'} value={valorComision} onChange={(e) => setValorComision(e.target.value)} style={inputStyle} />
-                    </div>
-                  )}
-                  {derivadorId && (
-                    <div>
-                      <label style={labelStyle}>Comisión a pagar ($) <span style={{ fontWeight: '400', color: '#9ca3af' }}>— editable</span></label>
-                      <input type="number" placeholder="$0" value={montoCalculado} onChange={(e) => setMontoCalculado(e.target.value)} style={{ ...inputStyle, background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600' }} />
-                    </div>
-                  )}
+                  {derivadorId && (<div><label style={labelStyle}>Tipo de comisión</label><select value={tipoComision} onChange={(e) => setTipoComision(e.target.value)} style={inputStyle}><option value="porcentaje">Porcentaje (%)</option><option value="monto_fijo">Monto fijo ($)</option></select></div>)}
+                  {derivadorId && (<div><label style={labelStyle}>{tipoComision === 'porcentaje' ? 'Porcentaje (%)' : 'Monto fijo ($)'}</label><input type="number" placeholder={tipoComision === 'porcentaje' ? 'Ej: 5' : 'Ej: 50000'} value={valorComision} onChange={(e) => setValorComision(e.target.value)} style={inputStyle} /></div>)}
+                  {derivadorId && (<div><label style={labelStyle}>Comisión a pagar ($) <span style={{ fontWeight: '400', color: '#9ca3af' }}>— editable</span></label><input type="number" placeholder="$0" value={montoCalculado} onChange={(e) => setMontoCalculado(e.target.value)} style={{ ...inputStyle, background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600' }} /></div>)}
                 </div>
               </div>
             )}
@@ -682,8 +702,9 @@ export default function Ventas() {
                       <div key={d.id} style={{ fontSize: '13px', color: '#6b7280', marginBottom: '2px' }}>
                         · {d.numeros_serie?.productos?.producto || d.productos?.producto || '-'}
                         {d.numeros_serie?.numero_serie ? ` (${d.numeros_serie.numero_serie})` : ''}
-                        {d.precio_venta_pesos ? ` — ${fmt(d.precio_venta_pesos)}` : ''}
-                        {d.precio_venta_usd ? ` — U$S ${d.precio_venta_usd}` : ''}
+                        {d.cantidad > 1 ? ` × ${d.cantidad}` : ''}
+                        {d.precio_venta_pesos ? ` — ${fmt(d.precio_venta_pesos * (d.cantidad || 1))}` : ''}
+                        {d.precio_venta_usd ? ` — U$S ${(d.precio_venta_usd * (d.cantidad || 1)).toFixed(2)}` : ''}
                       </div>
                     ))}
                   </div>
@@ -707,6 +728,7 @@ export default function Ventas() {
                 <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a', marginBottom: '10px' }}>
                   {item.numeros_serie?.productos?.producto || item.productos?.producto || '-'}
                   {item.numeros_serie?.numero_serie ? ` (${item.numeros_serie.numero_serie})` : ''}
+                  {item.cantidad > 1 ? ` × ${item.cantidad}` : ''}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   {item.numero_serie_id && (
@@ -718,14 +740,8 @@ export default function Ventas() {
                       </select>
                     </div>
                   )}
-                  <div>
-                    <label style={labelStyle}>Precio pesos</label>
-                    <input defaultValue={item.precio_venta_pesos || ''} onBlur={(e) => { if (e.target.value !== String(item.precio_venta_pesos || '')) guardarCambioItem(item, 'precio_venta_pesos', e.target.value ? Number(e.target.value) : null) }} placeholder="$0" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Precio USD</label>
-                    <input defaultValue={item.precio_venta_usd || ''} onBlur={(e) => { if (e.target.value !== String(item.precio_venta_usd || '')) guardarCambioItem(item, 'precio_venta_usd', e.target.value ? Number(e.target.value) : null) }} placeholder="U$S 0" style={inputStyle} />
-                  </div>
+                  <div><label style={labelStyle}>Precio pesos</label><input defaultValue={item.precio_venta_pesos || ''} onBlur={(e) => { if (e.target.value !== String(item.precio_venta_pesos || '')) guardarCambioItem(item, 'precio_venta_pesos', e.target.value ? Number(e.target.value) : null) }} placeholder="$0" style={inputStyle} /></div>
+                  <div><label style={labelStyle}>Precio USD</label><input defaultValue={item.precio_venta_usd || ''} onBlur={(e) => { if (e.target.value !== String(item.precio_venta_usd || '')) guardarCambioItem(item, 'precio_venta_usd', e.target.value ? Number(e.target.value) : null) }} placeholder="U$S 0" style={inputStyle} /></div>
                 </div>
                 <div style={{ marginTop: '10px' }}>
                   <button onClick={() => eliminarItemEdicion(item)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px', color: '#dc2626', borderColor: '#fecaca' }}>🗑️ Eliminar producto</button>
@@ -736,38 +752,37 @@ export default function Ventas() {
           <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '10px', border: '1px dashed #e5e7eb', marginBottom: '16px' }}>
             <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>➕ Agregar producto a esta venta</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <div>
-                <label style={labelStyle}>Producto</label>
-                <select name="producto_id" value={formEdicion.producto_id} onChange={handleChangeEdicion} style={inputStyle}>
-                  <option value="">Seleccionar</option>
-                  {productos.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
-                </select>
-              </div>
-              {modoConSerieEdicion && (
-                <div>
-                  <label style={labelStyle}>Serie</label>
-                  <select name="numero_serie_id" value={formEdicion.numero_serie_id} onChange={handleChangeEdicion} style={inputStyle}>
-                    <option value="">Seleccionar serie</option>
-                    {seriesFiltradasEdicion.map(s => <option key={s.id} value={s.id}>{s.numero_serie}</option>)}
-                  </select>
-                </div>
-              )}
-              <div>
-                <label style={labelStyle}>Precio pesos</label>
-                <input name="precio_pesos" placeholder="$0" value={formEdicion.precio_pesos} onChange={handleChangeEdicion} style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Precio USD</label>
-                <input name="precio_usd" placeholder="U$S 0" value={formEdicion.precio_usd} onChange={handleChangeEdicion} style={inputStyle} />
-              </div>
+              <div><label style={labelStyle}>Producto</label><select name="producto_id" value={formEdicion.producto_id} onChange={handleChangeEdicion} style={inputStyle}><option value="">Seleccionar</option>{productos.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}</select></div>
+              {modoConSerieEdicion && (<div><label style={labelStyle}>Serie</label><select name="numero_serie_id" value={formEdicion.numero_serie_id} onChange={handleChangeEdicion} style={inputStyle}><option value="">Seleccionar serie</option>{seriesFiltradasEdicion.map(s => <option key={s.id} value={s.id}>{s.numero_serie}</option>)}</select></div>)}
+              <div><label style={labelStyle}>Precio pesos</label><input name="precio_pesos" placeholder="$0" value={formEdicion.precio_pesos} onChange={handleChangeEdicion} style={inputStyle} /></div>
+              <div><label style={labelStyle}>Precio USD</label><input name="precio_usd" placeholder="U$S 0" value={formEdicion.precio_usd} onChange={handleChangeEdicion} style={inputStyle} /></div>
             </div>
-            <div style={{ marginTop: '10px' }}>
-              <button onClick={agregarItemEdicion} style={{ ...btnSecundario, fontSize: '13px' }}>+ Agregar</button>
-            </div>
+            <div style={{ marginTop: '10px' }}><button onClick={agregarItemEdicion} style={{ ...btnSecundario, fontSize: '13px' }}>+ Agregar</button></div>
           </div>
           <div style={{ display: 'flex', gap: '10px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
             <button onClick={guardarTotalesVenta} style={btnPrimario}>💾 Guardar cambios</button>
             <button onClick={cerrarEdicion} style={btnSecundario}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL SIN STOCK */}
+      {modalSinStock && (
+        <div style={overlay}>
+          <div style={modalBox}>
+            <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a', marginBottom: '8px' }}>⚠️ Sin stock suficiente</div>
+            <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>
+              No hay stock registrado para este producto. ¿Querés cargarlo ahora y continuar con la venta?
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={labelStyle}>Cantidad a cargar en stock</label>
+              <input type="number" min="1" placeholder="Ej: 10" value={stockACarguar} onChange={(e) => setStockACargar(e.target.value)} style={inputStyle} />
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button onClick={cargarStockYAgregar} style={btnPrimario}>📦 Cargar stock y continuar</button>
+              <button onClick={() => _agregarItemConfirmado(modalSinStock.cantidad)} style={{ ...btnSecundario, color: '#f59e0b', borderColor: '#fcd34d' }}>⚠️ Continuar sin stock</button>
+              <button onClick={() => { setModalSinStock(null); setStockACargar('') }} style={btnSecundario}>Cancelar</button>
+            </div>
           </div>
         </div>
       )}
@@ -783,3 +798,5 @@ const cardTitle = { fontSize: '14px', fontWeight: '600', color: '#374151', margi
 const btnPrimario = { padding: '10px 20px', background: '#8B1E2D', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
 const btnSecundario = { padding: '10px 20px', background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '15px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
 const btnFantasma = { padding: '8px 16px', background: 'transparent', color: '#8B1E2D', border: '1px dashed #8B1E2D', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
+const overlay = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }
+const modalBox = { background: 'white', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '460px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', maxHeight: '90vh', overflowY: 'auto' }
