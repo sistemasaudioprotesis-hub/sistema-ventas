@@ -149,7 +149,7 @@ export default function Agenda() {
   }
 
   async function guardarAltaRapida() {
-    if (!formAltaRapida.apellido || !formAltaRapida.nombre || !formAltaRapida.dni) { alert('Apellido, nombre y DNI son obligatorios'); return }
+    if (!formAltaRapida.apellido || !formAltaRapida.nombre || !formAltaRapida.dni || !formAltaRapida.telefono) { alert('Apellido, nombre y DNI son obligatorios'); return }
     const { data: existe } = await supabase.from('pacientes').select('id').eq('dni', formAltaRapida.dni).maybeSingle()
     if (existe) { alert('❌ Ya existe un paciente con ese DNI'); return }
     const { data: nuevo, error } = await supabase.from('pacientes').insert([{
