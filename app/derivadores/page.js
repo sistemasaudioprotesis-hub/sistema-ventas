@@ -175,17 +175,7 @@ export default function Derivadores() {
                     {d.observaciones && <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>{d.observaciones}</div>}
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button 
-  onClick={() => abrirEditar(c)} 
-  disabled={c.pagado}
-  style={{ 
-    ...btnSecundario, fontSize: '12px', padding: '5px 10px', 
-    color: c.pagado ? '#9ca3af' : '#8B1E2D', 
-    borderColor: c.pagado ? '#e5e7eb' : '#f5c2c9',
-    cursor: c.pagado ? 'not-allowed' : 'pointer',
-    opacity: c.pagado ? 0.5 : 1,
-  }}
->✏️ Editar</button>
+                    <button onClick={() => abrirEdicion(d)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px', color: '#8B1E2D', borderColor: '#f5c2c9' }}>✏️ Editar</button>
                     <button onClick={() => toggleActivo(d)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px', color: d.activo ? '#dc2626' : '#16a34a', borderColor: d.activo ? '#fecaca' : '#bbf7d0' }}>
                       {d.activo ? 'Desactivar' : 'Activar'}
                     </button>
