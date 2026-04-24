@@ -4,8 +4,11 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { usePermiso } from '../../lib/usePermisos'
 
 export default function Rentabilidad() {
+  const { verificando, permitido } = usePermiso('rentabilidad')
+  if (verificando || !permitido) return null
   const hoy = new Date().toISOString().split('T')[0]
   const primerDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
 
