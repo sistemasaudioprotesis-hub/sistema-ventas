@@ -12,7 +12,7 @@ export default function DerivadoresReporte() {
   const [seleccionado, setSeleccionado] = useState(null)
   const [comisiones, setComisiones] = useState([])
   const [cargando, setCargando] = useState(false)
-  const { verificando, permitido } = usePermiso('derivadores-reporte')
+  const { verificando, permitido } = usePermiso('derivadores_reporte')
 
   // Filtros reporte
   const [filtroEstado, setFiltroEstado] = useState('todas')
