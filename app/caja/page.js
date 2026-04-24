@@ -100,7 +100,7 @@ export default function Caja() {
   async function buscarDolarAutomatico() {
     setCargandoDolar(true)
     try {
-      const res = await fetch('https://dolarapi.com/v1/dolares/oficial')
+      const res = await fetch('https://dolarapi.com/v1/dolares/blue')
       const data = await res.json()
       const valor = data.venta
       if (valor) {
