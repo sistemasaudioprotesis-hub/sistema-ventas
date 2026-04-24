@@ -13,7 +13,7 @@ export default function StockProductos() {
   const [movimientos, setMovimientos] = useState([])
   const [cargando, setCargando] = useState(false)
   const [productoSeleccionado, setProductoSeleccionado] = useState(null)
-  const { verificando, permitido } = usePermiso('stock-productos')
+  const { verificando, permitido } = usePermiso('stock_productos')
 
   // Modal ajuste
   const [modalAjuste, setModalAjuste] = useState(null)
