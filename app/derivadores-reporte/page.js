@@ -327,7 +327,17 @@ export default function DerivadoresReporte() {
                           </span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <button onClick={() => abrirEditar(c)} style={{ ...btnSecundario, fontSize: '12px', padding: '5px 10px', color: '#8B1E2D', borderColor: '#f5c2c9' }}>✏️ Editar</button>
+                          <button
+  onClick={() => !c.pagado && abrirEditar(c)}
+  disabled={c.pagado}
+  style={{
+    ...btnSecundario, fontSize: '12px', padding: '5px 10px',
+    color: c.pagado ? '#9ca3af' : '#8B1E2D',
+    borderColor: c.pagado ? '#e5e7eb' : '#f5c2c9',
+    cursor: c.pagado ? 'not-allowed' : 'pointer',
+    opacity: c.pagado ? 0.5 : 1,
+  }}
+>✏️ Editar</button>
                           {c.tipo_comision === 'porcentaje' && c.ventas?.total_dolares > 0 && (
                             <button onClick={() => recalcularConDolar(c)} style={{ ...btnSecundario, fontSize: '12px', padding: '5px 10px', color: '#1d4ed8', borderColor: '#bfdbfe' }}>💱 Recalc. U$S</button>
                           )}
