@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { getUsuarioId } from '../../lib/getUsuario'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { usePermiso } from '../../lib/usePermisos'
 
 export default function StockProductos() {
   const [productos, setProductos] = useState([])
@@ -12,6 +13,7 @@ export default function StockProductos() {
   const [movimientos, setMovimientos] = useState([])
   const [cargando, setCargando] = useState(false)
   const [productoSeleccionado, setProductoSeleccionado] = useState(null)
+  const { verificando, permitido } = usePermiso('stock-productos')
 
   // Modal ajuste
   const [modalAjuste, setModalAjuste] = useState(null)
@@ -21,6 +23,8 @@ export default function StockProductos() {
   const [guardandoToggle, setGuardandoToggle] = useState(null)
 
   useEffect(() => { cargarDatos() }, [])
+
+  if (verificando || !permitido) return null
 
   async function cargarDatos() {
     setCargando(true)
