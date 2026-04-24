@@ -8,7 +8,6 @@ import { usePermiso } from '../../lib/usePermisos'
 
 export default function Rentabilidad() {
   const { verificando, permitido } = usePermiso('rentabilidad')
-  if (verificando || !permitido) return null
   const hoy = new Date().toISOString().split('T')[0]
   const primerDiaMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
 
@@ -19,6 +18,8 @@ export default function Rentabilidad() {
   const [tab, setTab] = useState('ventas')
 
   useEffect(() => { buscar() }, [])
+
+  if (verificando || !permitido) return null
 
   async function getCotizacionFecha(fecha) {
     const fechaStr = fecha.split('T')[0]
