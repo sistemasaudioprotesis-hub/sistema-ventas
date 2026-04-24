@@ -16,7 +16,7 @@ export default function Derivadores() {
     derivador: '', especialidad: '', telefono: '', mail: '',
     observaciones: '', porcentaje: '', monto_fijo: '',
   })
-  const { verificando, permitido } = usePermiso('derivadores')
+  const { verificando, permitido } = usePermiso('configuracion')
 
   useEffect(() => { cargarDerivadores() }, [])
 
