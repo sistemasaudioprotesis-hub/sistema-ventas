@@ -12,7 +12,7 @@ export default function ObrasSociales() {
   const [obrasSociales, setObrasSociales] = useState([])
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [editando, setEditando] = useState(null)
-  const { verificando, permitido } = usePermiso('obras-sociales')
+  const { verificando, permitido } = usePermiso('configuracion')
 
   const [form, setForm] = useState({
     obra_social: '',
