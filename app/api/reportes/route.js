@@ -42,31 +42,4 @@ export async function GET(request) {
     if (tipo === 'pagos') {
       let query = supabase.from('pagos').select(`
         id, monto_pesos, monto_usd, fecha_pago,
-        formas_pago (forma_pago),
-        ventas (id, total_pesos, total_dolares, pacientes (apellido_paciente, nombres_paciente, dni))`)
-        .gte('fecha_pago', `${desde}T00:00:00`).lte('fecha_pago', `${hasta}T23:59:59`)
-        .order('fecha_pago', { ascending: false })
-      if (operadorId) query = query.eq('creado_por', operadorId)
-      if (formaPagoId) query = query.eq('forma_pago_id', formaPagoId)
-      const { data, error } = await query
-      if (error) return Response.json({ error: error.message }, { status: 500 })
-      return Response.json({ data: data || [] })
-    }
-
-    if (tipo === 'caja') {
-      const [{ data: pagos }, { data: manuales }] = await Promise.all([
-        supabase.from('pagos')
-          .select(`id, monto_pesos, monto_usd, fecha_pago, formas_pago (forma_pago), ventas (pacientes (apellido_paciente, nombres_paciente))`)
-          .gte('fecha_pago', `${desde}T00:00:00`).lte('fecha_pago', `${hasta}T23:59:59`),
-        supabase.from('caja_movimientos').select('*').gte('fecha', desde).lte('fecha', hasta),
-      ])
-      return Response.json({ data: { pagos: pagos || [], manuales: manuales || [] } })
-    }
-
-    if (tipo === 'visitas') {
-      let query = supabase.from('visitas')
-        .select(`id, fecha, observaciones, visita_motivos (motivo), pacientes (apellido_paciente, nombres_paciente, dni), ventas (id)`)
-        .eq('es_reparacion', false)
-        .gte('fecha', `${desde}T00:00:00`).lte('fecha', `${hasta}T23:59:59`)
-        .order('fecha', { ascending: false })
-      if (motiv
+        formas_pago (form
