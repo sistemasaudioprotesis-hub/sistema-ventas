@@ -1,0 +1,10 @@
+[
+  {
+    "id": 1,
+    "producto_id": 4,
+    "cantidad": 57,
+    "deposito_id": null,
+    "created_at": "2026-04-21T17:30:25.677008-03:00",
+    "creado_por": 1
+  }
+]
