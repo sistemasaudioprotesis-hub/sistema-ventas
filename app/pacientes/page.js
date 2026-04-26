@@ -6,6 +6,7 @@ import { getUsuarioId } from '../../lib/getUsuario'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
+import { fetchConToken } from '../../lib/fetchConToken'
 import { normalizarTexto } from '../../lib/formatText'
 
 const ESTADOS_REPARACION = {
@@ -104,19 +105,13 @@ export default function Pacientes() {
   }
 
   async function buscarPaciente() {
-    const valor = busqueda.trim()
-    if (!valor) { alert('Ingresar DNI o apellido'); return }
-    let query = supabase.from('pacientes').select('*')
-    if (/^\d+$/.test(valor)) {
-      query = query.eq('dni', valor)
-    } else {
-      query = query.ilike('apellido_paciente', `%${valor}%`)
-    }
-    const { data, error } = await query.order('apellido_paciente')
-    if (error) { alert('Error buscando pacientes'); return }
-    if (!data || data.length === 0) { alert('No se encontraron resultados'); setResultados([]); return }
-    setResultados(data)
-  }
+  const valor = busqueda.trim()
+  if (!valor) { alert('Ingresar DNI o apellido'); return }
+  const res = await fetchConToken(`/api/pacientes?q=${encodeURIComponent(valor)}`)
+  const data = await res.json()
+  if (!data.pacientes || data.pacientes.length === 0) { alert('No se encontraron resultados'); setResultados([]); return }
+  setResultados(data.pacientes)
+}
 
   function cargarDesdeObjeto(p) {
     setPacienteId(p.id)
@@ -137,9 +132,10 @@ export default function Pacientes() {
   }
 
   async function cargarPacientePorDni(dni) {
-    const { data } = await supabase.from('pacientes').select('*').eq('dni', dni).maybeSingle()
-    if (data) cargarDesdeObjeto(data)
-  }
+  const res = await fetchConToken(`/api/pacientes?q=${encodeURIComponent(dni)}`)
+  const data = await res.json()
+  if (data.pacientes && data.pacientes.length > 0) cargarDesdeObjeto(data.pacientes[0])
+}
 
   async function cargarVisitas(pid) {
     const { data } = await supabase.from('visitas')
@@ -189,30 +185,44 @@ export default function Pacientes() {
   }
 
   async function guardar(destino) {
-   if (!form.apellido_paciente || !form.nombres_paciente || !form.dni || !form.telefono) { alert('Completar campos obligatorios'); return }
-    if (!form.provincia_id) { alert('Seleccionar provincia'); return }
-    const dataGuardar = { ...form, provincia_id: Number(form.provincia_id), obra_social_id: form.obra_social_id ? Number(form.obra_social_id) : null }
-    if (pacienteId) {
-      const { data: pacienteActual } = await supabase.from('pacientes').select('*').eq('id', pacienteId).single()
-      await supabase.from('pacientes_historial').insert([{
-        paciente_id: pacienteId, apellido_paciente: pacienteActual.apellido_paciente,
-        nombres_paciente: pacienteActual.nombres_paciente, telefono: pacienteActual.telefono,
-        domicilio: pacienteActual.domicilio, localidad: pacienteActual.localidad,
-        provincia_id: pacienteActual.provincia_id, mail: pacienteActual.mail,
-        observaciones: pacienteActual.observaciones, creado_por: getUsuarioId(),
-      }])
-      await supabase.from('pacientes').update(dataGuardar).eq('id', pacienteId)
-      alert('Paciente actualizado')
-      cargarHistorial(pacienteId)
-    } else {
-      await supabase.from('pacientes').insert([{ ...dataGuardar, creado_por: getUsuarioId() }])
-      alert('Paciente creado')
-    }
-    setGuardado(true)
-    if (destino === 'ventas') window.location.href = `/ventas?dni=${form.dni}`
-    if (destino === 'pagos') window.location.href = `/pagos?dni=${form.dni}`
-    if (!destino) limpiarFormulario()
+  if (!form.apellido_paciente || !form.nombres_paciente || !form.dni || !form.telefono) { alert('Completar campos obligatorios'); return }
+  if (!form.provincia_id) { alert('Seleccionar provincia'); return }
+  const dataGuardar = { ...form, provincia_id: Number(form.provincia_id), obra_social_id: form.obra_social_id ? Number(form.obra_social_id) : null }
+
+  if (pacienteId) {
+    // Guardar historial primero
+    const resActual = await fetchConToken(`/api/pacientes/${pacienteId}`)
+    const { paciente: pacienteActual } = await resActual.json()
+    await fetchConToken(`/api/pacientes/${pacienteId}`, {
+      method: 'PUT',
+      body: JSON.stringify(dataGuardar),
+    })
+    // Historial sigue por supabase por ahora
+    await supabase.from('pacientes_historial').insert([{
+      paciente_id: pacienteId, apellido_paciente: pacienteActual.apellido_paciente,
+      nombres_paciente: pacienteActual.nombres_paciente, telefono: pacienteActual.telefono,
+      domicilio: pacienteActual.domicilio, localidad: pacienteActual.localidad,
+      provincia_id: pacienteActual.provincia_id, mail: pacienteActual.mail,
+      observaciones: pacienteActual.observaciones, creado_por: getUsuarioId(),
+    }])
+    alert('Paciente actualizado')
+    cargarHistorial(pacienteId)
+  } else {
+    const res = await fetchConToken('/api/pacientes', {
+      method: 'POST',
+      body: JSON.stringify(dataGuardar),
+    })
+    const data = await res.json()
+    if (!res.ok) { alert('Error: ' + data.error); return }
+    setPacienteId(data.paciente.id)
+    alert('Paciente creado')
   }
+
+  setGuardado(true)
+  if (destino === 'ventas') window.location.href = `/ventas?dni=${form.dni}`
+  if (destino === 'pagos') window.location.href = `/pagos?dni=${form.dni}`
+  if (!destino) limpiarFormulario()
+}
 
   async function guardarVisita() {
     if (!pacienteId) { alert('Primero seleccioná un paciente'); return }
