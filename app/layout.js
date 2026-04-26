@@ -14,11 +14,27 @@ export default function RootLayout({ children }) {
 
   useEffect(() => {
     async function cargar() {
+      const token = localStorage.getItem('token')
       const stored = localStorage.getItem('usuario')
-      if (!stored && pathname !== '/login') { router.push('/login'); return }
-      if (stored) {
+
+      if (!token && pathname !== '/login') { router.push('/login'); return }
+
+      if (token && stored) {
         const u = JSON.parse(stored)
         setUsuario(u)
+
+        // Verificar que el token sigue siendo válido
+        const res = await fetch('/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+
+        if (!res.ok) {
+          localStorage.removeItem('token')
+          localStorage.removeItem('usuario')
+          router.push('/login')
+          return
+        }
+
         if (u.rol === 'admin') {
           setPermisos('admin')
         } else {
@@ -40,6 +56,7 @@ export default function RootLayout({ children }) {
   }
 
   function cerrarSesion() {
+    localStorage.removeItem('token')
     localStorage.removeItem('usuario')
     router.push('/login')
   }
