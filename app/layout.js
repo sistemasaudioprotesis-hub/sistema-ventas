@@ -3,7 +3,6 @@
 import './globals.css'
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { supabase } from '../lib/supabaseClient'
 
 export default function RootLayout({ children }) {
   const router = useRouter()
@@ -36,11 +35,14 @@ export default function RootLayout({ children }) {
         }
 
         if (u.rol === 'admin') {
-          setPermisos('admin')
-        } else {
-          const { data } = await supabase.from('permisos').select('seccion, tiene_acceso').eq('rol', u.rol)
-          setPermisos(data || [])
-        }
+  setPermisos('admin')
+} else {
+  const res = await fetch('/api/auth/permisos', {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  const data = await res.json()
+  setPermisos(data.permisos || [])
+}
       }
       setVerificando(false)
     }
