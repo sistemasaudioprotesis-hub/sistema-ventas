@@ -3,41 +3,34 @@ import { randomBytes } from 'crypto'
 
 export async function POST(request) {
   try {
-    const { dni, password } = await request.json()
-    if (!dni || !password) {
-      return Response.json({ error: 'DNI y contraseña requeridos' }, { status: 400 })
+    const { usuario, password } = await request.json()
+    if (!usuario || !password) {
+      return Response.json({ error: 'Completar usuario y contraseña' }, { status: 400 })
     }
 
     const supabase = createServerClient()
 
-    // Buscar usuario por DNI
-    const { data: usuario } = await supabase
+    const { data } = await supabase
       .from('usuarios')
-      .select('*')
-      .eq('dni', dni)
-      .eq('activo', true)
+      .select('id, usuario, nombre, rol, activo')
+      .eq('usuario', usuario.toLowerCase().trim())
+      .eq('password', password)
       .maybeSingle()
 
-    if (!usuario) {
-      return Response.json({ error: 'Usuario no encontrado' }, { status: 401 })
+    if (!data) {
+      return Response.json({ error: 'Usuario o contraseña incorrectos' }, { status: 401 })
     }
 
-    // Verificar contraseña (igual que como lo hacés ahora)
-    const { data: passOk } = await supabase.rpc('verificar_password', {
-      p_password: password,
-      p_hash: usuario.password
-    })
-
-    if (!passOk) {
-      return Response.json({ error: 'Contraseña incorrecta' }, { status: 401 })
+    if (!data.activo) {
+      return Response.json({ error: 'Usuario inactivo. Contactar al administrador' }, { status: 403 })
     }
 
     // Crear token de sesión
     const token = randomBytes(32).toString('hex')
-    const expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 días
+    const expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
     await supabase.from('sesiones').insert([{
-      usuario_id: usuario.id,
+      usuario_id: data.id,
       token,
       expires_at,
     }])
@@ -45,9 +38,10 @@ export async function POST(request) {
     return Response.json({
       token,
       usuario: {
-        id: usuario.id,
-        nombre: usuario.nombre,
-        rol: usuario.rol,
+        id: data.id,
+        usuario: data.usuario,
+        nombre: data.nombre,
+        rol: data.rol,
       }
     })
 
