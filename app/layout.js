@@ -56,12 +56,18 @@ export default function RootLayout({ children }) {
     const p = permisos.find(x => x.seccion === seccion)
     return p?.tiene_acceso ?? false
   }
-
-  function cerrarSesion() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('usuario')
-    router.push('/login')
+async function cerrarSesion() {
+  const token = localStorage.getItem('token')
+  if (token) {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    })
   }
+  localStorage.removeItem('token')
+  localStorage.removeItem('usuario')
+  router.push('/login')
+}
 
   const esLogin = pathname === '/login'
   if (verificando && !esLogin) return null
