@@ -343,7 +343,7 @@ export default function Ventas() {
     const nuevoTotalUSD = itemsEdicion.reduce((acc, i) => acc + ((Number(i.precio_venta_usd) || 0) * (Number(i.cantidad) || 1)), 0)
     await fetchConToken(`/api/ventas/${ventaEditando.id}/historial`, { method: 'POST', body: JSON.stringify({ total_pesos: ventaEditando.total_pesos, total_dolares: ventaEditando.total_dolares, confirmada: ventaEditando.confirmada }) }).catch(() => {})
     await fetchConToken(`/api/ventas/${ventaEditando.id}`, { method: 'PUT', body: JSON.stringify({ total_pesos: nuevoTotalPesos, total_dolares: nuevoTotalUSD }) })
-    if (derivadorEdicionId && valorComisionEdicion && !ventaEditando.derivador) {
+    if (derivadorEdicionId && valorComisionEdicion) {
       let montoFinal = montoCalculadoEdicion ? Number(montoCalculadoEdicion) : null
       if (!montoFinal && tipoComisionEdicion === 'monto_fijo') montoFinal = Number(valorComisionEdicion)
       if (!montoFinal && tipoComisionEdicion === 'porcentaje') { const resCotiz = await fetchConToken('/api/cotizacion'); const dataCotiz = await resCotiz.json(); const cotiz = dataCotiz?.cotizacion; const base = nuevoTotalPesos + (cotiz ? nuevoTotalUSD * cotiz : 0); montoFinal = Math.round(base * Number(valorComisionEdicion) / 100) || null }
@@ -553,28 +553,17 @@ export default function Ventas() {
             </div>
             <div style={{ marginTop: '10px' }}><button onClick={agregarItemEdicion} style={{ ...btnSecundario, fontSize: '13px' }}>+ Agregar</button></div>
           </div>
-          {!ventaEditando.derivador ? (
-            <div style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', marginBottom: '16px' }}>
-              <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>👤 Agregar derivador</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div><label style={labelStyle}>Derivador</label><select value={derivadorEdicionId} onChange={(e) => seleccionarDerivadorEdicion(e.target.value)} style={inputStyle}><option value="">Sin derivador</option>{derivadores.map(d => <option key={d.id} value={d.id}>{d.derivador}</option>)}</select></div>
-                {derivadorEdicionId && <div><label style={labelStyle}>Tipo de comisión</label><select value={tipoComisionEdicion} onChange={(e) => setTipoComisionEdicion(e.target.value)} style={inputStyle}><option value="porcentaje">Porcentaje (%)</option><option value="monto_fijo">Monto fijo ($)</option></select></div>}
-                {derivadorEdicionId && <div><label style={labelStyle}>{tipoComisionEdicion === 'porcentaje' ? 'Porcentaje (%)' : 'Monto fijo ($)'}</label><input type="number" placeholder={tipoComisionEdicion === 'porcentaje' ? 'Ej: 5' : 'Ej: 50000'} value={valorComisionEdicion} onChange={(e) => setValorComisionEdicion(e.target.value)} style={inputStyle} /></div>}
-                {derivadorEdicionId && <div><label style={labelStyle}>Comisión a pagar ($)</label><input type="number" placeholder="$0" value={montoCalculadoEdicion} onChange={(e) => setMontoCalculadoEdicion(e.target.value)} style={{ ...inputStyle, background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600' }} /></div>}
-              </div>
-            </div>
-          ) : (
-            <div style={{ padding: '10px 14px', background: '#fdf2f4', borderRadius: '8px', border: '1px solid #f5c2c9', marginBottom: '16px', fontSize: '13px', color: '#8B1E2D' }}>
-              👤 Derivador: <strong>{ventaEditando.derivador.derivadores?.derivador}</strong> {ventaEditando.derivador.monto_calculado ? `· Comisión: ${fmt(ventaEditando.derivador.monto_calculado)}` : ''}
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: '10px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
-            <button onClick={guardarTotalesVenta} style={btnPrimario}>💾 Guardar cambios</button>
-            <button onClick={cerrarEdicion} style={btnSecundario}>Cancelar</button>
-          </div>
-        </div>
-      )}
-
+          <div style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', marginBottom: '16px' }}>
+  <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+    👤 {ventaEditando.derivador ? 'Editar derivador' : 'Agregar derivador'}
+  </div>
+  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+    <div><label style={labelStyle}>Derivador</label><select value={derivadorEdicionId} onChange={(e) => seleccionarDerivadorEdicion(e.target.value)} style={inputStyle}><option value="">Sin derivador</option>{derivadores.map(d => <option key={d.id} value={d.id}>{d.derivador}</option>)}</select></div>
+    {derivadorEdicionId && <div><label style={labelStyle}>Tipo de comisión</label><select value={tipoComisionEdicion} onChange={(e) => setTipoComisionEdicion(e.target.value)} style={inputStyle}><option value="porcentaje">Porcentaje (%)</option><option value="monto_fijo">Monto fijo ($)</option></select></div>}
+    {derivadorEdicionId && <div><label style={labelStyle}>{tipoComisionEdicion === 'porcentaje' ? 'Porcentaje (%)' : 'Monto fijo ($)'}</label><input type="number" placeholder={tipoComisionEdicion === 'porcentaje' ? 'Ej: 5' : 'Ej: 50000'} value={valorComisionEdicion} onChange={(e) => setValorComisionEdicion(e.target.value)} style={inputStyle} /></div>}
+    {derivadorEdicionId && <div><label style={labelStyle}>Comisión a pagar ($)</label><input type="number" placeholder="$0" value={montoCalculadoEdicion} onChange={(e) => setMontoCalculadoEdicion(e.target.value)} style={{ ...inputStyle, background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600' }} /></div>}
+  </div>
+</div>
       {/* MODAL SIN STOCK */}
       {modalSinStock && (
         <div style={overlay}>
