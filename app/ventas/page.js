@@ -564,6 +564,12 @@ export default function Ventas() {
     {derivadorEdicionId && <div><label style={labelStyle}>Comisión a pagar ($)</label><input type="number" placeholder="$0" value={montoCalculadoEdicion} onChange={(e) => setMontoCalculadoEdicion(e.target.value)} style={{ ...inputStyle, background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600' }} /></div>}
   </div>
 </div>
+     <div style={{ display: 'flex', gap: '10px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
+            <button onClick={guardarTotalesVenta} style={btnPrimario}>💾 Guardar cambios</button>
+            <button onClick={cerrarEdicion} style={btnSecundario}>Cancelar</button>
+          </div>
+        </div>
+      )}
       {/* MODAL SIN STOCK */}
       {modalSinStock && (
         <div style={overlay}>
