@@ -21,20 +21,24 @@ export async function PUT(request, { params }) {
   try {
     const usuario = await verificarSesion(request)
     if (!usuario) return Response.json({ error: 'No autorizado' }, { status: 401 })
-
     const body = await request.json()
     const supabase = createServerClient()
 
-    const { data, error } = await supabase
-      .from('pagos')
-      .update(body)
-      .eq('id', params.id)
-      .select()
-      .single()
+    // Guardar historial antes de modificar
+    const { data: actual } = await supabase.from('pagos').select('*').eq('id', params.id).single()
+    if (actual) {
+      await supabase.from('pagos_historial').insert([{
+        pago_id: actual.id,
+        monto_pesos: actual.monto_pesos,
+        monto_usd: actual.monto_usd,
+        forma_pago_id: actual.forma_pago_id,
+        modificado_por: usuario.id,
+      }])
+    }
 
+    const { data, error } = await supabase.from('pagos').update(body).eq('id', params.id).select().single()
     if (error) return Response.json({ error: error.message }, { status: 500 })
     return Response.json({ pago: data })
-
   } catch (e) {
     return Response.json({ error: 'Error interno' }, { status: 500 })
   }
