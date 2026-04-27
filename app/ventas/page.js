@@ -356,9 +356,10 @@ export default function Ventas() {
     setModalSalir(true)
     return
   }
-  // Si ya fue confirmada o no hay venta, limpiar directo
   limpiarVenta()
-   async function confirmarYSalir() {
+}
+
+async function confirmarYSalir() {
   if (!ventaId) return
   const res = await fetchConToken(`/api/ventas/${ventaId}`, {
     method: 'PUT',
@@ -367,7 +368,6 @@ export default function Ventas() {
   if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
   await guardarDerivador(ventaId, totalPesos, totalUSD)
   limpiarVenta()
-}
 }
 
 function limpiarVenta() {
