@@ -2,10 +2,9 @@
 
 export const dynamic = 'force-dynamic'
 
-import { getUsuarioId } from '../../lib/getUsuario'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { supabase } from '../../lib/supabaseClient'
+import { fetchConToken } from '../../lib/fetchConToken'
 import { formatearPesos } from '../../lib/format'
 
 export default function Pagos() {
@@ -25,11 +24,10 @@ export default function Pagos() {
   const [totalPesos, setTotalPesos] = useState(0)
   const [totalUSD, setTotalUSD] = useState(0)
 
-  // Cotización
   const [cotizacion, setCotizacion] = useState(null)
   const [cotizacionManual, setCotizacionManual] = useState('')
   const [cotizacionFecha, setCotizacionFecha] = useState('')
-  const [cotizacionEstado, setCotizacionEstado] = useState('') // 'hoy', 'anterior', 'manual', 'error'
+  const [cotizacionEstado, setCotizacionEstado] = useState('')
 
   const [form, setForm] = useState({ forma_pago_id: '', monto_pesos: '', monto_usd: '' })
 
@@ -44,79 +42,41 @@ export default function Pagos() {
   }, [ventaIdParam])
 
   async function cargarCotizacion() {
-    const hoy = new Date().toISOString().split('T')[0]
-
-    // 1. Ver si ya hay cotización de hoy en la tabla
-    const { data: hoyData } = await supabase.from('valor_dolar_bna')
-      .select('fecha, dolar_vendedor').eq('fecha', hoy).maybeSingle()
-
-    if (hoyData) {
-      setCotizacion(hoyData.dolar_vendedor)
-      setCotizacionFecha(hoyData.fecha)
-      setCotizacionManual(String(hoyData.dolar_vendedor))
-      setCotizacionEstado('hoy')
-      return
-    }
-
-    // 2. No hay → buscar en la API
-    try {
-      const res = await fetch('https://dolarapi.com/v1/dolares/blue')
-      const json = await res.json()
-      const venta = json.venta
-      if (venta) {
-        await supabase.from('valor_dolar_bna').insert([{
-          fecha: hoy,
-          dolar_vendedor: venta,
-          creado_por: getUsuarioId(),
-        }])
-        setCotizacion(venta)
-        setCotizacionFecha(hoy)
-        setCotizacionManual(String(venta))
-        setCotizacionEstado('hoy')
-        return
-      }
-    } catch {
-      // API falló, continuar con fallback
-    }
-
-    // 3. API falló → usar la más reciente disponible
-    const { data: anterior } = await supabase.from('valor_dolar_bna')
-      .select('fecha, dolar_vendedor')
-      .lte('fecha', hoy)
-      .order('fecha', { ascending: false })
-      .limit(1).maybeSingle()
-
-    if (anterior) {
-      setCotizacion(anterior.dolar_vendedor)
-      setCotizacionFecha(anterior.fecha)
-      setCotizacionManual(String(anterior.dolar_vendedor))
-      setCotizacionEstado('anterior')
-    } else {
-      // 4. No hay nada — dejar campo vacío para carga manual
-      setCotizacionEstado('error')
-    }
+    const res = await fetchConToken('/api/cotizacion')
+    const data = await res.json()
+    if (data.error) { setCotizacionEstado('error'); return }
+    setCotizacion(data.cotizacion)
+    setCotizacionFecha(data.fecha)
+    setCotizacionManual(String(data.cotizacion || ''))
+    if (data.fuente === 'hoy') setCotizacionEstado('hoy')
+    else if (data.fuente === 'anterior') setCotizacionEstado('anterior')
+    else if (data.fuente === 'ninguna') setCotizacionEstado('error')
+    else setCotizacionEstado('hoy')
   }
 
   async function obtenerFormasPago() {
-    const { data } = await supabase.from('formas_pago').select('*').order('forma_pago')
-    setFormasPago(data || [])
+    const res = await fetchConToken('/api/configuracion/formas-pago')
+    const data = await res.json()
+    setFormasPago(data.formas_pago || [])
   }
 
   async function buscarPacienteAutomatico(dniValor) {
-    const { data } = await supabase.from('pacientes').select('*').eq('dni', dniValor).maybeSingle()
-    if (data) { setPaciente(data); await cargarVentasPaciente(data.id) }
+    const res = await fetchConToken(`/api/pacientes?q=${encodeURIComponent(dniValor)}`)
+    const data = await res.json()
+    const lista = data.pacientes || []
+    if (lista.length > 0) { setPaciente(lista[0]); await cargarVentasPaciente(lista[0].id) }
   }
 
   async function cargarVentasPaciente(pacienteId) {
-    const { data: ventasData } = await supabase.from('ventas')
-      .select(`*, venta_detalle (precio_venta_pesos, precio_venta_usd)`)
-      .eq('paciente_id', pacienteId).order('fecha', { ascending: false })
-    const ventasConSaldo = await Promise.all((ventasData || []).map(async v => {
-      const { data: pagos } = await supabase.from('pagos')
-        .select('monto_pesos, monto_usd, monto_equivalente_pesos, monto_equivalente_usd')
-        .eq('venta_id', v.id)
-      const pagadoP = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_equivalente_pesos) || Number(p.monto_pesos) || 0), 0)
-      const pagadoU = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_equivalente_usd) || Number(p.monto_usd) || 0), 0)
+    const res = await fetchConToken(`/api/ventas?paciente_id=${pacienteId}`)
+    const data = await res.json()
+    const ventasBase = data.ventas || []
+    const ventasConSaldo = await Promise.all(ventasBase.map(async v => {
+      const resPagos = await fetchConToken(`/api/pagos?venta_id=${v.id}`)
+      const dataPagos = await resPagos.json()
+      const pagos = dataPagos.pagos || []
+      const pagadoP = pagos.reduce((acc, p) => acc + (Number(p.monto_equivalente_pesos) || Number(p.monto_pesos) || 0), 0)
+      const pagadoU = pagos.reduce((acc, p) => acc + (Number(p.monto_equivalente_usd) || Number(p.monto_usd) || 0), 0)
       return { ...v, pagadoPesos: pagadoP, pagadoUSD: pagadoU }
     }))
     setVentas(ventasConSaldo)
@@ -125,31 +85,28 @@ export default function Pagos() {
   async function buscarPaciente() {
     const valor = busqueda.trim()
     if (!valor) { alert('Ingresar DNI o apellido'); return }
-    let query = supabase.from('pacientes').select('*')
-    if (/^\d+$/.test(valor)) { query = query.eq('dni', Number(valor)) } else { query = query.ilike('apellido_paciente', `%${valor}%`) }
-    const { data, error } = await query.order('apellido_paciente')
-    if (error) { alert('Error buscando pacientes'); return }
-    if (!data || data.length === 0) { alert('No se encontraron resultados'); setResultados([]); return }
-    setResultados(data)
+    const res = await fetchConToken(`/api/pacientes?q=${encodeURIComponent(valor)}`)
+    const data = await res.json()
+    if (!data.pacientes || data.pacientes.length === 0) { alert('No se encontraron resultados'); setResultados([]); return }
+    setResultados(data.pacientes)
   }
 
   async function cargarDetalleVenta(ventaId) {
-    const { data: detalle } = await supabase.from('venta_detalle')
-      .select(`*, numeros_serie (numero_serie, productos (producto)), productos (producto)`)
-      .eq('venta_id', ventaId)
-    setDetalleVenta(detalle || [])
-    const totalPesosCalc = (detalle || []).reduce((acc, d) => acc + (Number(d.precio_venta_pesos) || 0), 0)
-    const totalUSDCalc = (detalle || []).reduce((acc, d) => acc + (Number(d.precio_venta_usd) || 0), 0)
+    const res = await fetchConToken(`/api/ventas/${ventaId}`)
+    const data = await res.json()
+    const detalle = data.venta?.venta_detalle || []
+    setDetalleVenta(detalle)
+    const totalPesosCalc = detalle.reduce((acc, d) => acc + (Number(d.precio_venta_pesos) || 0), 0)
+    const totalUSDCalc = detalle.reduce((acc, d) => acc + (Number(d.precio_venta_usd) || 0), 0)
     setTotalPesos(totalPesosCalc)
     setTotalUSD(totalUSDCalc)
     await cargarPagosVenta(ventaId)
   }
 
   async function cargarPagosVenta(ventaId) {
-    const { data: pagos } = await supabase.from('pagos')
-      .select(`*, formas_pago (forma_pago, es_efectivo)`)
-      .eq('venta_id', ventaId).order('fecha_pago')
-    setPagosVenta(pagos || [])
+    const res = await fetchConToken(`/api/pagos?venta_id=${ventaId}`)
+    const data = await res.json()
+    setPagosVenta(data.pagos || [])
   }
 
   function calcularPagado() {
@@ -160,7 +117,7 @@ export default function Pagos() {
 
   async function eliminarPago(id) {
     if (!confirm('¿Eliminar este pago?')) return
-    await supabase.from('pagos').delete().eq('id', id)
+    await fetchConToken(`/api/pagos/${id}`, { method: 'DELETE' })
     await cargarPagosVenta(ventaSeleccionada)
     if (paciente) await cargarVentasPaciente(paciente.id)
   }
@@ -184,37 +141,44 @@ export default function Pagos() {
     let montoEquivPesos = null
     let montoEquivUSD = null
 
-    // Venta en pesos, pago en USD → convertir a pesos
     if (totalPesos > 0 && totalUSD === 0 && montoUsd > 0) {
       if (!cotizUsada) { alert('No hay cotización disponible. Ingresala manualmente.'); return }
       montoEquivPesos = Math.round(montoUsd * cotizUsada)
       if (montoEquivPesos > saldoP + 1) { alert(`El pago en USD equivale a ${fmt(montoEquivPesos)} y supera el saldo de ${fmt(saldoP)}`); return }
     }
 
-    // Venta en USD, pago en pesos → convertir a USD
     if (totalUSD > 0 && totalPesos === 0 && montoPesos > 0) {
       if (!cotizUsada) { alert('No hay cotización disponible. Ingresala manualmente.'); return }
       montoEquivUSD = montoPesos / cotizUsada
       if (montoEquivUSD > saldoU + 0.01) { alert(`El pago en pesos equivale a U$S ${montoEquivUSD.toFixed(2)} y supera el saldo de U$S ${saldoU}`); return }
     }
 
-    // Pago directo en misma moneda
     if (totalPesos > 0 && montoPesos > 0 && montoPesos > saldoP + 1) { alert('El pago supera el saldo en pesos'); return }
     if (totalUSD > 0 && montoUsd > 0 && montoUsd > saldoU + 0.01) { alert('El pago supera el saldo en USD'); return }
 
-    const { error } = await supabase.from('pagos').insert([{
-      venta_id: Number(ventaSeleccionada),
-      fecha_pago: new Date().toISOString(),
-      forma_pago_id: Number(form.forma_pago_id),
-      monto_pesos: montoPesos || null,
-      monto_usd: montoUsd || null,
-      cotizacion_usada: (montoEquivPesos || montoEquivUSD) ? cotizUsada : null,
-      monto_equivalente_pesos: montoEquivPesos || null,
-      monto_equivalente_usd: montoEquivUSD ? Number(montoEquivUSD.toFixed(2)) : null,
-      creado_por: getUsuarioId(),
-    }])
+    const res = await fetchConToken('/api/pagos', {
+      method: 'POST',
+      body: JSON.stringify({
+        venta_id: Number(ventaSeleccionada),
+        fecha_pago: new Date().toISOString(),
+        forma_pago_id: Number(form.forma_pago_id),
+        monto_pesos: montoPesos || null,
+        monto_usd: montoUsd || null,
+        cotizacion_usada: (montoEquivPesos || montoEquivUSD) ? cotizUsada : null,
+        monto_equivalente_pesos: montoEquivPesos || null,
+        monto_equivalente_usd: montoEquivUSD ? Number(montoEquivUSD.toFixed(2)) : null,
+      })
+    })
+    const data = await res.json()
+    if (!res.ok) { alert('Error: ' + data.error); return }
 
-    if (error) { alert('Error: ' + error.message); return }
+    // Guardar cotización si fue modificada manualmente
+    if (cotizacionEstado === 'manual' && cotizacionManual) {
+      await fetchConToken('/api/cotizacion', {
+        method: 'POST',
+        body: JSON.stringify({ valor: Number(cotizacionManual) })
+      })
+    }
 
     alert('✅ Pago registrado')
     setForm({ forma_pago_id: '', monto_pesos: '', monto_usd: '' })
