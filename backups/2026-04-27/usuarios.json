@@ -1,0 +1,42 @@
+[
+  {
+    "id": 5,
+    "usuario": "hernan",
+    "password": "hernan123",
+    "rol": "director",
+    "activo": true,
+    "nombre": "Hernan"
+  },
+  {
+    "id": 6,
+    "usuario": "luciano",
+    "password": "luciano123",
+    "rol": "director",
+    "activo": true,
+    "nombre": "Luciano"
+  },
+  {
+    "id": 7,
+    "usuario": "franco",
+    "password": "franco123",
+    "rol": "director",
+    "activo": true,
+    "nombre": "Franco"
+  },
+  {
+    "id": 1,
+    "usuario": "admin",
+    "password": "admin123",
+    "rol": "admin",
+    "activo": true,
+    "nombre": "Administrador"
+  },
+  {
+    "id": 4,
+    "usuario": "juli",
+    "password": "juli1234",
+    "rol": "vendedor",
+    "activo": true,
+    "nombre": "Juli G"
+  }
+]

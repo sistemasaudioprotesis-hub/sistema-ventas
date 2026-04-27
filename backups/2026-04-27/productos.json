@@ -1,0 +1,74 @@
+[
+  {
+    "id": 1,
+    "producto": "RITE",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-04-14T20:34:25.560492-03:00",
+    "creado_por": 1,
+    "controla_stock": false
+  },
+  {
+    "id": 2,
+    "producto": "INTRACANAL",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-04-14T20:34:51.422925-03:00",
+    "creado_por": 1,
+    "controla_stock": false
+  },
+  {
+    "id": 3,
+    "producto": "TAPONES",
+    "tipo_id": 3,
+    "activo": true,
+    "created_at": "2026-04-14T20:35:33.407281-03:00",
+    "creado_por": 1,
+    "controla_stock": false
+  },
+  {
+    "id": 5,
+    "producto": "REPARACION INTRACANAL",
+    "tipo_id": 2,
+    "activo": true,
+    "created_at": "2026-04-14T20:36:56.09609-03:00",
+    "creado_por": 1,
+    "controla_stock": false
+  },
+  {
+    "id": 6,
+    "producto": "INTRACANAL 2",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-04-20T22:12:06.146629-03:00",
+    "creado_por": 1,
+    "controla_stock": false
+  },
+  {
+    "id": 7,
+    "producto": "INTRACANAL 2",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-04-20T22:12:17.81895-03:00",
+    "creado_por": 1,
+    "controla_stock": false
+  },
+  {
+    "id": 4,
+    "producto": "PILAS BLISTER",
+    "tipo_id": 3,
+    "activo": true,
+    "created_at": "2026-04-14T20:36:16.161591-03:00",
+    "creado_por": 1,
+    "controla_stock": true
+  },
+  {
+    "id": 8,
+    "producto": "DESHUMIDIFICADORES",
+    "tipo_id": 5,
+    "activo": true,
+    "created_at": "2026-04-26T18:10:18.339032-03:00",
+    "creado_por": 1,
+    "controla_stock": true
+  }
+]
