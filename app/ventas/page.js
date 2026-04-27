@@ -47,6 +47,10 @@ export default function Ventas() {
   const [formEdicion, setFormEdicion] = useState({ producto_id: '', numero_serie_id: '', precio_pesos: '', precio_usd: '' })
   const [modoConSerieEdicion, setModoConSerieEdicion] = useState(true)
   const [seriesFiltradasEdicion, setSeriesFiltradasEdicion] = useState([])
+  const [derivadorEdicionId, setDerivadorEdicionId] = useState('')
+  const [tipoComisionEdicion, setTipoComisionEdicion] = useState('porcentaje')
+  const [valorComisionEdicion, setValorComisionEdicion] = useState('')
+  const [montoCalculadoEdicion, setMontoCalculadoEdicion] = useState('')
 
   const [form, setForm] = useState({ numero_serie_id: '', producto_id: '', precio_pesos: '', precio_usd: '', cantidad: '1' })
 
@@ -86,10 +90,10 @@ export default function Ventas() {
   }
 
   async function obtenerProductos() {
-  const res = await fetchConToken('/api/productos')
-  const data = await res.json()
-  setProductos(data.productos || [])
-}
+    const res = await fetchConToken('/api/productos')
+    const data = await res.json()
+    setProductos(data.productos || [])
+  }
 
   async function obtenerObrasSociales() {
     const res = await fetchConToken('/api/configuracion/obras-sociales')
@@ -117,6 +121,15 @@ export default function Ventas() {
     if (!d) return
     if (d.porcentaje) { setTipoComision('porcentaje'); setValorComision(String(d.porcentaje)) }
     else if (d.monto_fijo) { setTipoComision('monto_fijo'); setValorComision(String(d.monto_fijo)) }
+  }
+
+  function seleccionarDerivadorEdicion(id) {
+    setDerivadorEdicionId(id)
+    if (!id) { setValorComisionEdicion(''); setTipoComisionEdicion('porcentaje'); setMontoCalculadoEdicion(''); return }
+    const d = derivadores.find(x => String(x.id) === id)
+    if (!d) return
+    if (d.porcentaje) { setTipoComisionEdicion('porcentaje'); setValorComisionEdicion(String(d.porcentaje)) }
+    else if (d.monto_fijo) { setTipoComisionEdicion('monto_fijo'); setValorComisionEdicion(String(d.monto_fijo)) }
   }
 
   async function buscarPacienteAutomatico(dniParam) {
@@ -168,9 +181,9 @@ export default function Ventas() {
   async function handleChange(e) {
     const { name, value } = e.target
     if (name === 'producto_id') {
-      const prod = productos.find(p => p.producto_id === Number(value))
-      const requiereSerie = prod?.productos?.requiere_serie || false
-      const ctrlStock = prod?.productos?.controla_stock || false
+      const prod = productos.find(p => p.id === Number(value))
+      const requiereSerie = prod?.tipo_producto?.requiere_serie || false
+      const ctrlStock = prod?.controla_stock || false
       setModoConSerie(requiereSerie); setControlaStock(ctrlStock)
       setSeriesFiltradas(series.filter(s => s.producto_id === Number(value)))
       setForm({ ...form, producto_id: value, numero_serie_id: '', cantidad: '1' })
@@ -203,8 +216,8 @@ export default function Ventas() {
     const dataDetalle = await resDetalle.json()
     if (modoConSerie) await fetchConToken(`/api/stock/series/${form.numero_serie_id}`, { method: 'PUT', body: JSON.stringify({ en_stock: false, fecha_salida: new Date().toISOString() }) })
     else if (controlaStock) await fetchConToken(`/api/stock/productos/${form.producto_id}/movimiento`, { method: 'POST', body: JSON.stringify({ tipo: 'egreso', cantidad, concepto: `Venta #${ventaActualId}` }) })
-    const prod = productos.find(p => p.producto_id === Number(form.producto_id))
-    setItems([...items, { id: dataDetalle.detalle.id, numero_serie_id: form.numero_serie_id, producto: modoConSerie ? series.find(s => s.id == form.numero_serie_id)?.productos?.producto : prod?.productos?.producto, serie: modoConSerie ? series.find(s => s.id == form.numero_serie_id)?.numero_serie : '-', precio_pesos: form.precio_pesos, precio_usd: form.precio_usd, cantidad: modoConSerie ? 1 : cantidad }])
+    const prod = productos.find(p => p.id === Number(form.producto_id))
+    setItems([...items, { id: dataDetalle.detalle.id, numero_serie_id: form.numero_serie_id, producto: modoConSerie ? series.find(s => s.id == form.numero_serie_id)?.productos?.producto : prod?.producto, serie: modoConSerie ? series.find(s => s.id == form.numero_serie_id)?.numero_serie : '-', precio_pesos: form.precio_pesos, precio_usd: form.precio_usd, cantidad: modoConSerie ? 1 : cantidad }])
     setForm({ numero_serie_id: '', producto_id: '', precio_pesos: '', precio_usd: '', cantidad: '1' })
     setStockDisponible(null); setControlaStock(false); obtenerSeries(); setModalSinStock(null)
   }
@@ -223,17 +236,27 @@ export default function Ventas() {
     setItems(items.filter(i => i.id !== item.id)); obtenerSeries()
   }
 
+  async function guardarDerivador(ventaActualId, totalP, totalU) {
+    if (!derivadorId || !valorComision) return
+    let montoFinal = montoCalculado ? Number(montoCalculado) : null
+    if (!montoFinal && tipoComision === 'monto_fijo') montoFinal = Number(valorComision)
+    if (!montoFinal && tipoComision === 'porcentaje') {
+      const resCotiz = await fetchConToken('/api/cotizacion')
+      const dataCotiz = await resCotiz.json()
+      const cotiz = dataCotiz?.cotizacion
+      const base = totalP + (cotiz ? totalU * cotiz : 0)
+      montoFinal = Math.round(base * Number(valorComision) / 100) || null
+    }
+    await fetchConToken(`/api/ventas/${ventaActualId}/derivador`, { method: 'POST', body: JSON.stringify({ derivador_id: Number(derivadorId), tipo_comision: tipoComision, valor_comision: Number(valorComision), monto_calculado: montoFinal, pagado: false }) })
+  }
+
   async function confirmarVenta() {
     if (!ventaId) return alert('No hay venta')
     const res = await fetchConToken(`/api/ventas/${ventaId}`, { method: 'PUT', body: JSON.stringify({ confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD, obra_social_id: obraSocialId ? Number(obraSocialId) : null }) })
     if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
-    if (derivadorId && valorComision) {
-      let montoFinal = montoCalculado ? Number(montoCalculado) : null
-      if (!montoFinal && tipoComision === 'monto_fijo') montoFinal = Number(valorComision)
-      if (!montoFinal && tipoComision === 'porcentaje') { const resCotiz = await fetchConToken('/api/cotizacion'); const dataCotiz = await resCotiz.json(); const cotiz = dataCotiz?.cotizacion; const base = totalPesos + (cotiz ? totalUSD * cotiz : 0); montoFinal = Math.round(base * Number(valorComision) / 100) || null }
-      await fetchConToken(`/api/ventas/${ventaId}/derivador`, { method: 'POST', body: JSON.stringify({ derivador_id: Number(derivadorId), tipo_comision: tipoComision, valor_comision: Number(valorComision), monto_calculado: montoFinal, pagado: false }) })
-    }
-    setVentaConfirmada(true); alert('✅ Venta confirmada')
+    await guardarDerivador(ventaId, totalPesos, totalUSD)
+    setVentaConfirmada(true)
+    alert('✅ Venta confirmada')
     if (paciente) cargarVentasPaciente(paciente.id)
   }
 
@@ -242,26 +265,42 @@ export default function Ventas() {
     window.location.href = `/pagos?venta_id=${ventaId}&dni=${dni}`
   }
 
-  async function finalizarVenta() {
-    if (!ventaId) return alert('No hay venta')
-    const res = await fetchConToken(`/api/ventas/${ventaId}`, { method: 'PUT', body: JSON.stringify({ confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD, obra_social_id: obraSocialId ? Number(obraSocialId) : null }) })
-    if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
-    if (derivadorId && valorComision) {
-      let montoFinal = montoCalculado ? Number(montoCalculado) : null
-      if (!montoFinal && tipoComision === 'monto_fijo') montoFinal = Number(valorComision)
-      if (!montoFinal && tipoComision === 'porcentaje') { const resCotiz = await fetchConToken('/api/cotizacion'); const dataCotiz = await resCotiz.json(); const cotiz = dataCotiz?.cotizacion; const base = totalPesos + (cotiz ? totalUSD * cotiz : 0); montoFinal = Math.round(base * Number(valorComision) / 100) || null }
-      await fetchConToken(`/api/ventas/${ventaId}/derivador`, { method: 'POST', body: JSON.stringify({ derivador_id: Number(derivadorId), tipo_comision: tipoComision, valor_comision: Number(valorComision), monto_calculado: montoFinal, pagado: false }) })
+  function finalizarVenta() {
+    // Si ya fue confirmada no hace nada más en la base, solo limpia el estado
+    if (!ventaConfirmada && ventaId) {
+      // Confirmar silenciosamente si no fue confirmada
+      fetchConToken(`/api/ventas/${ventaId}`, { method: 'PUT', body: JSON.stringify({ confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD, obra_social_id: obraSocialId ? Number(obraSocialId) : null }) })
+        .then(() => guardarDerivador(ventaId, totalPesos, totalUSD))
     }
     alert('✅ Venta finalizada sin pagos')
     setVentaId(null); setPaciente(null); setDni(''); setItems([]); setVentaConfirmada(false); setBusqueda(''); setVentasPaciente([]); setObraSocialId(''); setBuscoPaciente(false); setResultados([]); setDerivadorId(''); setValorComision(''); setMontoCalculado(''); setTipoComision('porcentaje')
   }
 
-  function abrirEdicion(venta) { setVentaEditando(venta); setItemsEdicion(venta.venta_detalle || []); setFormEdicion({ producto_id: '', numero_serie_id: '', precio_pesos: '', precio_usd: '' }) }
+  function abrirEdicion(venta) {
+    setVentaEditando(venta)
+    setItemsEdicion(venta.venta_detalle || [])
+    setFormEdicion({ producto_id: '', numero_serie_id: '', precio_pesos: '', precio_usd: '' })
+    // Cargar derivador existente si tiene
+    if (venta.derivador) {
+      setDerivadorEdicionId(String(venta.derivador.derivador_id || ''))
+      setTipoComisionEdicion(venta.derivador.tipo_comision || 'porcentaje')
+      setValorComisionEdicion(String(venta.derivador.valor_comision || ''))
+      setMontoCalculadoEdicion(String(venta.derivador.monto_calculado || ''))
+    } else {
+      setDerivadorEdicionId(''); setTipoComisionEdicion('porcentaje'); setValorComisionEdicion(''); setMontoCalculadoEdicion('')
+    }
+  }
+
   function cerrarEdicion() { setVentaEditando(null); setItemsEdicion([]) }
 
   function handleChangeEdicion(e) {
     const { name, value } = e.target
-    if (name === 'producto_id') { const prod = productos.find(p => p.producto_id === Number(value)); setModoConSerieEdicion(prod?.productos?.requiere_serie || false); setSeriesFiltradasEdicion(seriesAll.filter(s => s.producto_id === Number(value) && s.en_stock)); setFormEdicion({ ...formEdicion, producto_id: value, numero_serie_id: '' }); return }
+    if (name === 'producto_id') {
+      const prod = productos.find(p => p.id === Number(value))
+      setModoConSerieEdicion(prod?.tipo_producto?.requiere_serie || false)
+      setSeriesFiltradasEdicion(seriesAll.filter(s => s.producto_id === Number(value) && s.en_stock))
+      setFormEdicion({ ...formEdicion, producto_id: value, numero_serie_id: '' }); return
+    }
     setFormEdicion({ ...formEdicion, [name]: value })
   }
 
@@ -291,8 +330,8 @@ export default function Ventas() {
     const data = await res.json()
     if (modoConSerieEdicion) await fetchConToken(`/api/stock/series/${formEdicion.numero_serie_id}`, { method: 'PUT', body: JSON.stringify({ en_stock: false, fecha_salida: new Date().toISOString() }) })
     const nuevaSerieInfo = seriesAll.find(s => s.id == formEdicion.numero_serie_id)
-    const nuevoProductoInfo = productos.find(p => p.producto_id == formEdicion.producto_id)
-    setItemsEdicion([...itemsEdicion, { id: data.detalle.id, numero_serie_id: modoConSerieEdicion ? Number(formEdicion.numero_serie_id) : null, producto_id: !modoConSerieEdicion ? Number(formEdicion.producto_id) : null, precio_venta_pesos: formEdicion.precio_pesos || null, precio_venta_usd: formEdicion.precio_usd || null, cantidad: 1, numeros_serie: nuevaSerieInfo ? { id: nuevaSerieInfo.id, numero_serie: nuevaSerieInfo.numero_serie, productos: nuevaSerieInfo.productos } : null, productos: nuevoProductoInfo ? { id: nuevoProductoInfo.producto_id, producto: nuevoProductoInfo.productos?.producto } : null }])
+    const nuevoProductoInfo = productos.find(p => p.id == formEdicion.producto_id)
+    setItemsEdicion([...itemsEdicion, { id: data.detalle.id, numero_serie_id: modoConSerieEdicion ? Number(formEdicion.numero_serie_id) : null, producto_id: !modoConSerieEdicion ? Number(formEdicion.producto_id) : null, precio_venta_pesos: formEdicion.precio_pesos || null, precio_venta_usd: formEdicion.precio_usd || null, cantidad: 1, numeros_serie: nuevaSerieInfo ? { id: nuevaSerieInfo.id, numero_serie: nuevaSerieInfo.numero_serie, productos: nuevaSerieInfo.productos } : null, productos: nuevoProductoInfo ? { id: nuevoProductoInfo.id, producto: nuevoProductoInfo.producto } : null }])
     setFormEdicion({ producto_id: '', numero_serie_id: '', precio_pesos: '', precio_usd: '' }); obtenerSeries()
   }
 
@@ -300,6 +339,21 @@ export default function Ventas() {
     const nuevoTotalPesos = itemsEdicion.reduce((acc, i) => acc + ((Number(i.precio_venta_pesos) || 0) * (Number(i.cantidad) || 1)), 0)
     const nuevoTotalUSD = itemsEdicion.reduce((acc, i) => acc + ((Number(i.precio_venta_usd) || 0) * (Number(i.cantidad) || 1)), 0)
     await fetchConToken(`/api/ventas/${ventaEditando.id}`, { method: 'PUT', body: JSON.stringify({ total_pesos: nuevoTotalPesos, total_dolares: nuevoTotalUSD }) })
+
+    // Guardar derivador si se eligió uno en edición
+    if (derivadorEdicionId && valorComisionEdicion && !ventaEditando.derivador) {
+      let montoFinal = montoCalculadoEdicion ? Number(montoCalculadoEdicion) : null
+      if (!montoFinal && tipoComisionEdicion === 'monto_fijo') montoFinal = Number(valorComisionEdicion)
+      if (!montoFinal && tipoComisionEdicion === 'porcentaje') {
+        const resCotiz = await fetchConToken('/api/cotizacion')
+        const dataCotiz = await resCotiz.json()
+        const cotiz = dataCotiz?.cotizacion
+        const base = nuevoTotalPesos + (cotiz ? nuevoTotalUSD * cotiz : 0)
+        montoFinal = Math.round(base * Number(valorComisionEdicion) / 100) || null
+      }
+      await fetchConToken(`/api/ventas/${ventaEditando.id}/derivador`, { method: 'POST', body: JSON.stringify({ derivador_id: Number(derivadorEdicionId), tipo_comision: tipoComisionEdicion, valor_comision: Number(valorComisionEdicion), monto_calculado: montoFinal, pagado: false }) })
+    }
+
     alert('✅ Venta actualizada'); cerrarEdicion()
     if (paciente) cargarVentasPaciente(paciente.id); obtenerSeries()
   }
@@ -378,7 +432,12 @@ export default function Ventas() {
           <div style={card}>
             <div style={cardTitle}>➕ Agregar producto</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div><label style={labelStyle}>Producto</label><select name="producto_id" value={form.producto_id} onChange={handleChange} style={inputStyle}><option value="">Seleccionar producto</option>{productos.map(p => <option key={p.producto_id} value={p.producto_id}>{p.productos?.producto}</option>)}</select></div>
+              <div><label style={labelStyle}>Producto</label>
+                <select name="producto_id" value={form.producto_id} onChange={handleChange} style={inputStyle}>
+                  <option value="">Seleccionar producto</option>
+                  {productos.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
+                </select>
+              </div>
               {modoConSerie && <div><label style={labelStyle}>Número de serie</label><select name="numero_serie_id" value={form.numero_serie_id} onChange={handleChange} style={inputStyle}><option value="">Seleccionar serie</option>{seriesFiltradas.map(s => <option key={s.id} value={s.id}>{s.numero_serie} — {s.productos?.producto}</option>)}</select></div>}
               {!modoConSerie && form.producto_id && <div><label style={labelStyle}>Cantidad {stockDisponible !== null && <span style={{ marginLeft: '8px', fontWeight: '400', color: stockDisponible > 0 ? '#16a34a' : '#dc2626' }}>(Stock: {stockDisponible})</span>}</label><input name="cantidad" type="number" min="1" placeholder="1" value={form.cantidad} onChange={handleChange} style={inputStyle} /></div>}
               <div><label style={labelStyle}>Precio en pesos</label><input name="precio_pesos" placeholder="$0" value={form.precio_pesos} onChange={handleChange} style={inputStyle} /></div>
@@ -494,16 +553,37 @@ export default function Ventas() {
               </div>
             ))}
           </div>
+
+          {/* Agregar producto */}
           <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '10px', border: '1px dashed #e5e7eb', marginBottom: '16px' }}>
             <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>➕ Agregar producto a esta venta</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <div><label style={labelStyle}>Producto</label><select name="producto_id" value={formEdicion.producto_id} onChange={handleChangeEdicion} style={inputStyle}><option value="">Seleccionar</option>{productos.map(p => <option key={p.producto_id} value={p.producto_id}>{p.productos?.producto}</option>)}</select></div>
+              <div><label style={labelStyle}>Producto</label><select name="producto_id" value={formEdicion.producto_id} onChange={handleChangeEdicion} style={inputStyle}><option value="">Seleccionar</option>{productos.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}</select></div>
               {modoConSerieEdicion && <div><label style={labelStyle}>Serie</label><select name="numero_serie_id" value={formEdicion.numero_serie_id} onChange={handleChangeEdicion} style={inputStyle}><option value="">Seleccionar serie</option>{seriesFiltradasEdicion.map(s => <option key={s.id} value={s.id}>{s.numero_serie}</option>)}</select></div>}
               <div><label style={labelStyle}>Precio pesos</label><input name="precio_pesos" placeholder="$0" value={formEdicion.precio_pesos} onChange={handleChangeEdicion} style={inputStyle} /></div>
               <div><label style={labelStyle}>Precio USD</label><input name="precio_usd" placeholder="U$S 0" value={formEdicion.precio_usd} onChange={handleChangeEdicion} style={inputStyle} /></div>
             </div>
             <div style={{ marginTop: '10px' }}><button onClick={agregarItemEdicion} style={{ ...btnSecundario, fontSize: '13px' }}>+ Agregar</button></div>
           </div>
+
+          {/* Derivador en edición — solo mostrar si no tiene derivador ya cargado */}
+          {!ventaEditando.derivador && (
+            <div style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', marginBottom: '16px' }}>
+              <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>👤 Agregar derivador</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div><label style={labelStyle}>Derivador</label><select value={derivadorEdicionId} onChange={(e) => seleccionarDerivadorEdicion(e.target.value)} style={inputStyle}><option value="">Sin derivador</option>{derivadores.map(d => <option key={d.id} value={d.id}>{d.derivador}</option>)}</select></div>
+                {derivadorEdicionId && <div><label style={labelStyle}>Tipo de comisión</label><select value={tipoComisionEdicion} onChange={(e) => setTipoComisionEdicion(e.target.value)} style={inputStyle}><option value="porcentaje">Porcentaje (%)</option><option value="monto_fijo">Monto fijo ($)</option></select></div>}
+                {derivadorEdicionId && <div><label style={labelStyle}>{tipoComisionEdicion === 'porcentaje' ? 'Porcentaje (%)' : 'Monto fijo ($)'}</label><input type="number" placeholder={tipoComisionEdicion === 'porcentaje' ? 'Ej: 5' : 'Ej: 50000'} value={valorComisionEdicion} onChange={(e) => setValorComisionEdicion(e.target.value)} style={inputStyle} /></div>}
+                {derivadorEdicionId && <div><label style={labelStyle}>Comisión a pagar ($)</label><input type="number" placeholder="$0" value={montoCalculadoEdicion} onChange={(e) => setMontoCalculadoEdicion(e.target.value)} style={{ ...inputStyle, background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600' }} /></div>}
+              </div>
+            </div>
+          )}
+          {ventaEditando.derivador && (
+            <div style={{ padding: '10px 14px', background: '#fdf2f4', borderRadius: '8px', border: '1px solid #f5c2c9', marginBottom: '16px', fontSize: '13px', color: '#8B1E2D' }}>
+              👤 Derivador: <strong>{ventaEditando.derivador.derivadores?.derivador}</strong> {ventaEditando.derivador.monto_calculado ? `· Comisión: ${fmt(ventaEditando.derivador.monto_calculado)}` : ''}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: '10px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
             <button onClick={guardarTotalesVenta} style={btnPrimario}>💾 Guardar cambios</button>
             <button onClick={cerrarEdicion} style={btnSecundario}>Cancelar</button>
