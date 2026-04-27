@@ -9,7 +9,7 @@ export async function GET(request, { params }) {
     const supabase = createServerClient()
     const { data, error } = await supabase
       .from('pacientes_historial')
-      .select('*, usuarios:creado_por (nombre)')
+      .select('*')
       .eq('paciente_id', params.id)
       .order('created_at', { ascending: false })
 
