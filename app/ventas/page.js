@@ -54,6 +54,8 @@ export default function Ventas() {
 
   const [form, setForm] = useState({ numero_serie_id: '', producto_id: '', precio_pesos: '', precio_usd: '', cantidad: '1' })
 
+  const [modalSalir, setModalSalir] = useState(false)
+
   useEffect(() => {
     obtenerSeries()
     obtenerProductos()
@@ -349,19 +351,43 @@ export default function Ventas() {
     window.location.href = `/pagos?venta_id=${ventaId}&dni=${dni}`
   }
 
-  function finalizarVenta() {
-    if (!ventaConfirmada && ventaId) {
-      fetchConToken(`/api/ventas/${ventaId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD, obra_social_id: obraSocialId ? Number(obraSocialId) : null })
-      }).then(() => guardarDerivador(ventaId, totalPesos, totalUSD))
-    }
-    alert('✅ Venta finalizada sin pagos')
-    setVentaId(null); setPaciente(null); setDni(''); setItems([])
-    setVentaConfirmada(false); setBusqueda(''); setVentasPaciente([])
-    setObraSocialId(''); setBuscoPaciente(false); setResultados([])
-    setDerivadorId(''); setValorComision(''); setMontoCalculado(''); setTipoComision('porcentaje')
+ function salir() {
+  if (ventaId && !ventaConfirmada) {
+    setModalSalir(true)
+    return
   }
+  // Si ya fue confirmada o no hay venta, limpiar directo
+  limpiarVenta()
+   async function confirmarYSalir() {
+  if (!ventaId) return
+  const res = await fetchConToken(`/api/ventas/${ventaId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD, obra_social_id: obraSocialId ? Number(obraSocialId) : null })
+  })
+  if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
+  await guardarDerivador(ventaId, totalPesos, totalUSD)
+  limpiarVenta()
+}
+}
+
+function limpiarVenta() {
+  setVentaId(null); setPaciente(null); setDni(''); setItems([])
+  setVentaConfirmada(false); setBusqueda(''); setVentasPaciente([])
+  setObraSocialId(''); setBuscoPaciente(false); setResultados([])
+  setDerivadorId(''); setValorComision(''); setMontoCalculado(''); setTipoComision('porcentaje')
+  setModalSalir(false)
+}
+
+async function confirmarYSalir() {
+  if (!ventaId) return
+  const res = await fetchConToken(`/api/ventas/${ventaId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD, obra_social_id: obraSocialId ? Number(obraSocialId) : null })
+  })
+  if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
+  await guardarDerivador(ventaId, totalPesos, totalUSD)
+  limpiarVenta()
+}
 
   function abrirEdicion(venta) {
     setVentaEditando(venta)
@@ -710,7 +736,7 @@ export default function Ventas() {
             <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
               <button onClick={confirmarVenta} style={btnPrimario}>✅ Confirmar venta</button>
               <button onClick={irAPagos} style={btnSecundario}>💳 Ingresar pago</button>
-              <button onClick={finalizarVenta} style={btnSecundario}>Finalizar sin pagos</button>
+              <button onClick={salir} style={btnSecundario}>Salir</button>
             </div>
           </div>
         </>
