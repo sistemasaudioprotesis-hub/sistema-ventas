@@ -2,9 +2,8 @@
 
 export const dynamic = 'force-dynamic'
 
-import { getUsuarioId } from '../../lib/getUsuario'
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabaseClient'
+import { fetchConToken } from '../../lib/fetchConToken'
 
 const EFECTIVO_ID = 1
 
@@ -20,11 +19,9 @@ export default function Caja() {
 
   const [form, setForm] = useState({ tipo: 'ingreso', concepto: '', monto_pesos: '', monto_usd: '' })
 
-  // Edición movimiento manual
   const [editandoMovimiento, setEditandoMovimiento] = useState(null)
   const [formEditMovimiento, setFormEditMovimiento] = useState({ tipo: '', concepto: '', monto_pesos: '', monto_usd: '' })
 
-  // Edición pago
   const [editandoPago, setEditandoPago] = useState(null)
   const [formEditPago, setFormEditPago] = useState({ monto_pesos: '', monto_usd: '', forma_pago_id: '' })
 
@@ -41,20 +38,19 @@ export default function Caja() {
   }, [fecha])
 
   async function cargarFormasPago() {
-    const { data } = await supabase.from('formas_pago').select('*').order('forma_pago')
-    setFormasPago(data || [])
+    const res = await fetchConToken('/api/configuracion/formas-pago')
+    const data = await res.json()
+    setFormasPago(data.formas_pago || [])
   }
 
   async function cargarMovimientos() {
-    const { data: manuales } = await supabase.from('caja_movimientos').select('*').eq('fecha', fecha).order('created_at')
-    const fechaInicio = `${fecha}T00:00:00`
-    const fechaFin = `${fecha}T23:59:59`
-    const { data: pagos } = await supabase.from('pagos')
-      .select(`id, monto_pesos, monto_usd, fecha_pago, formas_pago (forma_pago), ventas (pacientes (apellido_paciente, nombres_paciente))`)
-      .eq('forma_pago_id', EFECTIVO_ID)
-      .gte('fecha_pago', fechaInicio).lte('fecha_pago', fechaFin).order('fecha_pago')
+    const res = await fetchConToken(`/api/caja?fecha=${fecha}`)
+    const data = await res.json()
 
-    const pagosComoMovimientos = (pagos || []).map(p => ({
+    const manuales = data.manuales || []
+    const pagosEfectivo = (data.pagos || []).filter(p => p.forma_pago_id === EFECTIVO_ID)
+
+    const pagosComoMovimientos = pagosEfectivo.map(p => ({
       id: `pago-${p.id}`,
       pago_id: p.id,
       tipo: 'ingreso', origen: 'pago',
@@ -62,37 +58,34 @@ export default function Caja() {
       monto_pesos: p.monto_pesos, monto_usd: p.monto_usd,
       created_at: p.fecha_pago,
       forma_pago_id: EFECTIVO_ID,
+      ventas: p.ventas,
     }))
 
-    const todos = [...pagosComoMovimientos, ...(manuales || [])]
+    const todos = [...pagosComoMovimientos, ...manuales]
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
     setMovimientos(todos)
   }
 
   async function cargarPagosOtros() {
-    const fechaInicio = `${fecha}T00:00:00`
-    const fechaFin = `${fecha}T23:59:59`
-    const { data } = await supabase.from('pagos')
-      .select(`id, monto_pesos, monto_usd, fecha_pago, forma_pago_id, formas_pago (forma_pago), ventas (pacientes (apellido_paciente, nombres_paciente))`)
-      .neq('forma_pago_id', EFECTIVO_ID)
-      .gte('fecha_pago', fechaInicio).lte('fecha_pago', fechaFin).order('fecha_pago')
-    setPagosOtros(data || [])
+    const res = await fetchConToken(`/api/caja?fecha=${fecha}`)
+    const data = await res.json()
+    const otrosPagos = (data.pagos || []).filter(p => p.forma_pago_id !== EFECTIVO_ID)
+    setPagosOtros(otrosPagos)
   }
 
   async function cargarCotizacion() {
-    const { data } = await supabase.from('valor_dolar_bna').select('*').eq('fecha', fecha).maybeSingle()
-    setCotizacion(data?.dolar_vendedor || null)
+    const res = await fetchConToken(`/api/cotizacion`)
+    const data = await res.json()
+    setCotizacion(data.cotizacion || null)
   }
 
   async function guardarDolarManual() {
     const valor = Number(dolarManual)
     if (!valor) { alert('Ingresar valor del dólar'); return }
-    const { data: existe } = await supabase.from('valor_dolar_bna').select('id').eq('fecha', fecha).maybeSingle()
-    if (existe) {
-      await supabase.from('valor_dolar_bna').update({ dolar_vendedor: valor, creado_por: getUsuarioId() }).eq('fecha', fecha)
-    } else {
-      await supabase.from('valor_dolar_bna').insert([{ fecha, dolar_vendedor: valor, creado_por: getUsuarioId() }])
-    }
+    await fetchConToken('/api/cotizacion', {
+      method: 'POST',
+      body: JSON.stringify({ valor, fecha })
+    })
     setCotizacion(valor); setDolarManual('')
     alert(`✅ Cotización guardada: $${valor}`)
   }
@@ -100,18 +93,11 @@ export default function Caja() {
   async function buscarDolarAutomatico() {
     setCargandoDolar(true)
     try {
-      const res = await fetch('https://dolarapi.com/v1/dolares/blue')
+      const res = await fetchConToken('/api/cotizacion')
       const data = await res.json()
-      const valor = data.venta
-      if (valor) {
-        const { data: existe } = await supabase.from('valor_dolar_bna').select('id').eq('fecha', fecha).maybeSingle()
-        if (existe) {
-          await supabase.from('valor_dolar_bna').update({ dolar_vendedor: valor }).eq('fecha', fecha)
-        } else {
-          await supabase.from('valor_dolar_bna').insert([{ fecha, dolar_vendedor: valor, creado_por: getUsuarioId() }])
-        }
-        setCotizacion(valor)
-        alert(`✅ Cotización actualizada: $${valor}`)
+      if (data.cotizacion) {
+        setCotizacion(data.cotizacion)
+        alert(`✅ Cotización actualizada: $${data.cotizacion}`)
       }
     } catch (e) { alert('No se pudo obtener la cotización automáticamente') }
     setCargandoDolar(false)
@@ -120,20 +106,24 @@ export default function Caja() {
   async function guardarMovimiento() {
     if (!form.concepto) { alert('Ingresar concepto'); return }
     if (!form.monto_pesos && !form.monto_usd) { alert('Ingresar monto'); return }
-    const { error } = await supabase.from('caja_movimientos').insert([{
-      fecha, tipo: form.tipo, origen: 'manual', concepto: form.concepto,
-      monto_pesos: form.monto_pesos ? Number(form.monto_pesos) : null,
-      monto_usd: form.monto_usd ? Number(form.monto_usd) : null,
-      creado_por: getUsuarioId(),
-    }])
-    if (error) { alert('Error: ' + error.message); return }
+    const res = await fetchConToken('/api/caja', {
+      method: 'POST',
+      body: JSON.stringify({
+        fecha,
+        tipo: form.tipo,
+        concepto: form.concepto,
+        monto_pesos: form.monto_pesos ? Number(form.monto_pesos) : null,
+        monto_usd: form.monto_usd ? Number(form.monto_usd) : null,
+      })
+    })
+    if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
     setForm({ tipo: 'ingreso', concepto: '', monto_pesos: '', monto_usd: '' })
     cargarMovimientos()
   }
 
   async function eliminarMovimiento(id) {
     if (!confirm('¿Eliminar este movimiento?')) return
-    await supabase.from('caja_movimientos').delete().eq('id', id)
+    await fetchConToken(`/api/caja/${id}`, { method: 'DELETE' })
     cargarMovimientos()
   }
 
@@ -145,24 +135,15 @@ export default function Caja() {
   async function guardarEditMovimiento() {
     if (!formEditMovimiento.concepto) { alert('Ingresar concepto'); return }
     if (!formEditMovimiento.monto_pesos && !formEditMovimiento.monto_usd) { alert('Ingresar monto'); return }
-
-    // Guardar historial
-    await supabase.from('caja_movimientos_historial').insert([{
-      caja_movimiento_id: editandoMovimiento.id,
-      concepto: editandoMovimiento.concepto,
-      tipo: editandoMovimiento.tipo,
-      monto_pesos: editandoMovimiento.monto_pesos,
-      monto_usd: editandoMovimiento.monto_usd,
-      modificado_por: getUsuarioId(),
-    }])
-
-    await supabase.from('caja_movimientos').update({
-      tipo: formEditMovimiento.tipo,
-      concepto: formEditMovimiento.concepto,
-      monto_pesos: formEditMovimiento.monto_pesos ? Number(formEditMovimiento.monto_pesos) : null,
-      monto_usd: formEditMovimiento.monto_usd ? Number(formEditMovimiento.monto_usd) : null,
-    }).eq('id', editandoMovimiento.id)
-
+    await fetchConToken(`/api/caja/${editandoMovimiento.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        tipo: formEditMovimiento.tipo,
+        concepto: formEditMovimiento.concepto,
+        monto_pesos: formEditMovimiento.monto_pesos ? Number(formEditMovimiento.monto_pesos) : null,
+        monto_usd: formEditMovimiento.monto_usd ? Number(formEditMovimiento.monto_usd) : null,
+      })
+    })
     setEditandoMovimiento(null)
     cargarMovimientos()
   }
@@ -178,24 +159,15 @@ export default function Caja() {
 
   async function guardarEditPago() {
     if (!formEditPago.monto_pesos && !formEditPago.monto_usd) { alert('Ingresar monto'); return }
-
     const pagoId = editandoPago.pago_id || editandoPago.id
-
-    // Guardar historial
-    await supabase.from('pagos_historial').insert([{
-      pago_id: pagoId,
-      monto_pesos: editandoPago.monto_pesos,
-      monto_usd: editandoPago.monto_usd,
-      forma_pago_id: editandoPago.forma_pago_id,
-      modificado_por: getUsuarioId(),
-    }])
-
-    await supabase.from('pagos').update({
-      monto_pesos: formEditPago.monto_pesos ? Number(formEditPago.monto_pesos) : null,
-      monto_usd: formEditPago.monto_usd ? Number(formEditPago.monto_usd) : null,
-      forma_pago_id: Number(formEditPago.forma_pago_id),
-    }).eq('id', pagoId)
-
+    await fetchConToken(`/api/pagos/${pagoId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        monto_pesos: formEditPago.monto_pesos ? Number(formEditPago.monto_pesos) : null,
+        monto_usd: formEditPago.monto_usd ? Number(formEditPago.monto_usd) : null,
+        forma_pago_id: Number(formEditPago.forma_pago_id),
+      })
+    })
     setEditandoPago(null)
     cargarMovimientos()
     cargarPagosOtros()
@@ -204,7 +176,7 @@ export default function Caja() {
   async function eliminarPago(p) {
     if (!confirm('¿Eliminar este pago? Esta acción no se puede deshacer.')) return
     const pagoId = p.pago_id || p.id
-    await supabase.from('pagos').delete().eq('id', pagoId)
+    await fetchConToken(`/api/pagos/${pagoId}`, { method: 'DELETE' })
     cargarMovimientos()
     cargarPagosOtros()
   }
