@@ -138,51 +138,52 @@ export default function Pacientes() {
 }
 
   async function cargarVisitas(pid) {
-    const { data } = await supabase.from('visitas')
-      .select(`id, fecha, observaciones, created_at, atendido_por, visita_motivos (motivo), ventas (id, fecha, total_pesos, total_dolares)`)
-      .eq('paciente_id', pid).order('fecha', { ascending: false })
-    setVisitas(data || [])
-  }
+  const res = await fetchConToken(`/api/turnos?paciente_id=${pid}`)
+  const data = await res.json()
+  // visitas siguen por supabase hasta tener API route propia
+  const { data: visitasData } = await supabase.from('visitas')
+    .select(`id, fecha, observaciones, created_at, atendido_por, visita_motivos (motivo), ventas (id, fecha, total_pesos, total_dolares)`)
+    .eq('paciente_id', pid).order('fecha', { ascending: false })
+  setVisitas(visitasData || [])
+}
 
   async function cargarVentasPaciente(pid) {
-    const { data } = await supabase.from('ventas').select('id, fecha, total_pesos, total_dolares').eq('paciente_id', pid).order('fecha', { ascending: false })
-    setVentasPaciente(data || [])
-  }
+  const res = await fetchConToken(`/api/ventas?paciente_id=${pid}`)
+  const data = await res.json()
+  setVentasPaciente(data.ventas || [])
+}
 
-  async function cargarVentasConPagos(pid) {
-    const { data: ventasData } = await supabase.from('ventas')
-      .select(`id, fecha, confirmada, total_pesos, total_dolares, obras_sociales (obra_social),
-        venta_detalle (id, precio_venta_pesos, precio_venta_usd, numeros_serie (numero_serie, productos (producto)), productos (producto))`)
-      .eq('paciente_id', pid).order('fecha', { ascending: false })
-    const ventasConSaldo = await Promise.all((ventasData || []).map(async v => {
-      const { data: pagos } = await supabase.from('pagos').select('id, monto_pesos, monto_usd, fecha_pago, formas_pago (forma_pago)').eq('venta_id', v.id).order('fecha_pago')
-      const pagadoP = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_pesos) || 0), 0)
-      const pagadoU = (pagos || []).reduce((acc, p) => acc + (Number(p.monto_usd) || 0), 0)
-      return { ...v, pagos: pagos || [], pagadoPesos: pagadoP, pagadoUSD: pagadoU }
-    }))
-    setVentasConPagos(ventasConSaldo)
-  }
+ async function cargarVentasConPagos(pid) {
+  const res = await fetchConToken(`/api/ventas?paciente_id=${pid}`)
+  const data = await res.json()
+  const ventasConSaldo = await Promise.all((data.ventas || []).map(async v => {
+    const resPagos = await fetchConToken(`/api/pagos?venta_id=${v.id}`)
+    const dataPagos = await resPagos.json()
+    const pagos = dataPagos.pagos || []
+    const pagadoP = pagos.reduce((acc, p) => acc + (Number(p.monto_pesos) || 0), 0)
+    const pagadoU = pagos.reduce((acc, p) => acc + (Number(p.monto_usd) || 0), 0)
+    return { ...v, pagos, pagadoPesos: pagadoP, pagadoUSD: pagadoU }
+  }))
+  setVentasConPagos(ventasConSaldo)
+}
 
   async function cargarTurnos(pid) {
-    const { data } = await supabase.from('turnos')
-      .select(`id, fecha, hora, estado, observaciones, asistio, profesionales (nombre), visita_motivos (motivo), obras_sociales (obra_social)`)
-      .eq('paciente_id', pid).order('fecha', { ascending: false }).order('hora', { ascending: false })
-    setTurnos(data || [])
-  }
+  const res = await fetchConToken(`/api/turnos?paciente_id=${pid}`)
+  const data = await res.json()
+  setTurnos(data.turnos || [])
+}
 
   async function cargarReparaciones(pid) {
-    const { data } = await supabase.from('visitas')
-      .select(`id, fecha, observaciones, marca, costo_pesos, costo_usd, respuesta_paciente, fecha_entrega, numero_orden, ventas (id, total_pesos, total_dolares)`)
-      .eq('paciente_id', pid).eq('es_reparacion', true)
-      .order('numero_orden', { ascending: false })
-    setReparaciones(data || [])
-  }
+  const res = await fetchConToken(`/api/reparaciones?paciente_id=${pid}`)
+  const data = await res.json()
+  setReparaciones(data.reparaciones || [])
+}
 
   async function cargarHistorial(pid) {
-    const { data } = await supabase.from('pacientes_historial')
-      .select('*, usuarios:creado_por (nombre)').eq('paciente_id', pid).order('created_at', { ascending: false })
-    setHistorial(data || [])
-  }
+  const res = await fetchConToken(`/api/pacientes/${pid}/historial`)
+  const data = await res.json()
+  setHistorial(data.historial || [])
+}
 
   async function guardar(destino) {
   if (!form.apellido_paciente || !form.nombres_paciente || !form.dni || !form.telefono) { alert('Completar campos obligatorios'); return }
@@ -197,14 +198,19 @@ export default function Pacientes() {
       method: 'PUT',
       body: JSON.stringify(dataGuardar),
     })
-    // Historial sigue por supabase por ahora
-    await supabase.from('pacientes_historial').insert([{
-      paciente_id: pacienteId, apellido_paciente: pacienteActual.apellido_paciente,
-      nombres_paciente: pacienteActual.nombres_paciente, telefono: pacienteActual.telefono,
-      domicilio: pacienteActual.domicilio, localidad: pacienteActual.localidad,
-      provincia_id: pacienteActual.provincia_id, mail: pacienteActual.mail,
-      observaciones: pacienteActual.observaciones, creado_por: getUsuarioId(),
-    }])
+    await fetchConToken(`/api/pacientes/${pacienteId}/historial`, {
+  method: 'POST',
+  body: JSON.stringify({
+    apellido_paciente: pacienteActual.apellido_paciente,
+    nombres_paciente: pacienteActual.nombres_paciente,
+    telefono: pacienteActual.telefono,
+    domicilio: pacienteActual.domicilio,
+    localidad: pacienteActual.localidad,
+    provincia_id: pacienteActual.provincia_id,
+    mail: pacienteActual.mail,
+    observaciones: pacienteActual.observaciones,
+  })
+})
     alert('Paciente actualizado')
     cargarHistorial(pacienteId)
   } else {
