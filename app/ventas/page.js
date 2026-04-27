@@ -86,10 +86,10 @@ export default function Ventas() {
   }
 
   async function obtenerProductos() {
-    const res = await fetchConToken('/api/stock/productos')
-    const data = await res.json()
-    setProductos(data.stock || [])
-  }
+  const res = await fetchConToken('/api/productos')
+  const data = await res.json()
+  setProductos(data.productos || [])
+}
 
   async function obtenerObrasSociales() {
     const res = await fetchConToken('/api/configuracion/obras-sociales')
