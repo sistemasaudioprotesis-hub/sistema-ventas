@@ -42,3 +42,22 @@ export async function GET(request, { params }) {
     return Response.json({ error: 'Error interno' }, { status: 500 })
   }
 }
+
+export async function DELETE(request, { params }) {
+  try {
+    const usuario = await verificarSesion(request)
+    if (!usuario) return Response.json({ error: 'No autorizado' }, { status: 401 })
+
+    const supabase = createServerClient()
+    const { error } = await supabase
+      .from('venta_derivadores')
+      .delete()
+      .eq('venta_id', params.id)
+
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+    return Response.json({ ok: true })
+
+  } catch (e) {
+    return Response.json({ error: 'Error interno' }, { status: 500 })
+  }
+}
