@@ -343,12 +343,30 @@ export default function Ventas() {
     const nuevoTotalUSD = itemsEdicion.reduce((acc, i) => acc + ((Number(i.precio_venta_usd) || 0) * (Number(i.cantidad) || 1)), 0)
     await fetchConToken(`/api/ventas/${ventaEditando.id}/historial`, { method: 'POST', body: JSON.stringify({ total_pesos: ventaEditando.total_pesos, total_dolares: ventaEditando.total_dolares, confirmada: ventaEditando.confirmada }) }).catch(() => {})
     await fetchConToken(`/api/ventas/${ventaEditando.id}`, { method: 'PUT', body: JSON.stringify({ total_pesos: nuevoTotalPesos, total_dolares: nuevoTotalUSD }) })
-    if (derivadorEdicionId && valorComisionEdicion) {
-      let montoFinal = montoCalculadoEdicion ? Number(montoCalculadoEdicion) : null
-      if (!montoFinal && tipoComisionEdicion === 'monto_fijo') montoFinal = Number(valorComisionEdicion)
-      if (!montoFinal && tipoComisionEdicion === 'porcentaje') { const resCotiz = await fetchConToken('/api/cotizacion'); const dataCotiz = await resCotiz.json(); const cotiz = dataCotiz?.cotizacion; const base = nuevoTotalPesos + (cotiz ? nuevoTotalUSD * cotiz : 0); montoFinal = Math.round(base * Number(valorComisionEdicion) / 100) || null }
-      await fetchConToken(`/api/ventas/${ventaEditando.id}/derivador`, { method: 'POST', body: JSON.stringify({ derivador_id: Number(derivadorEdicionId), tipo_comision: tipoComisionEdicion, valor_comision: Number(valorComisionEdicion), monto_calculado: montoFinal, pagado: false }) })
-    }
+   // Si se eligió "Sin derivador" y tenía uno → borrarlo
+if (!derivadorEdicionId && ventaEditando.derivador) {
+  await fetchConToken(`/api/ventas/${ventaEditando.id}/derivador`, { method: 'DELETE' })
+}
+// Si se eligió un derivador → guardar/actualizar
+if (derivadorEdicionId && valorComisionEdicion) {
+  // Si ya tenía, borrar primero para reemplazar
+  if (ventaEditando.derivador) {
+    await fetchConToken(`/api/ventas/${ventaEditando.id}/derivador`, { method: 'DELETE' })
+  }
+  let montoFinal = montoCalculadoEdicion ? Number(montoCalculadoEdicion) : null
+  if (!montoFinal && tipoComisionEdicion === 'monto_fijo') montoFinal = Number(valorComisionEdicion)
+  if (!montoFinal && tipoComisionEdicion === 'porcentaje') {
+    const resCotiz = await fetchConToken('/api/cotizacion')
+    const dataCotiz = await resCotiz.json()
+    const cotiz = dataCotiz?.cotizacion
+    const base = nuevoTotalPesos + (cotiz ? nuevoTotalUSD * cotiz : 0)
+    montoFinal = Math.round(base * Number(valorComisionEdicion) / 100) || null
+  }
+  await fetchConToken(`/api/ventas/${ventaEditando.id}/derivador`, {
+    method: 'POST',
+    body: JSON.stringify({ derivador_id: Number(derivadorEdicionId), tipo_comision: tipoComisionEdicion, valor_comision: Number(valorComisionEdicion), monto_calculado: montoFinal, pagado: false })
+  })
+}
     alert('✅ Venta actualizada'); cerrarEdicion()
     if (paciente) cargarVentasPaciente(paciente.id); obtenerSeries()
   }
