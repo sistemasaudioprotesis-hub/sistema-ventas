@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '../../lib/supabaseClient'
+import { fetchConToken } from '../../lib/fetchConToken'
 
 const SECCIONES = [
   { key: 'pacientes', label: 'Pacientes' },
@@ -39,8 +39,9 @@ export default function Permisos() {
   }, [])
 
   async function cargarPermisos() {
-    const { data } = await supabase.from('permisos').select('*')
-    setPermisos(data || [])
+    const res = await fetchConToken('/api/permisos')
+    const data = await res.json()
+    setPermisos(data.permisos || [])
     setCargando(false)
   }
 
@@ -50,19 +51,16 @@ export default function Permisos() {
   }
 
   async function togglePermiso(rol, seccion) {
-    // Admin no se puede modificar
     if (rol === 'admin') return
-
     const key = `${rol}-${seccion}`
     setGuardando(key)
-
     const actual = tieneAcceso(rol, seccion)
-    const { data: existe } = await supabase.from('permisos').select('id').eq('rol', rol).eq('seccion', seccion).maybeSingle()
+    const existe = permisos.find(x => x.rol === rol && x.seccion === seccion)
 
     if (existe) {
-      await supabase.from('permisos').update({ tiene_acceso: !actual }).eq('rol', rol).eq('seccion', seccion)
+      await fetchConToken(`/api/permisos/${existe.id}`, { method: 'PUT', body: JSON.stringify({ tiene_acceso: !actual }) })
     } else {
-      await supabase.from('permisos').insert([{ rol, seccion, tiene_acceso: !actual }])
+      await fetchConToken('/api/permisos', { method: 'POST', body: JSON.stringify({ rol, seccion, tiene_acceso: !actual }) })
     }
 
     await cargarPermisos()
@@ -105,14 +103,7 @@ export default function Permisos() {
                         <button
                           onClick={() => togglePermiso(rol, sec.key)}
                           disabled={esAdmin || guardando === key}
-                          style={{
-                            width: '36px', height: '36px', borderRadius: '50%', border: 'none',
-                            cursor: esAdmin ? 'default' : 'pointer',
-                            fontSize: '18px',
-                            background: acceso ? '#dcfce7' : '#fef2f2',
-                            opacity: guardando === key ? 0.5 : 1,
-                            transition: '0.15s',
-                          }}
+                          style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', cursor: esAdmin ? 'default' : 'pointer', fontSize: '18px', background: acceso ? '#dcfce7' : '#fef2f2', opacity: guardando === key ? 0.5 : 1, transition: '0.15s' }}
                         >
                           {guardando === key ? '...' : acceso ? '✅' : '❌'}
                         </button>
