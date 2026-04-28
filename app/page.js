@@ -8,17 +8,21 @@ export default function Home() {
   const [rol, setRol] = useState(null)
 
   useEffect(() => {
-    async function cargar() {
-      const stored = localStorage.getItem('usuario')
-      if (!stored) return
-      const usuario = JSON.parse(stored)
-      setRol(usuario.rol)
-      if (usuario.rol === 'admin') { setPermisos('admin'); return }
-      const { data } = await supabase.from('permisos').select('seccion, tiene_acceso').eq('rol', usuario.rol)
-      setPermisos(data || [])
-    }
-    cargar()
-  }, [])
+  async function cargar() {
+    const stored = localStorage.getItem('usuario')
+    if (!stored) return
+    const usuario = JSON.parse(stored)
+    setRol(usuario.rol)
+    if (usuario.rol === 'admin') { setPermisos('admin'); return }
+    const token = localStorage.getItem('token')
+    const res = await fetch('/api/auth/permisos', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    const data = await res.json()
+    setPermisos(data.permisos || [])
+  }
+  cargar()
+}, [])
 
   function puedeVer(seccion) {
     if (!seccion) return true // sin restricción
@@ -120,6 +124,11 @@ export default function Home() {
           seccion: 'configuracion',
           icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
         },
+        {
+  href: '/configuracion/productos', label: 'Productos y Tipos', desc: 'ABM de tipos y productos',
+  seccion: 'configuracion',
+  icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>,
+},
 ],
     },
     {
