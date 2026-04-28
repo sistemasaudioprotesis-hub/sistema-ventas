@@ -53,7 +53,7 @@ export default function Reportes() {
     const [resUsuarios, resOS, resMotivos, resAgendas, resFP] = await Promise.all([
       fetchConToken('/api/usuarios'),
       fetchConToken('/api/configuracion/obras-sociales'),
-      fetchConToken('/api/configuracion/motivos'),
+      fetchConToken('/api/configuracion/motivos?activos=true'),
       fetchConToken('/api/configuracion/profesionales'),
       fetchConToken('/api/configuracion/formas-pago'),
     ])
