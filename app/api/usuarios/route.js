@@ -10,7 +10,7 @@ export async function GET(request) {
     const supabase = createServerClient()
     const { data, error } = await supabase
       .from('usuarios')
-      .select('id, nombre, usuario, rol, activo, created_at')
+      .select('id, nombre, usuario, rol, activo')
       .order('nombre')
     console.log('data:', data, 'error:', error)
     if (error) return Response.json({ error: error.message }, { status: 500 })
