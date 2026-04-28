@@ -1,0 +1,82 @@
+[
+  {
+    "id": 1,
+    "stock_general_id": 1,
+    "tipo": "entrada",
+    "cantidad": 40,
+    "concepto": "Stock inicial",
+    "venta_id": null,
+    "created_at": "2026-04-21T17:30:26.057446-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 2,
+    "stock_general_id": 1,
+    "tipo": "entrada",
+    "cantidad": 10,
+    "concepto": null,
+    "venta_id": null,
+    "created_at": "2026-04-21T17:31:22.036749-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 3,
+    "stock_general_id": 1,
+    "tipo": "ingreso",
+    "cantidad": 10,
+    "concepto": "Carga de stock",
+    "venta_id": null,
+    "created_at": "2026-04-24T11:09:13.310653-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 4,
+    "stock_general_id": 1,
+    "tipo": "egreso",
+    "cantidad": 2,
+    "concepto": "Ajuste de inventario",
+    "venta_id": null,
+    "created_at": "2026-04-24T11:09:22.028463-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 5,
+    "stock_general_id": 1,
+    "tipo": "egreso",
+    "cantidad": 1,
+    "concepto": "Venta #49",
+    "venta_id": 49,
+    "created_at": "2026-04-24T11:20:41.030278-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 6,
+    "stock_general_id": 2,
+    "tipo": "ingreso",
+    "cantidad": 10,
+    "concepto": "Carga de stock",
+    "venta_id": null,
+    "created_at": "2026-04-26T18:10:39.343669-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 7,
+    "stock_general_id": 2,
+    "tipo": "egreso",
+    "cantidad": 1,
+    "concepto": "Venta #56",
+    "venta_id": null,
+    "created_at": "2026-04-27T19:29:03.470535-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 8,
+    "stock_general_id": 2,
+    "tipo": "egreso",
+    "cantidad": 1,
+    "concepto": "Venta #57",
+    "venta_id": null,
+    "created_at": "2026-04-27T19:29:29.266206-03:00",
+    "creado_por": 1
+  }
+]
