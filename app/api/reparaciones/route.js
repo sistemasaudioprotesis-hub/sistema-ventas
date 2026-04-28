@@ -42,19 +42,37 @@ export async function POST(request) {
   try {
     const usuario = await verificarSesion(request)
     if (!usuario) return Response.json({ error: 'No autorizado' }, { status: 401 })
-
     const body = await request.json()
     const supabase = createServerClient()
 
-    const { data, error } = await supabase
-      .from('visitas')
-      .insert([{ ...body, es_reparacion: true, creado_por: usuario.id }])
-      .select()
-      .single()
+    // Obtener próximo número de orden
+    const { data: ultimaOrden } = await supabase.from('visitas')
+      .select('numero_orden').eq('es_reparacion', true)
+      .order('numero_orden', { ascending: false }).limit(1).maybeSingle()
+    const proximoOrden = (ultimaOrden?.numero_orden || 0) + 1
+
+    // Obtener o crear motivo REPARACION
+    let { data: motivo } = await supabase.from('visita_motivos')
+      .select('id').ilike('motivo', 'REPARACION').maybeSingle()
+    if (!motivo) {
+      const { data: nuevoMotivo } = await supabase.from('visita_motivos')
+        .insert([{ motivo: 'REPARACION', creado_por: usuario.id }]).select().single()
+      motivo = nuevoMotivo
+    }
+
+    const { data, error } = await supabase.from('visitas').insert([{
+      ...body,
+      es_reparacion: true,
+      numero_orden: proximoOrden,
+      motivo_id: motivo.id,
+      respuesta_paciente: 'ingresada',
+      atendido_por: usuario.id,
+      creado_por: usuario.id,
+      fecha: new Date().toISOString(),
+    }]).select().single()
 
     if (error) return Response.json({ error: error.message }, { status: 500 })
     return Response.json({ reparacion: data })
-
   } catch (e) {
     return Response.json({ error: 'Error interno' }, { status: 500 })
   }
