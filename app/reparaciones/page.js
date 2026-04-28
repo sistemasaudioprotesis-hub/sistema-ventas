@@ -2,9 +2,8 @@
 
 export const dynamic = 'force-dynamic'
 
-import { getUsuarioId } from '../../lib/getUsuario'
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabaseClient'
+import { fetchConToken } from '../../lib/fetchConToken'
 import { normalizarTexto } from '../../lib/formatText'
 
 const ESTADOS = [
@@ -47,18 +46,9 @@ export default function Reparaciones() {
 
   async function cargarReparaciones() {
     setCargando(true)
-    const { data } = await supabase.from('visitas')
-      .select(`
-        id, fecha, observaciones, created_at,
-        marca, costo_pesos, costo_usd, respuesta_paciente, fecha_entrega, numero_orden,
-        pacientes (id, apellido_paciente, nombres_paciente, dni, telefono),
-        visita_motivos (motivo),
-        ventas (id, total_pesos, total_dolares)
-      `)
-      .eq('es_reparacion', true)
-      .order('numero_orden', { ascending: false })
-
-    let resultado = data || []
+    const res = await fetchConToken(`/api/reparaciones`)
+    const data = await res.json()
+    let resultado = data.reparaciones || []
     if (soloActivas) {
       resultado = resultado.filter(r => !r.respuesta_paciente || ESTADOS_ACTIVOS.includes(r.respuesta_paciente))
     }
@@ -69,14 +59,9 @@ export default function Reparaciones() {
   async function buscarPacientes() {
     const termino = busquedaPaciente.trim()
     if (!termino) return
-    let query = supabase.from('pacientes').select('id, apellido_paciente, nombres_paciente, dni, telefono')
-    if (/^\d+$/.test(termino)) {
-      query = query.eq('dni', termino)
-    } else {
-      query = query.ilike('apellido_paciente', `%${termino}%`)
-    }
-    const { data } = await query.order('apellido_paciente').limit(10)
-    setPacientesResultados(data || [])
+    const res = await fetchConToken(`/api/pacientes?q=${encodeURIComponent(termino)}`)
+    const data = await res.json()
+    setPacientesResultados(data.pacientes || [])
     setBuscoPaciente(true)
   }
 
@@ -84,14 +69,18 @@ export default function Reparaciones() {
     if (!formAltaRapida.apellido || !formAltaRapida.nombre || !formAltaRapida.dni) {
       alert('Apellido, nombre y DNI son obligatorios'); return
     }
-    const { data: existe } = await supabase.from('pacientes').select('id').eq('dni', formAltaRapida.dni).maybeSingle()
-    if (existe) { alert('❌ Ya existe un paciente con ese DNI'); return }
-    const { data: nuevo, error } = await supabase.from('pacientes').insert([{
-      apellido_paciente: formAltaRapida.apellido, nombres_paciente: formAltaRapida.nombre,
-      dni: formAltaRapida.dni, telefono: formAltaRapida.telefono || null, creado_por: getUsuarioId(),
-    }]).select().single()
-    if (error) { alert('Error: ' + error.message); return }
-    setPacienteSeleccionado(nuevo)
+    const res = await fetchConToken('/api/pacientes', {
+      method: 'POST',
+      body: JSON.stringify({
+        apellido_paciente: formAltaRapida.apellido,
+        nombres_paciente: formAltaRapida.nombre,
+        dni: formAltaRapida.dni,
+        telefono: formAltaRapida.telefono || null,
+      })
+    })
+    const data = await res.json()
+    if (!res.ok) { alert('Error: ' + data.error); return }
+    setPacienteSeleccionado(data.paciente)
     setAltaRapida(false); setFormAltaRapida({ apellido: '', nombre: '', dni: '', telefono: '' })
     setBusquedaPaciente(''); setPacientesResultados([]); setBuscoPaciente(false)
   }
@@ -101,38 +90,23 @@ export default function Reparaciones() {
     if (!formNueva.marca) { alert('Ingresar marca'); return }
     if (!formNueva.motivo_reparacion) { alert('Ingresar motivo'); return }
 
-    const { data: ultimaOrden } = await supabase.from('visitas')
-      .select('numero_orden').eq('es_reparacion', true)
-      .order('numero_orden', { ascending: false }).limit(1).maybeSingle()
-    const proximoOrden = (ultimaOrden?.numero_orden || 0) + 1
-
-    let { data: motivo } = await supabase.from('visita_motivos').select('id').ilike('motivo', 'REPARACION').maybeSingle()
-    if (!motivo) {
-      const { data: nuevoMotivo } = await supabase.from('visita_motivos').insert([{ motivo: 'REPARACION', creado_por: getUsuarioId() }]).select().single()
-      motivo = nuevoMotivo
-    }
-
     const obsCompleta = `MOTIVO: ${normalizarTexto(formNueva.motivo_reparacion)}\n\nOBS TÉCNICAS: ${formNueva.observaciones ? formNueva.observaciones : '--'}`
 
-    const { error } = await supabase.from('visitas').insert([{
-      paciente_id: pacienteSeleccionado.id,
-      fecha: new Date().toISOString(),
-      motivo_id: motivo.id,
-      es_reparacion: true,
-      numero_orden: proximoOrden,
-      marca: normalizarTexto(formNueva.marca),
-      observaciones: obsCompleta,
-      costo_pesos: formNueva.costo_pesos ? Number(formNueva.costo_pesos) : null,
-      costo_usd: formNueva.costo_usd ? Number(formNueva.costo_usd) : null,
-      respuesta_paciente: 'ingresada',
-      atendido_por: getUsuarioId(),
-      creado_por: getUsuarioId(),
-    }])
-
-    if (error) { alert('Error: ' + error.message); return }
+    const res = await fetchConToken('/api/reparaciones', {
+      method: 'POST',
+      body: JSON.stringify({
+        paciente_id: pacienteSeleccionado.id,
+        marca: normalizarTexto(formNueva.marca),
+        observaciones: obsCompleta,
+        costo_pesos: formNueva.costo_pesos ? Number(formNueva.costo_pesos) : null,
+        costo_usd: formNueva.costo_usd ? Number(formNueva.costo_usd) : null,
+      })
+    })
+    const data = await res.json()
+    if (!res.ok) { alert('Error: ' + data.error); return }
     cerrarModalNueva()
     cargarReparaciones()
-    alert(`✅ Reparación #${proximoOrden} creada`)
+    alert(`✅ Reparación #${data.reparacion.numero_orden} creada`)
   }
 
   function cerrarModalNueva() {
@@ -155,22 +129,25 @@ export default function Reparaciones() {
   }
 
   async function guardarEdicion() {
-  const estadoActual = modalVer.respuesta_paciente
-  const cerrados = ['entregada', 'no_aprobada', 'no_aprobada_devuelta']
-  if (cerrados.includes(estadoActual)) {
-    const confirmar = confirm('Esta reparación está cerrada. ¿Querés modificarla de todas formas?')
-    if (!confirmar) return
-  }
-  setGuardandoEdicion(true)
-    const { error } = await supabase.from('visitas').update({
-      observaciones: formEdicion.observaciones || null,
-      costo_pesos: formEdicion.costo_pesos ? Number(formEdicion.costo_pesos) : null,
-      costo_usd: formEdicion.costo_usd ? Number(formEdicion.costo_usd) : null,
-      respuesta_paciente: formEdicion.respuesta_paciente,
-      fecha_entrega: formEdicion.fecha_entrega || null,
-    }).eq('id', modalVer.id)
+    const estadoActual = modalVer.respuesta_paciente
+    const cerrados = ['entregada', 'no_aprobada', 'no_aprobada_devuelta']
+    if (cerrados.includes(estadoActual)) {
+      const confirmar = confirm('Esta reparación está cerrada. ¿Querés modificarla de todas formas?')
+      if (!confirmar) return
+    }
+    setGuardandoEdicion(true)
+    const res = await fetchConToken(`/api/reparaciones/${modalVer.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        observaciones: formEdicion.observaciones || null,
+        costo_pesos: formEdicion.costo_pesos ? Number(formEdicion.costo_pesos) : null,
+        costo_usd: formEdicion.costo_usd ? Number(formEdicion.costo_usd) : null,
+        respuesta_paciente: formEdicion.respuesta_paciente,
+        fecha_entrega: formEdicion.fecha_entrega || null,
+      })
+    })
     setGuardandoEdicion(false)
-    if (error) { alert('Error: ' + error.message); return }
+    if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
     setModalVer(null)
     cargarReparaciones()
   }
@@ -221,7 +198,6 @@ export default function Reparaciones() {
               borderRadius: '12px', overflow: 'hidden',
               boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
             }}>
-              {/* Header estado */}
               <div style={{
                 padding: '10px 14px', background: estado.bg,
                 borderBottom: `1px solid ${estado.border}`,
@@ -236,8 +212,6 @@ export default function Reparaciones() {
                   {porEstado[estado.key]?.length || 0}
                 </span>
               </div>
-
-              {/* Cards */}
               <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {(porEstado[estado.key] || []).length === 0 ? (
                   <div style={{
@@ -248,14 +222,11 @@ export default function Reparaciones() {
                   </div>
                 ) : (
                   (porEstado[estado.key] || []).map(r => (
-                    <div
-                      key={r.id}
-                      onClick={() => abrirVer(r)}
-                      style={{
-                        padding: '10px 12px', background: 'white', borderRadius: '8px',
-                        border: '1px solid #e5e7eb', borderLeft: `3px solid ${estado.color}`,
-                        cursor: 'pointer', transition: '0.15s',
-                      }}
+                    <div key={r.id} onClick={() => abrirVer(r)} style={{
+                      padding: '10px 12px', background: 'white', borderRadius: '8px',
+                      border: '1px solid #e5e7eb', borderLeft: `3px solid ${estado.color}`,
+                      cursor: 'pointer', transition: '0.15s',
+                    }}
                       onMouseEnter={e => { e.currentTarget.style.background = '#fafafa'; e.currentTarget.style.borderColor = '#d1d5db' }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#e5e7eb' }}
                     >
@@ -293,7 +264,6 @@ export default function Reparaciones() {
           <div style={modalBox}>
             <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a', marginBottom: '20px' }}>🔧 Nueva reparación</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-
               <div>
                 <label style={labelStyle}>Paciente *</label>
                 {pacienteSeleccionado ? (
@@ -342,7 +312,6 @@ export default function Reparaciones() {
                   </>
                 )}
               </div>
-
               <div>
                 <label style={labelStyle}>Marca *</label>
                 <input placeholder="Ej: Oticon, Siemens, Signia..." value={formNueva.marca} onChange={(e) => setFormNueva({ ...formNueva, marca: e.target.value })} style={inputStyle} />
@@ -409,12 +378,10 @@ export default function Reparaciones() {
                   {ESTADOS.map(e => <option key={e.key} value={e.key}>{e.label}</option>)}
                 </select>
               </div>
-
               <div>
                 <label style={labelStyle}>Observaciones / Notas técnicas</label>
                 <textarea value={formEdicion.observaciones} onChange={(e) => setFormEdicion({ ...formEdicion, observaciones: e.target.value })} rows={4} style={{ ...inputStyle, resize: 'vertical' }} />
               </div>
-
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={labelStyle}>Costo en pesos</label>
@@ -425,19 +392,16 @@ export default function Reparaciones() {
                   <input type="number" placeholder="U$S 0" value={formEdicion.costo_usd} onChange={(e) => setFormEdicion({ ...formEdicion, costo_usd: e.target.value })} style={inputStyle} />
                 </div>
               </div>
-
               <div>
                 <label style={labelStyle}>Fecha de entrega</label>
                 <input type="date" value={formEdicion.fecha_entrega} onChange={(e) => setFormEdicion({ ...formEdicion, fecha_entrega: e.target.value })} style={inputStyle} />
               </div>
-
               {modalVer.ventas && (
                 <div style={{ padding: '10px 14px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '13px' }}>
                   🔗 Cobro vinculado: Venta #{modalVer.ventas.id}
                   {modalVer.ventas.total_pesos ? ` — ${fmt(modalVer.ventas.total_pesos)}` : ''}
                 </div>
               )}
-
               <div>
                 <label style={labelStyle}>Cambio rápido de estado</label>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
