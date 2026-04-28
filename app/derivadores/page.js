@@ -2,9 +2,8 @@
 
 export const dynamic = 'force-dynamic'
 
-import { getUsuarioId } from '../../lib/getUsuario'
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabaseClient'
+import { fetchConToken } from '../../lib/fetchConToken'
 import { normalizarTexto } from '../../lib/formatText'
 import { usePermiso } from '../../lib/usePermisos'
 
@@ -23,8 +22,9 @@ export default function Derivadores() {
   if (verificando || !permitido) return null
 
   async function cargarDerivadores() {
-    const { data } = await supabase.from('derivadores').select('*').order('derivador')
-    setDerivadores(data || [])
+    const res = await fetchConToken('/api/derivadores')
+    const data = await res.json()
+    setDerivadores(data.derivadores || [])
   }
 
   function abrirNuevo() {
@@ -57,7 +57,7 @@ export default function Derivadores() {
     if (!form.derivador) { alert('Ingresar nombre del derivador'); return }
     if (!form.porcentaje && !form.monto_fijo) { alert('Ingresar porcentaje o monto fijo de comisión'); return }
 
-    const data = {
+    const body = {
       derivador: normalizarTexto(form.derivador),
       especialidad: form.especialidad ? normalizarTexto(form.especialidad) : null,
       telefono: form.telefono || null,
@@ -68,9 +68,9 @@ export default function Derivadores() {
     }
 
     if (editando) {
-      await supabase.from('derivadores').update(data).eq('id', editando.id)
+      await fetchConToken(`/api/derivadores/${editando.id}`, { method: 'PUT', body: JSON.stringify(body) })
     } else {
-      await supabase.from('derivadores').insert([{ ...data, activo: true, creado_por: getUsuarioId() }])
+      await fetchConToken('/api/derivadores', { method: 'POST', body: JSON.stringify(body) })
     }
 
     cerrarForm()
@@ -78,7 +78,7 @@ export default function Derivadores() {
   }
 
   async function toggleActivo(d) {
-    await supabase.from('derivadores').update({ activo: !d.activo }).eq('id', d.id)
+    await fetchConToken(`/api/derivadores/${d.id}`, { method: 'PUT', body: JSON.stringify({ activo: !d.activo }) })
     cargarDerivadores()
   }
 
@@ -95,7 +95,6 @@ export default function Derivadores() {
         <button onClick={abrirNuevo} style={btnPrimario}>+ Nuevo derivador</button>
       </div>
 
-      {/* Formulario */}
       {mostrarForm && (
         <div style={card}>
           <div style={{ ...cardTitle, marginBottom: '16px' }}>{editando ? '✏️ Editar derivador' : '➕ Nuevo derivador'}</div>
@@ -116,8 +115,6 @@ export default function Derivadores() {
                 <input placeholder="correo@ejemplo.com" value={form.mail} onChange={(e) => setForm({ ...form, mail: e.target.value })} style={inputStyle} />
               </Field>
             </div>
-
-            {/* Comisión */}
             <div style={{ padding: '14px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
               <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '10px' }}>💰 Comisión por defecto</div>
               <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '10px' }}>Podés definir porcentaje, monto fijo, o ambos. Al asignar a una venta se puede modificar.</div>
@@ -130,7 +127,6 @@ export default function Derivadores() {
                 </Field>
               </div>
             </div>
-
             <Field label="Observaciones">
               <textarea placeholder="Notas sobre el derivador..." value={form.observaciones} onChange={(e) => setForm({ ...form, observaciones: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
             </Field>
@@ -142,7 +138,6 @@ export default function Derivadores() {
         </div>
       )}
 
-      {/* Lista */}
       <div style={card}>
         <div style={{ ...cardTitle, marginBottom: '16px' }}>
           Derivadores registrados
@@ -155,24 +150,15 @@ export default function Derivadores() {
             {derivadores.map(d => (
               <div key={d.id} style={{
                 padding: '14px 16px', background: d.activo ? '#f9fafb' : '#fafafa',
-                borderRadius: '10px', border: '1px solid #e5e7eb',
-                opacity: d.activo ? 1 : 0.6,
+                borderRadius: '10px', border: '1px solid #e5e7eb', opacity: d.activo ? 1 : 0.6,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                   <div>
                     <div style={{ fontWeight: '700', fontSize: '15px', color: '#1a1a1a' }}>{d.derivador}</div>
                     {d.especialidad && <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>{d.especialidad}</div>}
                     <div style={{ display: 'flex', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
-                      {d.porcentaje && (
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#8B1E2D', background: '#fdf2f4', padding: '2px 8px', borderRadius: '20px', border: '1px solid #f5c2c9' }}>
-                          {d.porcentaje}%
-                        </span>
-                      )}
-                      {d.monto_fijo && (
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#15803d', background: '#f0fdf4', padding: '2px 8px', borderRadius: '20px', border: '1px solid #bbf7d0' }}>
-                          {fmt(d.monto_fijo)} fijo
-                        </span>
-                      )}
+                      {d.porcentaje && <span style={{ fontSize: '12px', fontWeight: '600', color: '#8B1E2D', background: '#fdf2f4', padding: '2px 8px', borderRadius: '20px', border: '1px solid #f5c2c9' }}>{d.porcentaje}%</span>}
+                      {d.monto_fijo && <span style={{ fontSize: '12px', fontWeight: '600', color: '#15803d', background: '#f0fdf4', padding: '2px 8px', borderRadius: '20px', border: '1px solid #bbf7d0' }}>{fmt(d.monto_fijo)} fijo</span>}
                       {d.telefono && <span style={{ fontSize: '12px', color: '#6b7280' }}>📞 {d.telefono}</span>}
                       {d.mail && <span style={{ fontSize: '12px', color: '#6b7280' }}>✉️ {d.mail}</span>}
                     </div>
