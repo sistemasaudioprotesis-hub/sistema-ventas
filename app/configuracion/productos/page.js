@@ -3,9 +3,9 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
-import { fetchConToken } from '../../lib/fetchConToken'
-import { normalizarTexto } from '../../lib/formatText'
-import { usePermiso } from '../../lib/usePermisos'
+import { fetchConToken } from '../../../lib/fetchConToken'
+import { normalizarTexto } from '../../../lib/formatText'
+import { usePermiso } from '../../../lib/usePermisos'
 
 export default function ConfiguracionProductos() {
   const [tipos, setTipos] = useState([])
