@@ -95,13 +95,24 @@ export default function Pacientes() {
   }
 
   async function buscarPaciente() {
-    const valor = busqueda.trim()
-    if (!valor) { alert('Ingresar DNI o apellido'); return }
-    const res = await fetchConToken(`/api/pacientes?q=${encodeURIComponent(valor)}`)
-    const data = await res.json()
-    if (!data.pacientes || data.pacientes.length === 0) { alert('No se encontraron resultados'); setResultados([]); return }
-    setResultados(data.pacientes)
+  const valor = busqueda.trim()
+  if (!valor) { alert('Ingresar DNI o apellido'); return }
+  const res = await fetchConToken(`/api/pacientes?q=${encodeURIComponent(valor)}`)
+  const data = await res.json()
+  if (!data.pacientes || data.pacientes.length === 0) {
+    // Limpiar paciente anterior pero mantener la búsqueda
+    setPacienteId(null)
+    setGuardado(false)
+    setTab('datos')
+    setVisitas([]); setVentasPaciente([]); setTurnos([])
+    setHistorial([]); setVentasConPagos([]); setReparaciones([])
+    setForm({ apellido_paciente: '', nombres_paciente: '', dni: '', telefono: '', domicilio: '', localidad: '', provincia_id: '', mail: '', observaciones: '', obra_social_id: '' })
+    setResultados([])
+    alert('No se encontraron resultados')
+    return
   }
+  setResultados(data.pacientes)
+}
 
   function cargarDesdeObjeto(p) {
     setPacienteId(p.id)
