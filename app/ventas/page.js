@@ -589,7 +589,30 @@ if (derivadorEdicionId && valorComisionEdicion) {
               <div key={item.id} style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
                 <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a', marginBottom: '10px' }}>{item.numeros_serie?.productos?.producto || item.productos?.producto || '-'}{item.numeros_serie?.numero_serie ? ` (${item.numeros_serie.numero_serie})` : ''}{item.cantidad > 1 ? ` × ${item.cantidad}` : ''}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  {item.numero_serie_id && <div><label style={labelStyle}>Cambiar número de serie</label><select value={item.numero_serie_id || ''} onChange={(e) => guardarCambioItem(item, 'numero_serie_id', Number(e.target.value))} style={inputStyle}><option value={item.numero_serie_id}>{item.numeros_serie?.numero_serie} (actual)</option>{seriesAll.filter(s => s.en_stock && s.producto_id === seriesAll.find(x => x.id === item.numero_serie_id)?.producto_id).map(s => <option key={s.id} value={s.id}>{s.numero_serie}</option>)}</select></div>}
+                  {{item.numero_serie_id && (() => {
+  const serieActual = seriesAll.find(s => s.id === item.numero_serie_id)
+  const productoIdDeLaSerie = serieActual?.producto_id
+  const opciones = seriesAll.filter(s =>
+    s.producto_id === productoIdDeLaSerie &&
+    (s.en_stock || s.id === item.numero_serie_id)
+  )
+  return (
+    <div>
+      <label style={labelStyle}>Cambiar número de serie</label>
+      <select
+        value={item.numero_serie_id || ''}
+        onChange={(e) => guardarCambioItem(item, 'numero_serie_id', Number(e.target.value))}
+        style={inputStyle}
+      >
+        {opciones.map(s => (
+          <option key={s.id} value={s.id}>
+            {s.numero_serie}{s.id === item.numero_serie_id ? ' (actual)' : ''}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+})()}
                   <div><label style={labelStyle}>Precio pesos</label><input defaultValue={item.precio_venta_pesos || ''} onBlur={(e) => { if (e.target.value !== String(item.precio_venta_pesos || '')) guardarCambioItem(item, 'precio_venta_pesos', e.target.value ? Number(e.target.value) : null) }} placeholder="$0" style={inputStyle} /></div>
                   <div><label style={labelStyle}>Precio USD</label><input defaultValue={item.precio_venta_usd || ''} onBlur={(e) => { if (e.target.value !== String(item.precio_venta_usd || '')) guardarCambioItem(item, 'precio_venta_usd', e.target.value ? Number(e.target.value) : null) }} placeholder="U$S 0" style={inputStyle} /></div>
                 </div>
