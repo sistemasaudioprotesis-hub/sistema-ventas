@@ -56,11 +56,6 @@ export default function Ventas() {
   obtenerProductos()
   obtenerObrasSociales()
   obtenerDerivadores()
-    console.log('params:', {
-  dni: searchParams.get('dni'),
-  producto: searchParams.get('producto'),
-  monto_pesos: searchParams.get('monto_pesos'),
-})
   const dniParam = searchParams.get('dni')
   if (dniParam) {
     setDni(dniParam)
@@ -75,22 +70,25 @@ export default function Ventas() {
 }, [])
 
 useEffect(() => {
-  obtenerSeries()
-  obtenerProductos()
-  obtenerObrasSociales()
-  obtenerDerivadores()
-  const dniParam = searchParams.get('dni')
-  if (dniParam) {
-    setDni(dniParam)
-    setTimeout(() => { buscarPacienteAutomatico(dniParam) }, 300)
+  if (!paramsPendientes || productos.length === 0) return
+  const { producto, monto_pesos, monto_usd } = paramsPendientes
+  if (producto) {
+    const prod = productos.find(p => p.producto.toLowerCase() === producto.toLowerCase())
+    if (prod) {
+      const requiereSerie = prod?.tipo_producto?.requiere_serie
+      const ctrlStock = prod?.controla_stock || false
+      setModoConSerie(requiereSerie)
+      setControlaStock(ctrlStock)
+      setSeriesFiltradas(series.filter(s => s.producto_id === prod.id))
+      setForm(f => ({ ...f, producto_id: String(prod.id), precio_pesos: monto_pesos || '', precio_usd: monto_usd || '' }))
+    } else {
+      setForm(f => ({ ...f, precio_pesos: monto_pesos || '', precio_usd: monto_usd || '' }))
+    }
+  } else {
+    setForm(f => ({ ...f, precio_pesos: monto_pesos || '', precio_usd: monto_usd || '' }))
   }
-  const productoParam = searchParams.get('producto')
-  const montoPesosParam = searchParams.get('monto_pesos')
-  const montoUSDParam = searchParams.get('monto_usd')
-  if (productoParam || montoPesosParam || montoUSDParam) {
-    setParamsPendientes({ producto: productoParam, monto_pesos: montoPesosParam, monto_usd: montoUSDParam })
-  }
-}, [])
+  setParamsPendientes(null)
+}, [productos, paramsPendientes])
   
   useEffect(() => {
     async function calcularComision() {
