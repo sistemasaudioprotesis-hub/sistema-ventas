@@ -20,6 +20,7 @@ const ESTADOS = [
 ]
 
 const ESTADOS_ACTIVOS = ['ingresada', 'en_evaluacion', 'esperando_respuesta', 'aprobada', 'en_reparacion', 'lista_entregar']
+const ESTADOS_CERRADOS = ['entregada', 'no_aprobada', 'no_aprobada_devuelta', 'cancelada']
 
 function getEstado(key) {
   return ESTADOS.find(e => e.key === key) || ESTADOS[0]
@@ -31,6 +32,7 @@ export default function Reparaciones() {
   const [modalNueva, setModalNueva] = useState(false)
   const [modalVer, setModalVer] = useState(null)
   const [cargando, setCargando] = useState(false)
+  const [historial, setHistorial] = useState([])
 
   const [busquedaPaciente, setBusquedaPaciente] = useState('')
   const [pacientesResultados, setPacientesResultados] = useState([])
@@ -118,8 +120,9 @@ export default function Reparaciones() {
     setFormAltaRapida({ apellido: '', nombre: '', dni: '', telefono: '' })
   }
 
-  function abrirVer(r) {
+  async function abrirVer(r) {
     setModalVer(r)
+    setHistorial([])
     setFormEdicion({
       observaciones: r.observaciones || '',
       costo_pesos: r.costo_pesos || '',
@@ -127,12 +130,14 @@ export default function Reparaciones() {
       respuesta_paciente: r.respuesta_paciente || 'ingresada',
       fecha_entrega: r.fecha_entrega || '',
     })
+    const resH = await fetchConToken(`/api/reparaciones/${r.id}/historial`)
+    const dataH = await resH.json()
+    setHistorial(dataH.historial || [])
   }
 
   async function guardarEdicion() {
     const estadoActual = modalVer.respuesta_paciente
-    const cerrados = ['entregada', 'no_aprobada', 'no_aprobada_devuelta']
-    if (cerrados.includes(estadoActual)) {
+    if (ESTADOS_CERRADOS.includes(estadoActual)) {
       const confirmar = confirm('Esta reparación está cerrada. ¿Querés modificarla de todas formas?')
       if (!confirmar) return
     }
@@ -162,6 +167,7 @@ export default function Reparaciones() {
 
   const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0)
   const fmtFecha = (f) => f ? new Date(f + (f.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('es-AR') : '-'
+  const fmtFechaHora = (f) => f ? new Date(f).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'
 
   return (
     <div style={{ maxWidth: '860px' }}>
@@ -372,6 +378,17 @@ export default function Reparaciones() {
               <div style={{ fontSize: '13px', color: '#374151', marginTop: '4px', fontWeight: '600' }}>{modalVer.marca}</div>
             </div>
 
+            {/* Cartel estado cerrado */}
+            {ESTADOS_CERRADOS.includes(modalVer.respuesta_paciente) && (
+              <div style={{
+                padding: '8px 14px', borderRadius: '8px', marginBottom: '14px',
+                background: '#fef9c3', border: '1px solid #fde047',
+                fontSize: '12px', color: '#854d0e', fontWeight: '600',
+              }}>
+                ⚠️ Esta reparación está cerrada. Podés modificarla pero se te va a pedir confirmación.
+              </div>
+            )}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <label style={labelStyle}>Estado</label>
@@ -399,7 +416,7 @@ export default function Reparaciones() {
               </div>
               {modalVer.ventas && (
                 <div style={{ padding: '10px 14px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '13px' }}>
-                  🔗 Cobro vinculado: Venta #{modalVer.ventas.id}
+                  🔗 Venta vinculada: #{modalVer.ventas.id}
                   {modalVer.ventas.total_pesos ? ` — ${fmt(modalVer.ventas.total_pesos)}` : ''}
                 </div>
               )}
@@ -417,6 +434,33 @@ export default function Reparaciones() {
                   ))}
                 </div>
               </div>
+
+              {/* Historial de estados */}
+              {historial.length > 0 && (
+                <div>
+                  <label style={labelStyle}>Historial de estados</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {historial.map((h, i) => (
+                      <div key={i} style={{
+                        display: 'flex', gap: '10px', alignItems: 'center',
+                        fontSize: '12px', padding: '6px 10px',
+                        background: '#f9fafb', borderRadius: '6px',
+                        border: '1px solid #f3f4f6',
+                      }}>
+                        <span style={{ color: getEstado(h.estado).color, fontWeight: '700', whiteSpace: 'nowrap' }}>
+                          {getEstado(h.estado).label}
+                        </span>
+                        <span style={{ color: '#9ca3af', whiteSpace: 'nowrap' }}>{fmtFechaHora(h.created_at)}</span>
+                        {h.observaciones && (
+                          <span style={{ color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {h.observaciones}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #f3f4f6', flexWrap: 'wrap' }}>
@@ -424,18 +468,18 @@ export default function Reparaciones() {
                 {guardandoEdicion ? 'Guardando...' : '💾 Guardar cambios'}
               </button>
               {!modalVer.ventas && (
-  <button onClick={() => {
-    const params = new URLSearchParams({
-      dni: modalVer.pacientes?.dni,
-      producto: 'Reparaciones',
-      ...(modalVer.costo_pesos ? { monto_pesos: modalVer.costo_pesos } : {}),
-      ...(modalVer.costo_usd   ? { monto_usd:   modalVer.costo_usd   } : {}),
-    })
-    window.location.href = `/ventas?${params}`
-  }} style={{ ...btnSecundario, fontSize: '13px' }}>
-    💳 Registrar venta y pago
-  </button>
-)}
+                <button onClick={() => {
+                  const params = new URLSearchParams({
+                    dni: modalVer.pacientes?.dni,
+                    producto: 'Reparaciones',
+                    ...(modalVer.costo_pesos ? { monto_pesos: modalVer.costo_pesos } : {}),
+                    ...(modalVer.costo_usd ? { monto_usd: modalVer.costo_usd } : {}),
+                  })
+                  window.location.href = `/ventas?${params}`
+                }} style={{ ...btnSecundario, fontSize: '13px' }}>
+                  💳 Registrar venta y pago
+                </button>
+              )}
               <button onClick={() => setModalVer(null)} style={btnSecundario}>Cerrar</button>
             </div>
           </div>
@@ -453,9 +497,3 @@ const btnSecundario = { padding: '10px 20px', background: 'white', color: '#3741
 const btnFantasma = { padding: '8px 16px', background: 'transparent', color: '#8B1E2D', border: '1px dashed #8B1E2D', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
 const overlay = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }
 const modalBox = { background: 'white', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '520px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', maxHeight: '90vh', overflowY: 'auto' }
-const [historial, setHistorial] = useState([])
-
-// dentro de abrirVer():
-const resH = await fetchConToken(`/api/reparaciones/${r.id}/historial`)
-const dataH = await resH.json()
-setHistorial(dataH.historial || [])
