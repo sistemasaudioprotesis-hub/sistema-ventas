@@ -589,7 +589,7 @@ if (derivadorEdicionId && valorComisionEdicion) {
               <div key={item.id} style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
                 <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a', marginBottom: '10px' }}>{item.numeros_serie?.productos?.producto || item.productos?.producto || '-'}{item.numeros_serie?.numero_serie ? ` (${item.numeros_serie.numero_serie})` : ''}{item.cantidad > 1 ? ` × ${item.cantidad}` : ''}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  {{item.numero_serie_id && (() => {
+                  {item.numero_serie_id && (() => {
   const serieActual = seriesAll.find(s => s.id === item.numero_serie_id)
   const productoIdDeLaSerie = serieActual?.producto_id
   const opciones = seriesAll.filter(s =>
