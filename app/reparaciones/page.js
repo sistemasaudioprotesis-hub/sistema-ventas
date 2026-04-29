@@ -16,6 +16,7 @@ const ESTADOS = [
   { key: 'entregada', label: 'Entregada', color: '#374151', bg: '#f9fafb', border: '#e5e7eb' },
   { key: 'no_aprobada', label: 'No aprobada', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
   { key: 'no_aprobada_devuelta', label: 'No aprobada - Devuelta', color: '#9ca3af', bg: '#f3f4f6', border: '#e5e7eb' },
+  { key: 'cancelada', label: 'Cancelada', color: '#6b7280', bg: '#f3f4f6', border: '#e5e7eb' },
 ]
 
 const ESTADOS_ACTIVOS = ['ingresada', 'en_evaluacion', 'esperando_respuesta', 'aprobada', 'en_reparacion', 'lista_entregar']
@@ -423,10 +424,18 @@ export default function Reparaciones() {
                 {guardandoEdicion ? 'Guardando...' : '💾 Guardar cambios'}
               </button>
               {!modalVer.ventas && (
-                <button onClick={() => window.location.href = `/ventas?dni=${modalVer.pacientes?.dni}`} style={{ ...btnSecundario, fontSize: '13px' }}>
-                  💳 Registrar cobro
-                </button>
-              )}
+  <button onClick={() => {
+    const params = new URLSearchParams({
+      dni: modalVer.pacientes?.dni,
+      producto: 'Reparaciones',
+      ...(modalVer.costo_pesos ? { monto_pesos: modalVer.costo_pesos } : {}),
+      ...(modalVer.costo_usd   ? { monto_usd:   modalVer.costo_usd   } : {}),
+    })
+    window.location.href = `/ventas?${params}`
+  }} style={{ ...btnSecundario, fontSize: '13px' }}>
+    💳 Registrar venta y pago
+  </button>
+)}
               <button onClick={() => setModalVer(null)} style={btnSecundario}>Cerrar</button>
             </div>
           </div>
@@ -444,3 +453,9 @@ const btnSecundario = { padding: '10px 20px', background: 'white', color: '#3741
 const btnFantasma = { padding: '8px 16px', background: 'transparent', color: '#8B1E2D', border: '1px dashed #8B1E2D', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
 const overlay = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }
 const modalBox = { background: 'white', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '520px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', maxHeight: '90vh', overflowY: 'auto' }
+const [historial, setHistorial] = useState([])
+
+// dentro de abrirVer():
+const resH = await fetchConToken(`/api/reparaciones/${r.id}/historial`)
+const dataH = await resH.json()
+setHistorial(dataH.historial || [])
