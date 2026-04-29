@@ -49,19 +49,44 @@ export default function Ventas() {
   const [montoCalculadoEdicion, setMontoCalculadoEdicion] = useState('')
   const [form, setForm] = useState({ numero_serie_id: '', producto_id: '', precio_pesos: '', precio_usd: '', cantidad: '1' })
   const [modalSalir, setModalSalir] = useState(false)
+  const [paramsPendientes, setParamsPendientes] = useState(null)
 
   useEffect(() => {
-    obtenerSeries()
-    obtenerProductos()
-    obtenerObrasSociales()
-    obtenerDerivadores()
-    const dniParam = searchParams.get('dni')
-    if (dniParam) {
-      setDni(dniParam)
-      setTimeout(() => { buscarPacienteAutomatico(dniParam) }, 300)
-    }
-  }, [])
+  obtenerSeries()
+  obtenerProductos()
+  obtenerObrasSociales()
+  obtenerDerivadores()
+  const dniParam = searchParams.get('dni')
+  if (dniParam) {
+    setDni(dniParam)
+    setTimeout(() => { buscarPacienteAutomatico(dniParam) }, 300)
+  }
+  const productoParam = searchParams.get('producto')
+  const montoPesosParam = searchParams.get('monto_pesos')
+  const montoUSDParam = searchParams.get('monto_usd')
+  if (productoParam || montoPesosParam || montoUSDParam) {
+    setParamsPendientes({ producto: productoParam, monto_pesos: montoPesosParam, monto_usd: montoUSDParam })
+  }
+}, [])
 
+useEffect(() => {
+  obtenerSeries()
+  obtenerProductos()
+  obtenerObrasSociales()
+  obtenerDerivadores()
+  const dniParam = searchParams.get('dni')
+  if (dniParam) {
+    setDni(dniParam)
+    setTimeout(() => { buscarPacienteAutomatico(dniParam) }, 300)
+  }
+  const productoParam = searchParams.get('producto')
+  const montoPesosParam = searchParams.get('monto_pesos')
+  const montoUSDParam = searchParams.get('monto_usd')
+  if (productoParam || montoPesosParam || montoUSDParam) {
+    setParamsPendientes({ producto: productoParam, monto_pesos: montoPesosParam, monto_usd: montoUSDParam })
+  }
+}, [])
+  
   useEffect(() => {
     async function calcularComision() {
       if (!derivadorId || !valorComision) { setMontoCalculado(''); return }
