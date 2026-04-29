@@ -56,6 +56,11 @@ export default function Ventas() {
   obtenerProductos()
   obtenerObrasSociales()
   obtenerDerivadores()
+    console.log('params:', {
+  dni: searchParams.get('dni'),
+  producto: searchParams.get('producto'),
+  monto_pesos: searchParams.get('monto_pesos'),
+})
   const dniParam = searchParams.get('dni')
   if (dniParam) {
     setDni(dniParam)
