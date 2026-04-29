@@ -81,8 +81,11 @@ export default function DerivadoresReporte() {
 
   const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0)
   const fmtUSD = (n) => 'U$S ' + Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })
-  const fmtFechaCorta = (f) => f ? new Date(f + 'T12:00:00').toLocaleDateString('es-AR') : '-'
-
+  const fmtFechaCorta = (f) => {
+  if (!f) return '-'
+  const solo = f.split('T')[0]
+  return new Date(solo + 'T12:00:00').toLocaleDateString('es-AR')
+}
   function getProductosVenta(venta) {
     if (!venta?.venta_detalle) return '-'
     return venta.venta_detalle.map(d => d.numeros_serie?.productos?.producto || d.productos?.producto || '-').filter(Boolean).join(', ')
