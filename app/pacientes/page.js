@@ -2,10 +2,8 @@
 
 export const dynamic = 'force-dynamic'
 
-import { getUsuarioId } from '../../lib/getUsuario'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { supabase } from '../../lib/supabaseClient'
 import { fetchConToken } from '../../lib/fetchConToken'
 import { normalizarTexto } from '../../lib/formatText'
 
@@ -33,7 +31,6 @@ export default function Pacientes() {
   const [guardado, setGuardado] = useState(false)
   const [tab, setTab] = useState('datos')
 
-  // Visitas
   const [visitas, setVisitas] = useState([])
   const [motivos, setMotivos] = useState([])
   const [busquedaMotivo, setBusquedaMotivo] = useState('')
@@ -43,16 +40,9 @@ export default function Pacientes() {
   const [formVisita, setFormVisita] = useState({ motivo_id: '', observaciones: '', venta_id: '' })
   const [ventasPaciente, setVentasPaciente] = useState([])
 
-  // Turnos
   const [turnos, setTurnos] = useState([])
-
-  // Ventas y pagos
   const [ventasConPagos, setVentasConPagos] = useState([])
-
-  // Reparaciones
   const [reparaciones, setReparaciones] = useState([])
-
-  // Historial
   const [historial, setHistorial] = useState([])
   const [provinciasMap, setProvinciasMap] = useState({})
 
@@ -65,28 +55,28 @@ export default function Pacientes() {
     obtenerProvincias()
     obtenerObrasSociales()
     obtenerMotivos()
-    if (dniParam) {
-      setBusqueda(dniParam)
-      cargarPacientePorDni(dniParam)
-    }
+    if (dniParam) { setBusqueda(dniParam); cargarPacientePorDni(dniParam) }
   }, [])
 
   async function obtenerProvincias() {
-    const { data } = await supabase.from('provincias').select('*')
-    setProvincias(data || [])
+    const res = await fetchConToken('/api/provincias')
+    const data = await res.json()
+    setProvincias(data.provincias || [])
     const map = {}
-    ;(data || []).forEach(p => { map[p.id] = p.provincia })
+    ;(data.provincias || []).forEach(p => { map[p.id] = p.provincia })
     setProvinciasMap(map)
   }
 
   async function obtenerObrasSociales() {
-    const { data } = await supabase.from('obras_sociales').select('*').order('obra_social')
-    setObrasSociales(data || [])
+    const res = await fetchConToken('/api/configuracion/obras-sociales')
+    const data = await res.json()
+    setObrasSociales(data.obras_sociales || [])
   }
 
   async function obtenerMotivos() {
-    const { data } = await supabase.from('visita_motivos').select('*').eq('activo', true).order('motivo')
-    setMotivos(data || [])
+    const res = await fetchConToken('/api/configuracion/motivos')
+    const data = await res.json()
+    setMotivos(data.motivos || [])
   }
 
   function handleChange(e) {
@@ -105,13 +95,13 @@ export default function Pacientes() {
   }
 
   async function buscarPaciente() {
-  const valor = busqueda.trim()
-  if (!valor) { alert('Ingresar DNI o apellido'); return }
-  const res = await fetchConToken(`/api/pacientes?q=${encodeURIComponent(valor)}`)
-  const data = await res.json()
-  if (!data.pacientes || data.pacientes.length === 0) { alert('No se encontraron resultados'); setResultados([]); return }
-  setResultados(data.pacientes)
-}
+    const valor = busqueda.trim()
+    if (!valor) { alert('Ingresar DNI o apellido'); return }
+    const res = await fetchConToken(`/api/pacientes?q=${encodeURIComponent(valor)}`)
+    const data = await res.json()
+    if (!data.pacientes || data.pacientes.length === 0) { alert('No se encontraron resultados'); setResultados([]); return }
+    setResultados(data.pacientes)
+  }
 
   function cargarDesdeObjeto(p) {
     setPacienteId(p.id)
@@ -132,141 +122,131 @@ export default function Pacientes() {
   }
 
   async function cargarPacientePorDni(dni) {
-  const res = await fetchConToken(`/api/pacientes?q=${encodeURIComponent(dni)}`)
-  const data = await res.json()
-  if (data.pacientes && data.pacientes.length > 0) cargarDesdeObjeto(data.pacientes[0])
-}
-
-  async function cargarVisitas(pid) {
-  const res = await fetchConToken(`/api/turnos?paciente_id=${pid}`)
-  const data = await res.json()
-  // visitas siguen por supabase hasta tener API route propia
-  const { data: visitasData } = await supabase.from('visitas')
-    .select(`id, fecha, observaciones, created_at, atendido_por, visita_motivos (motivo), ventas (id, fecha, total_pesos, total_dolares)`)
-    .eq('paciente_id', pid).order('fecha', { ascending: false })
-  setVisitas(visitasData || [])
-}
-
-  async function cargarVentasPaciente(pid) {
-  const res = await fetchConToken(`/api/ventas?paciente_id=${pid}`)
-  const data = await res.json()
-  setVentasPaciente(data.ventas || [])
-}
-
- async function cargarVentasConPagos(pid) {
-  const res = await fetchConToken(`/api/ventas?paciente_id=${pid}`)
-  const data = await res.json()
-  const ventasConSaldo = await Promise.all((data.ventas || []).map(async v => {
-    const resPagos = await fetchConToken(`/api/pagos?venta_id=${v.id}`)
-    const dataPagos = await resPagos.json()
-    const pagos = dataPagos.pagos || []
-    const pagadoP = pagos.reduce((acc, p) => acc + (Number(p.monto_pesos) || 0), 0)
-    const pagadoU = pagos.reduce((acc, p) => acc + (Number(p.monto_usd) || 0), 0)
-    return { ...v, pagos, pagadoPesos: pagadoP, pagadoUSD: pagadoU }
-  }))
-  setVentasConPagos(ventasConSaldo)
-}
-
-  async function cargarTurnos(pid) {
-  const res = await fetchConToken(`/api/turnos?paciente_id=${pid}`)
-  const data = await res.json()
-  setTurnos(data.turnos || [])
-}
-
-  async function cargarReparaciones(pid) {
-  const res = await fetchConToken(`/api/reparaciones?paciente_id=${pid}`)
-  const data = await res.json()
-  setReparaciones(data.reparaciones || [])
-}
-
-  async function cargarHistorial(pid) {
-  const res = await fetchConToken(`/api/pacientes/${pid}/historial`)
-  const data = await res.json()
-  setHistorial(data.historial || [])
-}
-
-  async function guardar(destino) {
-  if (!form.apellido_paciente || !form.nombres_paciente || !form.dni || !form.telefono) { alert('Completar campos obligatorios'); return }
-  if (!form.provincia_id) { alert('Seleccionar provincia'); return }
-  const dataGuardar = { ...form, provincia_id: Number(form.provincia_id), obra_social_id: form.obra_social_id ? Number(form.obra_social_id) : null }
-
-  if (pacienteId) {
-    // Guardar historial primero
-    const resActual = await fetchConToken(`/api/pacientes/${pacienteId}`)
-    const { paciente: pacienteActual } = await resActual.json()
-    await fetchConToken(`/api/pacientes/${pacienteId}`, {
-      method: 'PUT',
-      body: JSON.stringify(dataGuardar),
-    })
-    await fetchConToken(`/api/pacientes/${pacienteId}/historial`, {
-  method: 'POST',
-  body: JSON.stringify({
-    apellido_paciente: pacienteActual.apellido_paciente,
-    nombres_paciente: pacienteActual.nombres_paciente,
-    telefono: pacienteActual.telefono,
-    domicilio: pacienteActual.domicilio,
-    localidad: pacienteActual.localidad,
-    provincia_id: pacienteActual.provincia_id,
-    mail: pacienteActual.mail,
-    observaciones: pacienteActual.observaciones,
-  })
-})
-    alert('Paciente actualizado')
-    cargarHistorial(pacienteId)
-  } else {
-    const res = await fetchConToken('/api/pacientes', {
-      method: 'POST',
-      body: JSON.stringify(dataGuardar),
-    })
+    const res = await fetchConToken(`/api/pacientes?q=${encodeURIComponent(dni)}`)
     const data = await res.json()
-    if (!res.ok) { alert('Error: ' + data.error); return }
-    setPacienteId(data.paciente.id)
-    alert('Paciente creado')
+    if (data.pacientes && data.pacientes.length > 0) cargarDesdeObjeto(data.pacientes[0])
   }
 
-  setGuardado(true)
-  if (destino === 'ventas') window.location.href = `/ventas?dni=${form.dni}`
-  if (destino === 'pagos') window.location.href = `/pagos?dni=${form.dni}`
-  if (!destino) limpiarFormulario()
-}
+  async function cargarVisitas(pid) {
+    const res = await fetchConToken(`/api/visitas?paciente_id=${pid}&es_reparacion=false`)
+    const data = await res.json()
+    setVisitas(data.visitas || [])
+  }
+
+  async function cargarVentasPaciente(pid) {
+    const res = await fetchConToken(`/api/ventas?paciente_id=${pid}`)
+    const data = await res.json()
+    setVentasPaciente(data.ventas || [])
+  }
+
+  async function cargarVentasConPagos(pid) {
+    const res = await fetchConToken(`/api/ventas?paciente_id=${pid}`)
+    const data = await res.json()
+    const ventasConSaldo = await Promise.all((data.ventas || []).map(async v => {
+      const resPagos = await fetchConToken(`/api/pagos?venta_id=${v.id}`)
+      const dataPagos = await resPagos.json()
+      const pagos = dataPagos.pagos || []
+      const pagadoP = pagos.reduce((acc, p) => acc + (Number(p.monto_pesos) || 0), 0)
+      const pagadoU = pagos.reduce((acc, p) => acc + (Number(p.monto_usd) || 0), 0)
+      return { ...v, pagos, pagadoPesos: pagadoP, pagadoUSD: pagadoU }
+    }))
+    setVentasConPagos(ventasConSaldo)
+  }
+
+  async function cargarTurnos(pid) {
+    const res = await fetchConToken(`/api/turnos?paciente_id=${pid}`)
+    const data = await res.json()
+    setTurnos(data.turnos || [])
+  }
+
+  async function cargarReparaciones(pid) {
+    const res = await fetchConToken(`/api/reparaciones?paciente_id=${pid}`)
+    const data = await res.json()
+    setReparaciones(data.reparaciones || [])
+  }
+
+  async function cargarHistorial(pid) {
+    const res = await fetchConToken(`/api/pacientes/${pid}/historial`)
+    const data = await res.json()
+    setHistorial(data.historial || [])
+  }
+
+  async function guardar(destino) {
+    if (!form.apellido_paciente || !form.nombres_paciente || !form.dni || !form.telefono) { alert('Completar campos obligatorios'); return }
+    if (!form.provincia_id) { alert('Seleccionar provincia'); return }
+    const dataGuardar = { ...form, provincia_id: Number(form.provincia_id), obra_social_id: form.obra_social_id ? Number(form.obra_social_id) : null }
+
+    if (pacienteId) {
+      const resActual = await fetchConToken(`/api/pacientes/${pacienteId}`)
+      const { paciente: pacienteActual } = await resActual.json()
+      await fetchConToken(`/api/pacientes/${pacienteId}`, { method: 'PUT', body: JSON.stringify(dataGuardar) })
+      await fetchConToken(`/api/pacientes/${pacienteId}/historial`, {
+        method: 'POST',
+        body: JSON.stringify({
+          apellido_paciente: pacienteActual.apellido_paciente,
+          nombres_paciente: pacienteActual.nombres_paciente,
+          telefono: pacienteActual.telefono,
+          domicilio: pacienteActual.domicilio,
+          localidad: pacienteActual.localidad,
+          provincia_id: pacienteActual.provincia_id,
+          mail: pacienteActual.mail,
+          observaciones: pacienteActual.observaciones,
+        })
+      })
+      alert('Paciente actualizado')
+      cargarHistorial(pacienteId)
+    } else {
+      const res = await fetchConToken('/api/pacientes', { method: 'POST', body: JSON.stringify(dataGuardar) })
+      const data = await res.json()
+      if (!res.ok) { alert('Error: ' + data.error); return }
+      setPacienteId(data.paciente.id)
+      alert('Paciente creado')
+    }
+
+    setGuardado(true)
+    if (destino === 'ventas') window.location.href = `/ventas?dni=${form.dni}`
+    if (destino === 'pagos') window.location.href = `/pagos?dni=${form.dni}`
+    if (!destino) limpiarFormulario()
+  }
 
   async function guardarVisita() {
     if (!pacienteId) { alert('Primero seleccioná un paciente'); return }
     if (!formVisita.motivo_id) { alert('Seleccionar motivo'); return }
-    const { error } = await supabase.from('visitas').insert([{
-      paciente_id: pacienteId, fecha: new Date().toISOString(),
-      motivo_id: Number(formVisita.motivo_id), observaciones: formVisita.observaciones || null,
-      venta_id: formVisita.venta_id ? Number(formVisita.venta_id) : null,
-      atendido_por: getUsuarioId(), creado_por: getUsuarioId(), 
-    }])
-    if (error) { alert('Error: ' + error.message); return }
-    const pid = pacienteId
-    const { data: nuevasVisitas } = await supabase.from('visitas')
-      .select(`id, fecha, observaciones, created_at, atendido_por, visita_motivos (motivo), ventas (id, fecha, total_pesos, total_dolares)`)
-      .eq('paciente_id', pid).eq('es_reparacion', false).order('fecha', { ascending: false })
-    setVisitas(nuevasVisitas || [])
+    const res = await fetchConToken('/api/visitas', {
+      method: 'POST',
+      body: JSON.stringify({
+        paciente_id: pacienteId, fecha: new Date().toISOString(),
+        motivo_id: Number(formVisita.motivo_id),
+        observaciones: formVisita.observaciones || null,
+        venta_id: formVisita.venta_id ? Number(formVisita.venta_id) : null,
+        es_reparacion: false,
+      })
+    })
+    if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
     setFormVisita({ motivo_id: '', observaciones: '', venta_id: '' })
-    setMostrarFormVisita(false); setBusquedaMotivo('')
+    setMostrarFormVisita(false)
+    setBusquedaMotivo('')
+    cargarVisitas(pacienteId)
     alert('✅ Visita registrada')
   }
 
   async function eliminarVisita(id) {
     if (!confirm('¿Eliminar esta visita?')) return
-    await supabase.from('visitas').delete().eq('id', id)
+    await fetchConToken(`/api/visitas/${id}`, { method: 'DELETE' })
     cargarVisitas(pacienteId)
   }
 
   async function guardarMotivo() {
     if (!nuevoMotivo) { alert('Ingresar nombre del motivo'); return }
     const nombre = normalizarTexto(nuevoMotivo)
-    const { data: existe } = await supabase.from('visita_motivos').select('id').ilike('motivo', nombre).maybeSingle()
-    if (existe) { alert('❌ Ese motivo ya existe'); return }
-    await supabase.from('visita_motivos').insert([{ motivo: nombre, creado_por: getUsuarioId() }])
-    setNuevoMotivo(''); obtenerMotivos()
+    const res = await fetchConToken('/api/configuracion/motivos', { method: 'POST', body: JSON.stringify({ motivo: nombre, activo: true }) })
+    if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
+    setNuevoMotivo('')
+    obtenerMotivos()
   }
 
   async function toggleMotivo(m) {
-    await supabase.from('visita_motivos').update({ activo: !m.activo }).eq('id', m.id)
+    await fetchConToken(`/api/configuracion/motivos/${m.id}`, { method: 'PUT', body: JSON.stringify({ activo: !m.activo }) })
     obtenerMotivos()
   }
 
@@ -292,18 +272,14 @@ export default function Pacientes() {
   return (
     <div style={{ maxWidth: '720px' }}>
 
-      {/* Header */}
       <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>Pacientes</h1>
-          <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '14px' }}>
-            {pacienteId ? `${form.apellido_paciente} ${form.nombres_paciente}` : 'Alta y búsqueda de pacientes'}
-          </p>
+          <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '14px' }}>{pacienteId ? `${form.apellido_paciente} ${form.nombres_paciente}` : 'Alta y búsqueda de pacientes'}</p>
         </div>
         {pacienteId && <button onClick={limpiarFormulario} style={btnSecundario}>+ Nuevo paciente</button>}
       </div>
 
-      {/* Buscador */}
       <div style={card}>
         <div style={cardTitle}>🔍 Buscar paciente</div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -323,7 +299,6 @@ export default function Pacientes() {
         )}
       </div>
 
-      {/* Tabs */}
       {pacienteId && (
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
           {[
@@ -334,17 +309,11 @@ export default function Pacientes() {
             ['reparaciones', `🔧 Reparaciones (${reparaciones.length})`],
             ['historial', `🕐 Historial datos (${historial.length})`],
           ].map(([val, label]) => (
-            <button key={val} onClick={() => setTab(val)} style={{
-              padding: '9px 20px', borderRadius: '8px', border: '1px solid #e5e7eb',
-              background: tab === val ? '#8B1E2D' : 'white',
-              color: tab === val ? 'white' : '#374151',
-              fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
-            }}>{label}</button>
+            <button key={val} onClick={() => setTab(val)} style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid #e5e7eb', background: tab === val ? '#8B1E2D' : 'white', color: tab === val ? 'white' : '#374151', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>{label}</button>
           ))}
         </div>
       )}
 
-      {/* TAB DATOS */}
       {tab === 'datos' && (
         <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -396,7 +365,6 @@ export default function Pacientes() {
         </div>
       )}
 
-      {/* TAB VISITAS */}
       {tab === 'visitas' && (
         <>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
@@ -475,14 +443,11 @@ export default function Pacientes() {
         </>
       )}
 
-      {/* TAB TURNOS */}
       {tab === 'turnos' && (
         <>
           <div style={card}>
             <div style={{ ...cardTitle, marginBottom: '14px' }}>📅 Próximos turnos <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({turnosFuturos.length})</span></div>
-            {turnosFuturos.length === 0 ? (
-              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '16px 0' }}>No hay turnos próximos</div>
-            ) : (
+            {turnosFuturos.length === 0 ? <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '16px 0' }}>No hay turnos próximos</div> : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {turnosFuturos.map(t => (
                   <div key={t.id} style={{ padding: '12px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', borderLeft: '4px solid #8B1E2D' }}>
@@ -501,9 +466,7 @@ export default function Pacientes() {
           </div>
           <div style={card}>
             <div style={{ ...cardTitle, marginBottom: '14px' }}>📂 Turnos anteriores <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({turnosPasados.length})</span></div>
-            {turnosPasados.length === 0 ? (
-              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '16px 0' }}>No hay turnos anteriores</div>
-            ) : (
+            {turnosPasados.length === 0 ? <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '16px 0' }}>No hay turnos anteriores</div> : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {turnosPasados.map(t => (
                   <div key={t.id} style={{ padding: '12px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
@@ -522,7 +485,6 @@ export default function Pacientes() {
         </>
       )}
 
-      {/* TAB VENTAS Y PAGOS */}
       {tab === 'ventas' && (
         <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -582,20 +544,15 @@ export default function Pacientes() {
         </div>
       )}
 
-      {/* TAB REPARACIONES */}
       {tab === 'reparaciones' && (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <div style={{ fontSize: '14px', color: '#6b7280' }}>{reparaciones.length} reparaciones</div>
             <button onClick={() => window.location.href = `/reparaciones`} style={{ ...btnFantasma, fontSize: '13px' }}>+ Nueva reparación</button>
           </div>
-
-          {/* Activas */}
           <div style={card}>
             <div style={{ ...cardTitle, marginBottom: '14px' }}>🔧 En curso <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({reparacionesActivas.length})</span></div>
-            {reparacionesActivas.length === 0 ? (
-              <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '16px 0' }}>No hay reparaciones activas</div>
-            ) : (
+            {reparacionesActivas.length === 0 ? <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '16px 0' }}>No hay reparaciones activas</div> : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {reparacionesActivas.map(r => {
                   const estado = r.respuesta_paciente || 'ingresada'
@@ -606,11 +563,7 @@ export default function Pacientes() {
                         <div>
                           <div style={{ fontWeight: '700', fontSize: '14px', color: '#8B1E2D' }}>#{r.numero_orden} · {r.marca || '-'}</div>
                           <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>Ingresada: {fmtFecha(r.fecha)}</div>
-                          {(r.costo_pesos || r.costo_usd) && (
-                            <div style={{ fontSize: '12px', fontWeight: '600', color: '#15803d', marginTop: '3px' }}>
-                              {r.costo_pesos ? fmt(r.costo_pesos) : ''}{r.costo_usd ? ` U$S ${r.costo_usd}` : ''}
-                            </div>
-                          )}
+                          {(r.costo_pesos || r.costo_usd) && <div style={{ fontSize: '12px', fontWeight: '600', color: '#15803d', marginTop: '3px' }}>{r.costo_pesos ? fmt(r.costo_pesos) : ''}{r.costo_usd ? ` U$S ${r.costo_usd}` : ''}</div>}
                           {r.observaciones && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', whiteSpace: 'pre-line' }}>{r.observaciones}</div>}
                         </div>
                         <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', background: c.bg, color: c.color }}>{c.label}</span>
@@ -621,8 +574,6 @@ export default function Pacientes() {
               </div>
             )}
           </div>
-
-          {/* Cerradas */}
           {reparacionesCerradas.length > 0 && (
             <div style={card}>
               <div style={{ ...cardTitle, marginBottom: '14px' }}>📂 Cerradas <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({reparacionesCerradas.length})</span></div>
@@ -635,15 +586,8 @@ export default function Pacientes() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                         <div>
                           <div style={{ fontWeight: '600', fontSize: '14px', color: '#374151' }}>#{r.numero_orden} · {r.marca || '-'}</div>
-                          <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
-                            Ingresada: {fmtFecha(r.fecha)}
-                            {r.fecha_entrega && ` · Entregada: ${fmtFechaCorta(r.fecha_entrega)}`}
-                          </div>
-                          {(r.costo_pesos || r.costo_usd) && (
-                            <div style={{ fontSize: '12px', fontWeight: '600', color: '#15803d', marginTop: '3px' }}>
-                              {r.costo_pesos ? fmt(r.costo_pesos) : ''}{r.costo_usd ? ` U$S ${r.costo_usd}` : ''}
-                            </div>
-                          )}
+                          <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>Ingresada: {fmtFecha(r.fecha)}{r.fecha_entrega && ` · Entregada: ${fmtFechaCorta(r.fecha_entrega)}`}</div>
+                          {(r.costo_pesos || r.costo_usd) && <div style={{ fontSize: '12px', fontWeight: '600', color: '#15803d', marginTop: '3px' }}>{r.costo_pesos ? fmt(r.costo_pesos) : ''}{r.costo_usd ? ` U$S ${r.costo_usd}` : ''}</div>}
                         </div>
                         <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', background: c.bg, color: c.color }}>{c.label}</span>
                       </div>
@@ -656,7 +600,6 @@ export default function Pacientes() {
         </>
       )}
 
-      {/* TAB HISTORIAL DATOS */}
       {tab === 'historial' && (
         <div style={card}>
           <div style={{ ...cardTitle, marginBottom: '14px' }}>🕐 Historial de cambios <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({historial.length} registros)</span></div>
