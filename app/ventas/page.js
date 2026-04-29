@@ -231,11 +231,12 @@ export default function Ventas() {
   }
 
   async function eliminarItem(item) {
-    await fetchConToken(`/api/ventas/${ventaId}/detalle/${item.id}`, { method: 'DELETE' })
-    if (item.numero_serie_id) await fetchConToken(`/api/stock/series/${item.numero_serie_id}`, { method: 'PUT', body: JSON.stringify({ en_stock: true, fecha_salida: null }) })
-    else if (item.producto_id) { const prod = productos.find(p => p.id == item.producto_id); if (prod?.controla_stock) await fetchConToken(`/api/stock/productos/${item.producto_id}/movimiento`, { method: 'POST', body: JSON.stringify({ tipo: 'ingreso', cantidad: item.cantidad || 1, concepto: 'Devolución por eliminación de ítem en venta' }) }) }
-    setItems(items.filter(i => i.id !== item.id)); obtenerSeries()
-  }
+  await fetchConToken(`/api/ventas/${ventaId}/detalle/${item.id}`, { method: 'DELETE' })
+  if (item.numero_serie_id) await fetchConToken(`/api/stock/series/${item.numero_serie_id}`, { method: 'PUT', body: JSON.stringify({ en_stock: true, fecha_salida: null }) })
+  else if (item.producto_id) { const prod = productos.find(p => p.id == item.producto_id); if (prod?.controla_stock) await fetchConToken(`/api/stock/productos/${item.producto_id}/movimiento`, { method: 'POST', body: JSON.stringify({ tipo: 'ingreso', cantidad: item.cantidad || 1, concepto: 'Devolución por eliminación de ítem en venta' }) }) }
+  setItems(prev => prev.filter(i => i.id !== item.id))
+  obtenerSeries()
+}
 
   async function guardarDerivador(ventaActualId, totalP, totalU) {
     if (!derivadorId || !valorComision) return
@@ -291,11 +292,18 @@ export default function Ventas() {
   }
 
   function abrirEdicion(venta) {
-    setVentaEditando(venta); setItemsEdicion(venta.venta_detalle || [])
-    setFormEdicion({ producto_id: '', numero_serie_id: '', precio_pesos: '', precio_usd: '' })
-    if (venta.derivador) { setDerivadorEdicionId(String(venta.derivador.derivador_id || '')); setTipoComisionEdicion(venta.derivador.tipo_comision || 'porcentaje'); setValorComisionEdicion(String(venta.derivador.valor_comision || '')); setMontoCalculadoEdicion(String(venta.derivador.monto_calculado || '')) }
-    else { setDerivadorEdicionId(''); setTipoComisionEdicion('porcentaje'); setValorComisionEdicion(''); setMontoCalculadoEdicion('') }
+  const saldoP = (venta.total_pesos || 0) - venta.pagadoPesos
+  const saldoU = (venta.total_dolares || 0) - venta.pagadoUSD
+  const pagada = saldoP <= 0 && saldoU <= 0
+  if (pagada) {
+    alert('⚠️ Esta venta está pagada. Para editarla primero dar de baja los pagos desde la sección Pagos.')
+    return
   }
+  setVentaEditando(venta); setItemsEdicion(venta.venta_detalle || [])
+  setFormEdicion({ producto_id: '', numero_serie_id: '', precio_pesos: '', precio_usd: '' })
+  if (venta.derivador) { setDerivadorEdicionId(String(venta.derivador.derivador_id || '')); setTipoComisionEdicion(venta.derivador.tipo_comision || 'porcentaje'); setValorComisionEdicion(String(venta.derivador.valor_comision || '')); setMontoCalculadoEdicion(String(venta.derivador.monto_calculado || '')) }
+  else { setDerivadorEdicionId(''); setTipoComisionEdicion('porcentaje'); setValorComisionEdicion(''); setMontoCalculadoEdicion('') }
+}
 
   function cerrarEdicion() { setVentaEditando(null); setItemsEdicion([]) }
 
@@ -512,8 +520,8 @@ if (derivadorEdicionId && valorComisionEdicion) {
                   <div key={v.id} style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                       <div>
-                        <div style={{ fontWeight: '700', fontSize: '15px', color: '#1a1a1a' }}>Venta #{v.id} — {new Date(v.fecha).toLocaleDateString('es-AR')}</div>
-                        <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
+                <div style={{ fontWeight: '700', fontSize: '15px', color: '#1a1a1a' }}>Venta #{v.id} — {v.fecha ? new Date(v.fecha.includes('T') ? v.fecha : v.fecha + 'T12:00:00').toLocaleDateString('es-AR') : '-'}</div>        
+                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
                           {v.total_pesos > 0 && `Total: ${fmt(v.total_pesos)}`}{v.total_dolares > 0 && ` · U$S ${v.total_dolares}`}
                           {v.obras_sociales?.obra_social && ` · ${v.obras_sociales.obra_social}`}
                           {v.derivador && <span style={{ color: '#8B1E2D', marginLeft: '6px' }}>· 👤 {v.derivador.derivadores?.derivador} {v.derivador.monto_calculado ? `(${fmt(v.derivador.monto_calculado)})` : ''}</span>}
