@@ -14,10 +14,11 @@ export async function GET(request, { params }) {
         pacientes (apellido_paciente, nombres_paciente, dni),
         obras_sociales (obra_social),
         venta_detalle (
-          id, precio_venta_pesos, precio_venta_usd, cantidad,
-          numeros_serie (id, numero_serie, productos (producto)),
-          productos (id, producto)
-        )
+  id, precio_venta_pesos, precio_venta_usd, cantidad,
+  numero_serie_id, producto_id,
+  numeros_serie (id, numero_serie, productos (producto)),
+  productos (id, producto)
+)
       `)
       .eq('id', params.id)
       .single()
