@@ -17,10 +17,12 @@ export async function GET(request) {
       pacientes (apellido_paciente, nombres_paciente, dni),
       obras_sociales (obra_social),
       venta_detalle (
-        id, precio_venta_pesos, precio_venta_usd, cantidad,
-        numeros_serie (id, numero_serie, productos (producto)),
-        productos (id, producto)
-      )
+  id, precio_venta_pesos, precio_venta_usd, cantidad,
+  numero_serie_id, producto_id,
+  numeros_serie (id, numero_serie, productos (producto)),
+  productos (id, producto)
+)
+Mismo cambio que hiciste en app/api/ventas/[id]/route.js. Con esto item.numero_serie_id va a llegar con valor y el select va a aparecer.
     `).order('fecha', { ascending: false })
 
     if (pacienteId) query = query.eq('paciente_id', pacienteId)
