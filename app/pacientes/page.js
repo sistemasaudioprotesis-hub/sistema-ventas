@@ -45,6 +45,7 @@ export default function Pacientes() {
   const [reparaciones, setReparaciones] = useState([])
   const [historial, setHistorial] = useState([])
   const [provinciasMap, setProvinciasMap] = useState({})
+  const [visitaEditandoObs, setVisitaEditandoObs] = useState(null) // { id, texto }
 
   const [form, setForm] = useState({
     apellido_paciente: '', nombres_paciente: '', dni: '', telefono: '',
@@ -93,6 +94,15 @@ export default function Pacientes() {
     setVentasConPagos([]); setReparaciones([])
     setForm({ apellido_paciente: '', nombres_paciente: '', dni: '', telefono: '', domicilio: '', localidad: '', provincia_id: '', mail: '', observaciones: '', obra_social_id: '' })
   }
+
+  async function guardarObsVisita(id, texto) {
+  await fetchConToken(`/api/visitas/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ observaciones: texto || null })
+  })
+  setVisitaEditandoObs(null)
+  cargarVisitas(pacienteId)
+}
 
   async function buscarPaciente() {
   const valor = busqueda.trim()
