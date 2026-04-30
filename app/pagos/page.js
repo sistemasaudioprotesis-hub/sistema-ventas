@@ -213,17 +213,16 @@ export default function Pagos() {
           <button onClick={buscarPaciente} style={btnPrimario}>Buscar</button>
         </div>
         {resultados.length > 0 && (
-          <select value="" onChange={async (e) => {
-  const p = resultados.find(x => x.id == e.target.value)
-  if (!p) return
-  setPaciente(p); setDni(p.dni); setResultados([])
-  await cargarVentasPaciente(p.id)
-}}
-Así llama directamente a cargarVentasPaciente con el id en lugar de pasar por buscarPacienteAutomatico que hace una búsqueda innecesaria y puede traer más de un resultado.style={{ ...inputStyle, marginTop: '10px' }}>
-            <option value="">Seleccionar paciente ({resultados.length} encontrados)</option>
-            {resultados.map(p => <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>)}
-          </select>
-        )}
+  <select value="" onChange={async (e) => {
+    const p = resultados.find(x => x.id == e.target.value)
+    if (!p) return
+    setPaciente(p); setDni(p.dni); setResultados([])
+    await cargarVentasPaciente(p.id)
+  }} style={{ ...inputStyle, marginTop: '10px' }}>
+    <option value="">Seleccionar paciente ({resultados.length} encontrados)</option>
+    {resultados.map(p => <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>)}
+  </select>
+)}
         {paciente && (
           <div style={{ marginTop: '14px', padding: '14px 16px', background: '#fdf2f4', borderRadius: '8px', border: '1px solid #f5c2c9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <div>
