@@ -39,3 +39,29 @@ export async function GET(request) {
     return Response.json({ error: 'Error interno' }, { status: 500 })
   }
 }
+
+export async function POST(request) {
+  try {
+    const usuario = await verificarSesion(request)
+    if (!usuario) return Response.json({ error: 'No autorizado' }, { status: 401 })
+
+    const body = await request.json()
+    const supabase = createServerClient()
+
+    const { data, error } = await supabase.from('visitas').insert([{
+      paciente_id: body.paciente_id,
+      fecha: body.fecha || new Date().toISOString(),
+      motivo_id: body.motivo_id,
+      observaciones: body.observaciones || null,
+      venta_id: body.venta_id || null,
+      es_reparacion: body.es_reparacion || false,
+      atendido_por: usuario.id,
+      creado_por: usuario.id,
+    }]).select().single()
+
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+    return Response.json({ visita: data })
+  } catch (e) {
+    return Response.json({ error: 'Error interno' }, { status: 500 })
+  }
+}
