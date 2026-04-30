@@ -47,25 +47,41 @@ export default function Reportes() {
   const [turnos, setTurnos] = useState([])
   const [reparaciones, setReparaciones] = useState([])
 
+  const [tipos, setTipos] = useState([])
+const [productosReporte, setProductosReporte] = useState([])
+const [modelosReporte, setModelosReporte] = useState([])
+const [filtroTipoId, setFiltroTipoId] = useState('')
+const [filtroProductoId, setFiltroProductoId] = useState('')
+const [filtroModeloId, setFiltroModeloId] = useState('')
+const [productosFiltradosReporte, setProductosFiltradosReporte] = useState([])
+const [modelosFiltradosReporte, setModelosFiltradosReporte] = useState([])
+
   useEffect(() => { cargarDatosIniciales() }, [])
 
   async function cargarDatosIniciales() {
-    const [resUsuarios, resOS, resMotivos, resAgendas, resFP] = await Promise.all([
-      fetchConToken('/api/usuarios'),
-      fetchConToken('/api/configuracion/obras-sociales'),
-      fetchConToken('/api/configuracion/motivos?activos=true'),
-      fetchConToken('/api/configuracion/profesionales'),
-      fetchConToken('/api/configuracion/formas-pago'),
-    ])
-    const [dUsuarios, dOS, dMotivos, dAgendas, dFP] = await Promise.all([
-      resUsuarios.json(), resOS.json(), resMotivos.json(), resAgendas.json(), resFP.json()
-    ])
-    setUsuarios(dUsuarios.usuarios || [])
-    setObrasSociales(dOS.obras_sociales || [])
-    setMotivos(dMotivos.motivos || [])
-    setAgendas(dAgendas.profesionales || [])
-    setFormasPago(dFP.formas_pago || [])
-  }
+  const [resUsuarios, resOS, resMotivos, resAgendas, resFP, resTipos, resProductos, resModelos] = await Promise.all([
+    fetchConToken('/api/usuarios'),
+    fetchConToken('/api/configuracion/obras-sociales'),
+    fetchConToken('/api/configuracion/motivos?activos=true'),
+    fetchConToken('/api/configuracion/profesionales'),
+    fetchConToken('/api/configuracion/formas-pago'),
+    fetchConToken('/api/configuracion/tipos-producto'),
+    fetchConToken('/api/productos'),
+    fetchConToken('/api/configuracion/modelos'),
+  ])
+  const [dUsuarios, dOS, dMotivos, dAgendas, dFP, dTipos, dProductos, dModelos] = await Promise.all([
+    resUsuarios.json(), resOS.json(), resMotivos.json(), resAgendas.json(), resFP.json(),
+    resTipos.json(), resProductos.json(), resModelos.json()
+  ])
+  setUsuarios(dUsuarios.usuarios || [])
+  setObrasSociales(dOS.obras_sociales || [])
+  setMotivos(dMotivos.motivos || [])
+  setAgendas(dAgendas.profesionales || [])
+  setFormasPago(dFP.formas_pago || [])
+  setTipos(dTipos.tipos || [])
+  setProductosReporte(dProductos.productos || [])
+  setModelosReporte(dModelos.modelos || [])
+}
 
   async function buscarPacientes() {
     const termino = busquedaPaciente.trim()
@@ -80,16 +96,32 @@ export default function Reportes() {
     await Promise.all([cargarVentas(), cargarPagos(), cargarCaja(), cargarVisitas(), cargarTurnos(), cargarReparaciones()])
     setCargando(false)
   }
+  
+async function cargarVentas() {
+  const params = new URLSearchParams({ desde, hasta })
+  if (operadorId) params.set('creado_por', operadorId)
+  if (obraSocialId) params.set('obra_social_id', obraSocialId)
+  if (pacienteSeleccionado) params.set('paciente_id', pacienteSeleccionado.id)
+  const res = await fetchConToken(`/api/ventas?${params}`)
+  const data = await res.json()
+  let resultado = data.ventas || []
 
-  async function cargarVentas() {
-    const params = new URLSearchParams({ desde, hasta })
-    if (operadorId) params.set('creado_por', operadorId)
-    if (obraSocialId) params.set('obra_social_id', obraSocialId)
-    if (pacienteSeleccionado) params.set('paciente_id', pacienteSeleccionado.id)
-    const res = await fetchConToken(`/api/ventas?${params}`)
-    const data = await res.json()
-    setVentas(data.ventas || [])
+  if (filtroProductoId || filtroModeloId) {
+    resultado = resultado.filter(v =>
+      v.venta_detalle?.some(d => {
+        const productoOk = filtroProductoId
+          ? (d.producto_id == filtroProductoId || d.numeros_serie?.productos?.id == filtroProductoId)
+          : true
+        const modeloOk = filtroModeloId
+          ? d.numeros_serie?.modelo_id == filtroModeloId
+          : true
+        return productoOk && modeloOk
+      })
+    )
   }
+
+  setVentas(resultado)
+}
 
   async function cargarPagos() {
     const params = new URLSearchParams({ desde, hasta })
@@ -297,6 +329,37 @@ export default function Reportes() {
               {formasPago.map(f => <option key={f.id} value={f.id}>{f.forma_pago}</option>)}
             </select>
           </Field>
+                <Field label="Tipo producto (ventas)">
+  <select value={filtroTipoId} onChange={(e) => {
+    const val = e.target.value
+    setFiltroTipoId(val)
+    setFiltroProductoId('')
+    setFiltroModeloId('')
+    setProductosFiltradosReporte(productosReporte.filter(p => p.tipo_id === Number(val)))
+    setModelosFiltradosReporte([])
+  }} style={inputStyle}>
+    <option value="">Todos los tipos</option>
+    {tipos.map(t => <option key={t.id} value={t.id}>{t.tipo}</option>)}
+  </select>
+</Field>
+<Field label="Producto (ventas)">
+  <select value={filtroProductoId} onChange={(e) => {
+    const val = e.target.value
+    setFiltroProductoId(val)
+    setFiltroModeloId('')
+    setModelosFiltradosReporte(modelosReporte.filter(m => m.producto_id === Number(val) && m.activo))
+  }} style={inputStyle} disabled={!filtroTipoId}>
+    <option value="">Todos los productos</option>
+    {(filtroTipoId ? productosFiltradosReporte : productosReporte).map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
+  </select>
+</Field>
+<Field label="Modelo (ventas)">
+  <select value={filtroModeloId} onChange={(e) => setFiltroModeloId(e.target.value)}
+    style={inputStyle} disabled={!filtroProductoId || modelosFiltradosReporte.length === 0}>
+    <option value="">Todos los modelos</option>
+    {modelosFiltradosReporte.map(m => <option key={m.id} value={m.id}>{m.modelo}</option>)}
+  </select>
+</Field>
           <Field label="Motivo / Agenda">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <select value={motivoId} onChange={(e) => setMotivoId(e.target.value)} style={inputStyle}>
