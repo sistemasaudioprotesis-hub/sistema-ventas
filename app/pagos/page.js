@@ -96,8 +96,9 @@ export default function Pagos() {
     const data = await res.json()
     const detalle = data.venta?.venta_detalle || []
     setDetalleVenta(detalle)
-    const totalPesosCalc = detalle.reduce((acc, d) => acc + (Number(d.precio_venta_pesos) || 0), 0)
-    const totalUSDCalc = detalle.reduce((acc, d) => acc + (Number(d.precio_venta_usd) || 0), 0)
+  
+    const totalPesosCalc = detalle.reduce((acc, d) => acc + ((Number(d.precio_venta_pesos) || 0) * (Number(d.cantidad) || 1)), 0)
+const totalUSDCalc = detalle.reduce((acc, d) => acc + ((Number(d.precio_venta_usd) || 0) * (Number(d.cantidad) || 1)), 0)
     setTotalPesos(totalPesosCalc)
     setTotalUSD(totalUSDCalc)
     await cargarPagosVenta(ventaId)
