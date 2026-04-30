@@ -600,7 +600,8 @@ if (derivadorEdicionId && valorComisionEdicion) {
     <div>
       <label style={labelStyle}>Cambiar número de serie</label>
       <select
-        value={item.numero_serie_id || ''}
+        defaultValue={item.numero_serie_id || ''}
+key={item.numero_serie_id || ''}
         onChange={(e) => guardarCambioItem(item, 'numero_serie_id', Number(e.target.value))}
         style={inputStyle}
       >
