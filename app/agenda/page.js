@@ -553,14 +553,38 @@ export default function Agenda() {
               {modalVer.obras_sociales && <Row label="Obra social">{modalVer.obras_sociales.obra_social}</Row>}
               {modalVer.observaciones && <Row label="Observaciones">{modalVer.observaciones}</Row>}
             </div>
-            {modalVer.estado === 'pendiente' && (
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '14px', borderTop: '1px solid #f3f4f6', marginBottom: '10px' }}>
-                <button onClick={() => marcarAsistencia(modalVer.id, true)} style={{ ...btnPrimario, background: '#16a34a', fontSize: '13px', padding: '8px 14px' }}>✅ Asistió</button>
-                <button onClick={() => marcarAsistencia(modalVer.id, false)} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px', color: '#dc2626', borderColor: '#fecaca' }}>❌ No asistió</button>
-                <button onClick={() => cancelarTurno(modalVer.id)} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px' }}>🗑️ Cancelar</button>
-              </div>
-            )}
-            <button onClick={() => setModalVer(null)} style={{ ...btnSecundario, fontSize: '13px' }}>Cerrar</button>
+            {/* Cartel estado cerrado */}
+{modalVer.estado !== 'pendiente' && (
+  <div style={{
+    padding: '8px 14px', borderRadius: '8px', marginBottom: '12px',
+    background: '#fef9c3', border: '1px solid #fde047',
+    fontSize: '12px', color: '#854d0e', fontWeight: '600',
+  }}>
+    ⚠️ Este turno está cerrado. Podés modificarlo de todas formas.
+  </div>
+)}
+
+{/* Botones siempre visibles */}
+<div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '14px', borderTop: '1px solid #f3f4f6', marginBottom: '10px' }}>
+  {modalVer.estado !== 'realizado' && (
+    <button onClick={() => marcarAsistencia(modalVer.id, true)} style={{ ...btnPrimario, background: '#16a34a', fontSize: '13px', padding: '8px 14px' }}>✅ Asistió</button>
+  )}
+  {modalVer.estado !== 'no_asistio' && (
+    <button onClick={() => marcarAsistencia(modalVer.id, false)} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px', color: '#dc2626', borderColor: '#fecaca' }}>❌ No asistió</button>
+  )}
+  {modalVer.estado !== 'cancelado' && (
+    <button onClick={() => cancelarTurno(modalVer.id)} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px' }}>🗑️ Cancelar</button>
+  )}
+  {modalVer.estado !== 'pendiente' && (
+    <button onClick={async () => {
+      if (!confirm('¿Volver a poner este turno como pendiente?')) return
+      await fetchConToken(`/api/turnos/${modalVer.id}`, { method: 'PUT', body: JSON.stringify({ estado: 'pendiente', asistio: null }) })
+      setModalVer(null); cargarTurnos()
+    }} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px', color: '#6b7280' }}>↩️ Volver a pendiente</button>
+  )}
+</div>
+
+<button onClick={() => setModalVer(null)} style={{ ...btnSecundario, fontSize: '13px' }}>Cerrar</button>
           </div>
         </div>
       )}
