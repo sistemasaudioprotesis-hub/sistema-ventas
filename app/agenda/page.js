@@ -9,6 +9,8 @@ import { normalizarTexto } from '../../lib/formatText'
 const HORA_INICIO = 9
 const HORA_FIN_SEMANA = 18
 const HORA_FIN_SABADO = 13
+const [editandoObsTurno, setEditandoObsTurno] = useState(false)
+const [obsEditada, setObsEditada] = useState('')
 
 function generarHorarios() {
   const horarios = []
@@ -558,33 +560,66 @@ export default function Agenda() {
           </div>
         </div>
       )}
+{modalVer && (
+  <div style={overlay}>
+    <div style={modalBox}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+        <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a' }}>📋 Turno #{modalVer.id}</div>
+        <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', background: coloresEstado[modalVer.estado]?.bg, color: coloresEstado[modalVer.estado]?.text, border: `1px solid ${coloresEstado[modalVer.estado]?.border}` }}>{modalVer.estado.replace('_', ' ')}</span>
+      </div>
+      <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>{new Date(modalVer.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {modalVer.hora.slice(0, 5)} hs</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+        <Row label="Agenda">{modalVer.profesionales?.nombre}</Row>
+        <Row label="Paciente">{modalVer.pacientes ? `${modalVer.pacientes.apellido_paciente} ${modalVer.pacientes.nombres_paciente} (DNI: ${modalVer.pacientes.dni})` : modalVer.nombre_libre || '-'}</Row>
+        {(modalVer.telefono || modalVer.pacientes?.telefono) && <Row label="Teléfono">{modalVer.telefono || modalVer.pacientes?.telefono}</Row>}
+        {modalVer.visita_motivos && <Row label="Motivo">{modalVer.visita_motivos.motivo}</Row>}
+        {modalVer.obras_sociales && <Row label="Obra social">{modalVer.obras_sociales.obra_social}</Row>}
 
-      {modalVer && (
-        <div style={overlay}>
-          <div style={modalBox}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-              <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a' }}>📋 Turno #{modalVer.id}</div>
-              <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', background: coloresEstado[modalVer.estado]?.bg, color: coloresEstado[modalVer.estado]?.text, border: `1px solid ${coloresEstado[modalVer.estado]?.border}` }}>{modalVer.estado.replace('_', ' ')}</span>
+        {/* Observaciones editables */}
+        <div style={{ display: 'flex', gap: '8px', fontSize: '14px', alignItems: 'flex-start' }}>
+          <span style={{ fontWeight: '600', color: '#6b7280', minWidth: '100px', flexShrink: 0 }}>Observaciones:</span>
+          {editandoObsTurno ? (
+            <div style={{ flex: 1 }}>
+              <textarea
+                value={obsEditada}
+                onChange={(e) => setObsEditada(e.target.value)}
+                rows={3}
+                style={{ ...inputStyle, fontSize: '13px', resize: 'vertical' }}
+              />
+              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                <button onClick={async () => {
+                  await fetchConToken(`/api/turnos/${modalVer.id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ observaciones: obsEditada || null })
+                  })
+                  setEditandoObsTurno(false)
+                  setModalVer({ ...modalVer, observaciones: obsEditada })
+                  cargarTurnos()
+                }} style={{ ...btnPrimario, fontSize: '12px', padding: '6px 12px' }}>💾 Guardar</button>
+                <button onClick={() => setEditandoObsTurno(false)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px' }}>Cancelar</button>
+              </div>
             </div>
-            <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>{new Date(modalVer.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {modalVer.hora.slice(0, 5)} hs</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-              <Row label="Agenda">{modalVer.profesionales?.nombre}</Row>
-              <Row label="Paciente">{modalVer.pacientes ? `${modalVer.pacientes.apellido_paciente} ${modalVer.pacientes.nombres_paciente} (DNI: ${modalVer.pacientes.dni})` : modalVer.nombre_libre || '-'}</Row>
-              {(modalVer.telefono || modalVer.pacientes?.telefono) && <Row label="Teléfono">{modalVer.telefono || modalVer.pacientes?.telefono}</Row>}
-              {modalVer.visita_motivos && <Row label="Motivo">{modalVer.visita_motivos.motivo}</Row>}
-              {modalVer.obras_sociales && <Row label="Obra social">{modalVer.obras_sociales.obra_social}</Row>}
-              {modalVer.observaciones && <Row label="Observaciones">{modalVer.observaciones}</Row>}
+          ) : (
+            <div style={{ display: 'flex', gap: '8px', flex: 1, alignItems: 'flex-start' }}>
+              <span style={{ color: '#1a1a1a', flex: 1 }}>
+                {modalVer.observaciones || <span style={{ color: '#d1d5db', fontStyle: 'italic' }}>Sin observaciones</span>}
+              </span>
+              <button onClick={() => { setObsEditada(modalVer.observaciones || ''); setEditandoObsTurno(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#9ca3af' }}>✏️</button>
             </div>
-            {/* Cartel estado cerrado */}
-{modalVer.estado !== 'pendiente' && (
-  <div style={{
-    padding: '8px 14px', borderRadius: '8px', marginBottom: '12px',
-    background: '#fef9c3', border: '1px solid #fde047',
-    fontSize: '12px', color: '#854d0e', fontWeight: '600',
-  }}>
-    ⚠️ Este turno está cerrado. Podés modificarlo de todas formas.
-  </div>
-)}
+          )}
+        </div>
+      </div>
+
+      {/* Cartel estado cerrado */}
+      {modalVer.estado !== 'pendiente' && (
+        <div style={{
+          padding: '8px 14px', borderRadius: '8px', marginBottom: '12px',
+          background: '#fef9c3', border: '1px solid #fde047',
+          fontSize: '12px', color: '#854d0e', fontWeight: '600',
+        }}>
+          ⚠️ Este turno está cerrado. Podés modificarlo de todas formas.
+        </div>
+      )}
 
 {/* Botones siempre visibles */}
 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '14px', borderTop: '1px solid #f3f4f6', marginBottom: '10px' }}>
