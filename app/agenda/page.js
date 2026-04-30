@@ -9,8 +9,6 @@ import { normalizarTexto } from '../../lib/formatText'
 const HORA_INICIO = 9
 const HORA_FIN_SEMANA = 18
 const HORA_FIN_SABADO = 13
-const [editandoObsTurno, setEditandoObsTurno] = useState(false)
-const [obsEditada, setObsEditada] = useState('')
 
 function generarHorarios() {
   const horarios = []
@@ -71,7 +69,10 @@ export default function Agenda() {
   const [modalBloqueo, setModalBloqueo] = useState(false)
   const [bloqueoEditando, setBloqueoEditando] = useState(null)
   const [formBloqueo, setFormBloqueo] = useState({ fecha_inicio: '', fecha_fin: '', hora_inicio: '', hora_fin: '', profesional_id: '', motivo: '', todo_el_dia: true, todas_las_agendas: false })
+  const [editandoObsTurno, setEditandoObsTurno] = useState(false)
+const [obsEditada, setObsEditada] = useState('')
 
+  
   useEffect(() => { cargarDatos() }, [])
   useEffect(() => { cargarTurnos() }, [semanaBase])
   useEffect(() => { cargarTurnosMes() }, [mesCalendario])
