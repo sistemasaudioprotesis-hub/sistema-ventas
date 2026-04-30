@@ -9,7 +9,7 @@ export async function GET(request) {
     const supabase = createServerClient()
     const { data, error } = await supabase
       .from('productos')
-      .select('id, producto, controla_stock, activo, tipo_producto (id, requiere_serie)')
+      .select('id, producto, tipo_id, controla_stock, activo, requiere_modelo, tipo_producto (id, tipo, requiere_serie)')
       .eq('activo', true)
       .order('producto')
 
