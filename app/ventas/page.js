@@ -47,7 +47,7 @@ export default function Ventas() {
   const [tipoComisionEdicion, setTipoComisionEdicion] = useState('porcentaje')
   const [valorComisionEdicion, setValorComisionEdicion] = useState('')
   const [montoCalculadoEdicion, setMontoCalculadoEdicion] = useState('')
-  const [form, setForm] = useState({ numero_serie_id: '', producto_id: '', precio_pesos: '', precio_usd: '', cantidad: '1' })
+  const [form, setForm] = useState({ tipo_id: '', modelo_id: '', numero_serie_id: '', producto_id: '', precio_pesos: '', precio_usd: '', cantidad: '1' })
   const [modalSalir, setModalSalir] = useState(false)
   const [paramsPendientes, setParamsPendientes] = useState(null)
   const [tipos, setTipos] = useState([])
