@@ -213,12 +213,13 @@ export default function Pagos() {
           <button onClick={buscarPaciente} style={btnPrimario}>Buscar</button>
         </div>
         {resultados.length > 0 && (
-          <select value="" onChange={(e) => {
-            const p = resultados.find(x => x.id == e.target.value)
-            if (!p) return
-            setPaciente(p); setDni(p.dni); setResultados([])
-            buscarPacienteAutomatico(p.dni)
-          }} style={{ ...inputStyle, marginTop: '10px' }}>
+          <select value="" onChange={async (e) => {
+  const p = resultados.find(x => x.id == e.target.value)
+  if (!p) return
+  setPaciente(p); setDni(p.dni); setResultados([])
+  await cargarVentasPaciente(p.id)
+}}
+Así llama directamente a cargarVentasPaciente con el id en lugar de pasar por buscarPacienteAutomatico que hace una búsqueda innecesaria y puede traer más de un resultado.style={{ ...inputStyle, marginTop: '10px' }}>
             <option value="">Seleccionar paciente ({resultados.length} encontrados)</option>
             {resultados.map(p => <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>)}
           </select>
@@ -241,7 +242,7 @@ export default function Pagos() {
             💱 Cotización U$S Blue
             {cotizacionFecha && (
               <span style={{ fontWeight: '400', color: '#9ca3af', marginLeft: '6px' }}>
-                ({new Date(cotizacionFecha + 'T12:00:00').toLocaleDateString('es-AR')})
+                {cotizacionFecha ? `(${new Date(cotizacionFecha.includes('T') ? cotizacionFecha : cotizacionFecha + 'T12:00:00').toLocaleDateString('es-AR')})` : ''}
               </span>
             )}
           </div>
