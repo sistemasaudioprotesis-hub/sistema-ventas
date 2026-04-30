@@ -198,4 +198,101 @@ export default function ConfiguracionProductos() {
           <div style={card}>
             <div style={{ ...cardTitle, marginBottom: '16px' }}>Productos registrados <span style={{ fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({productos.length})</span></div>
             {productos.length === 0 ? <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay productos registrados</div> : (
-              <div
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {productos.map(p => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: p.activo ? '#f9fafb' : '#fafafa', borderRadius: '8px', border: '1px solid #e5e7eb', opacity: p.activo ? 1 : 0.6 }}>
+                    <div>
+                      <div style={{ fontWeight: '600', fontSize: '15px', color: '#1a1a1a' }}>{p.producto}</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                        {p.tipo_producto?.tipo || '-'}
+                        {p.tipo_producto?.requiere_serie ? ' · 🔢 Con serie' : ' · 📦 Sin serie'}
+                        {p.controla_stock ? ' · 📊 Stock' : ''}
+                        {p.requiere_modelo ? ' · 🎯 Con modelo' : ''}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => abrirEditarProducto(p)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px', color: '#8B1E2D', borderColor: '#f5c2c9' }}>✏️ Editar</button>
+                      <button onClick={() => toggleActivoProducto(p)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px', color: p.activo ? '#dc2626' : '#16a34a', borderColor: p.activo ? '#fecaca' : '#bbf7d0' }}>{p.activo ? 'Desactivar' : 'Activar'}</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* TAB MODELOS */}
+      {tab === 'modelos' && (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+            <select value={filtroProductoModelo} onChange={(e) => setFiltroProductoModelo(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '200px' }}>
+              <option value="">Todos los productos</option>
+              {productosConModelo.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
+            </select>
+            <button onClick={abrirNuevoModelo} style={btnPrimario}>+ Nuevo modelo</button>
+          </div>
+          {productosConModelo.length === 0 && (
+            <div style={{ padding: '16px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', fontSize: '13px', color: '#92400e', marginBottom: '16px' }}>
+              ⚠️ No hay productos con "Requiere modelo" activado. Activalo desde el tab Productos.
+            </div>
+          )}
+          {mostrarFormModelo && (
+            <div style={card}>
+              <div style={{ ...cardTitle, marginBottom: '16px' }}>{editandoModelo ? '✏️ Editar modelo' : '➕ Nuevo modelo'}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <Field label="Producto *">
+                  <select value={formModelo.producto_id} onChange={(e) => setFormModelo({ ...formModelo, producto_id: e.target.value })} style={inputStyle}>
+                    <option value="">Seleccionar producto</option>
+                    {productosConModelo.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
+                  </select>
+                </Field>
+                <Field label="Nombre del modelo *">
+                  <input placeholder="Ej: LEOX SP" value={formModelo.modelo} onChange={(e) => setFormModelo({ ...formModelo, modelo: e.target.value.toUpperCase() })} style={{ ...inputStyle, textTransform: 'uppercase' }} />
+                </Field>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
+                <button onClick={guardarModelo} style={btnPrimario}>💾 Guardar</button>
+                <button onClick={cerrarFormModelo} style={btnSecundario}>Cancelar</button>
+              </div>
+            </div>
+          )}
+          <div style={card}>
+            <div style={{ ...cardTitle, marginBottom: '16px' }}>Modelos registrados <span style={{ fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({modelosFiltrados.length})</span></div>
+            {modelosFiltrados.length === 0 ? <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay modelos registrados</div> : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {modelosFiltrados.map(m => (
+                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: m.activo ? '#f9fafb' : '#fafafa', borderRadius: '8px', border: '1px solid #e5e7eb', opacity: m.activo ? 1 : 0.6 }}>
+                    <div>
+                      <div style={{ fontWeight: '600', fontSize: '15px', color: '#1a1a1a' }}>{m.modelo}</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{productos.find(p => p.id === m.producto_id)?.producto || '-'}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => abrirEditarModelo(m)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px', color: '#8B1E2D', borderColor: '#f5c2c9' }}>✏️ Editar</button>
+                      <button onClick={() => toggleActivoModelo(m)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px', color: m.activo ? '#dc2626' : '#16a34a', borderColor: m.activo ? '#fecaca' : '#bbf7d0' }}>{m.activo ? 'Desactivar' : 'Activar'}</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function Field({ label, children }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <label style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>{label}</label>
+      {children}
+    </div>
+  )
+}
+
+const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '15px', fontFamily: "'Outfit', sans-serif", background: 'white', color: '#1a1a1a', outline: 'none', boxSizing: 'border-box' }
+const card = { background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px 24px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }
+const cardTitle = { fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '0' }
+const btnPrimario = { padding: '10px 20px', background: '#8B1E2D', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
+const btnSecundario = { padding: '10px 20px', background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '15px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
