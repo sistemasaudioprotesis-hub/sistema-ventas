@@ -31,6 +31,10 @@ export default function Pagos() {
 
   const [form, setForm] = useState({ forma_pago_id: '', monto_pesos: '', monto_usd: '' })
 
+  const [altaRapida, setAltaRapida] = useState(false)
+const [formAltaRapida, setFormAltaRapida] = useState({ apellido: '', nombre: '', dni: '', telefono: '' })
+const [buscoPaciente, setBuscoPaciente] = useState(false)
+  
   useEffect(() => {
     obtenerFormasPago()
     cargarCotizacion()
@@ -83,13 +87,16 @@ export default function Pagos() {
   }
 
   async function buscarPaciente() {
-    const valor = busqueda.trim()
-    if (!valor) { alert('Ingresar DNI o apellido'); return }
-    const res = await fetchConToken(`/api/pacientes?q=${encodeURIComponent(valor)}`)
-    const data = await res.json()
-    if (!data.pacientes || data.pacientes.length === 0) { alert('No se encontraron resultados'); setResultados([]); return }
-    setResultados(data.pacientes)
+  const valor = busqueda.trim()
+  if (!valor) { alert('Ingresar DNI o apellido'); return }
+  const res = await fetchConToken(`/api/pacientes?q=${encodeURIComponent(valor)}`)
+  const data = await res.json()
+  if (!data.pacientes || data.pacientes.length === 0) {
+    setResultados([]); setBuscoPaciente(true); return
   }
+  setBuscoPaciente(false)
+  setResultados(data.pacientes)
+}
 
   async function cargarDetalleVenta(ventaId) {
     const res = await fetchConToken(`/api/ventas/${ventaId}`)
@@ -125,6 +132,28 @@ const totalUSDCalc = detalle.reduce((acc, d) => acc + ((Number(d.precio_venta_us
 
   function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }) }
 
+async function guardarAltaRapida() {
+  if (!formAltaRapida.apellido || !formAltaRapida.nombre || !formAltaRapida.dni || !formAltaRapida.telefono) {
+    alert('Apellido, nombre, DNI y teléfono son obligatorios'); return
+  }
+  const res = await fetchConToken('/api/pacientes', {
+    method: 'POST',
+    body: JSON.stringify({
+      apellido_paciente: formAltaRapida.apellido,
+      nombres_paciente: formAltaRapida.nombre,
+      dni: formAltaRapida.dni,
+      telefono: formAltaRapida.telefono || null,
+    })
+  })
+  const data = await res.json()
+  if (!res.ok) { alert('Error: ' + data.error); return }
+  const nuevo = data.paciente
+  setPaciente(nuevo); setDni(nuevo.dni)
+  setAltaRapida(false); setFormAltaRapida({ apellido: '', nombre: '', dni: '', telefono: '' })
+  setBusqueda(''); setResultados([]); setBuscoPaciente(false)
+  await cargarVentasPaciente(nuevo.id)
+}
+  
   async function guardarPago() {
     if (!ventaSeleccionada) { alert('Seleccionar venta'); return }
     if (!form.forma_pago_id) { alert('Seleccionar forma de pago'); return }
@@ -209,11 +238,11 @@ const totalUSDCalc = detalle.reduce((acc, d) => acc + ((Number(d.precio_venta_us
       {/* Buscador */}
       <div style={card}>
         <div style={cardTitle}>🔍 Buscar paciente</div>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <input placeholder="DNI o Apellido" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && buscarPaciente()} style={{ ...inputStyle, flex: 1, minWidth: '180px' }} />
-          <button onClick={buscarPaciente} style={btnPrimario}>Buscar</button>
-        </div>
-        {resultados.length > 0 && (
+<div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+  <input placeholder="DNI o Apellido" value={busqueda} onChange={(e) => { setBusqueda(e.target.value); setBuscoPaciente(false); setAltaRapida(false) }} onKeyDown={(e) => e.key === 'Enter' && buscarPaciente()} style={{ ...inputStyle, flex: 1, minWidth: '180px' }} />
+  <button onClick={buscarPaciente} style={btnPrimario}>Buscar</button>
+</div>
+{resultados.length > 0 && (
   <select value="" onChange={async (e) => {
     const p = resultados.find(x => x.id == e.target.value)
     if (!p) return
@@ -224,15 +253,35 @@ const totalUSDCalc = detalle.reduce((acc, d) => acc + ((Number(d.precio_venta_us
     {resultados.map(p => <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>)}
   </select>
 )}
-        {paciente && (
-          <div style={{ marginTop: '14px', padding: '14px 16px', background: '#fdf2f4', borderRadius: '8px', border: '1px solid #f5c2c9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-            <div>
-              <div style={{ fontWeight: '700', fontSize: '16px', color: '#8B1E2D' }}>{paciente.apellido_paciente} {paciente.nombres_paciente}</div>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>DNI: {paciente.dni} {paciente.telefono ? `· Tel: ${paciente.telefono}` : ''}</div>
-            </div>
-            <button onClick={() => window.location.href = `/pacientes?dni=${paciente.dni}`} style={btnSecundario}>✏️ Editar</button>
-          </div>
-        )}
+{buscoPaciente && resultados.length === 0 && !altaRapida && !paciente && (
+  <button onClick={() => setAltaRapida(true)} style={{ ...btnFantasma, marginTop: '10px', width: '100%', textAlign: 'center' }}>
+    + No encontrado — Dar de alta como nuevo paciente
+  </button>
+)}
+{altaRapida && (
+  <div style={{ marginTop: '12px', padding: '14px', background: '#fdf2f4', borderRadius: '8px', border: '1px solid #f5c2c9' }}>
+    <div style={{ fontSize: '13px', fontWeight: '600', color: '#8B1E2D', marginBottom: '10px' }}>Alta rápida de paciente</div>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+      <div><label style={labelStyle}>Apellido *</label><input placeholder="APELLIDO" value={formAltaRapida.apellido} onChange={(e) => setFormAltaRapida(f => ({ ...f, apellido: e.target.value.toUpperCase() }))} style={inputStyle} /></div>
+      <div><label style={labelStyle}>Nombre *</label><input placeholder="NOMBRE" value={formAltaRapida.nombre} onChange={(e) => setFormAltaRapida(f => ({ ...f, nombre: e.target.value.toUpperCase() }))} style={inputStyle} /></div>
+      <div><label style={labelStyle}>DNI *</label><input placeholder="DNI" value={formAltaRapida.dni} onChange={(e) => setFormAltaRapida(f => ({ ...f, dni: e.target.value }))} style={inputStyle} /></div>
+      <div><label style={labelStyle}>Teléfono *</label><input placeholder="11 1234-5678" value={formAltaRapida.telefono} onChange={(e) => setFormAltaRapida(f => ({ ...f, telefono: e.target.value }))} style={inputStyle} /></div>
+    </div>
+    <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+      <button onClick={guardarAltaRapida} style={{ ...btnPrimario, fontSize: '13px', padding: '8px 14px' }}>💾 Guardar y continuar</button>
+      <button onClick={() => setAltaRapida(false)} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px' }}>Cancelar</button>
+    </div>
+  </div>
+)}
+{paciente && (
+  <div style={{ marginTop: '14px', padding: '14px 16px', background: '#fdf2f4', borderRadius: '8px', border: '1px solid #f5c2c9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+    <div>
+      <div style={{ fontWeight: '700', fontSize: '16px', color: '#8B1E2D' }}>{paciente.apellido_paciente} {paciente.nombres_paciente}</div>
+      <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>DNI: {paciente.dni} {paciente.telefono ? `· Tel: ${paciente.telefono}` : ''}</div>
+    </div>
+    <button onClick={() => window.location.href = `/pacientes?dni=${paciente.dni}`} style={btnSecundario}>✏️ Editar</button>
+  </div>
+)}
       </div>
 
       {/* Cotización del dólar */}
