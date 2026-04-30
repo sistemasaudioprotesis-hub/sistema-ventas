@@ -264,7 +264,7 @@ export default function NumerosSerie() {
     </div>
     <select value={filtroProducto} onChange={(e) => { setFiltroProducto(e.target.value); setFiltroModelo('') }} style={{ ...inputStyle, width: 'auto', flex: 1, minWidth: '180px' }}>
       <option value="">Todos los productos</option>
-      {productos.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
+      {productos.filter(p => p.tipo_producto?.requiere_serie).map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
     </select>
     {filtroProducto && modelos.filter(m => m.producto_id == filtroProducto).length > 0 && (
       <select value={filtroModelo} onChange={(e) => setFiltroModelo(e.target.value)} style={{ ...inputStyle, width: 'auto', flex: 1, minWidth: '180px' }}>
