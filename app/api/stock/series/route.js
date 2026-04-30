@@ -13,10 +13,11 @@ export async function GET(request) {
 
     const supabase = createServerClient()
     let query = supabase.from('numeros_serie').select(`
-     id, numero_serie, producto_id, costo_usd, en_stock, fecha_salida, created_at,
-      productos (id, producto),
-      depositos (id, deposito)
-    `).order('created_at', { ascending: false })
+  id, numero_serie, producto_id, modelo_id, costo_usd, en_stock, fecha_salida, created_at,
+  productos (id, producto, requiere_modelo),
+  modelos (id, modelo),
+  depositos (id, deposito)
+`).order('created_at', { ascending: false })
 
     if (estado === 'stock') query = query.eq('en_stock', true)
     if (estado === 'vendido') query = query.eq('en_stock', false)
