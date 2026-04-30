@@ -169,12 +169,34 @@ export default function Agenda() {
   }
 
   async function marcarAsistencia(turnoId, asistio) {
-    await fetchConToken(`/api/turnos/${turnoId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ asistio, estado: asistio ? 'realizado' : 'no_asistio' })
+  const turno = modalVer
+
+  await fetchConToken(`/api/turnos/${turnoId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ asistio, estado: asistio ? 'realizado' : 'no_asistio' })
+  })
+
+  // Crear visita automática solo si asistió y tiene paciente cargado
+  if (asistio && turno?.pacientes?.id) {
+    const resVisita = await fetchConToken('/api/visitas', {
+      method: 'POST',
+      body: JSON.stringify({
+        paciente_id: turno.pacientes.id,
+        fecha: turno.fecha + 'T12:00:00',
+        motivo_id: turno.visita_motivos?.id || null,
+        observaciones: turno.observaciones || null,
+        venta_id: null,
+        es_reparacion: false,
+      })
     })
-    setModalVer(null); cargarTurnos()
+    if (!resVisita.ok) {
+      const d = await resVisita.json()
+      console.warn('No se pudo crear visita automática:', d.error)
+    }
   }
+
+  setModalVer(null); cargarTurnos()
+}
 
   async function cancelarTurno(turnoId) {
     if (!confirm('¿Cancelar este turno?')) return
