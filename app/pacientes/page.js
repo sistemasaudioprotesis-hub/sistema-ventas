@@ -447,16 +447,38 @@ export default function Pacientes() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {visitas.map(v => (
                   <div key={v.id} style={{ padding: '14px 16px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
-                      <div>
-                        <div style={{ fontWeight: '700', fontSize: '15px', color: '#8B1E2D' }}>{v.visita_motivos?.motivo || '-'}</div>
-                        <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '3px' }}>{fmtFecha(v.fecha)} {fmtHora(v.fecha)}</div>
-                        {v.ventas && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>🔗 Venta #{v.ventas.id} — {new Date(v.ventas.fecha).toLocaleDateString('es-AR')}</div>}
-                        {v.observaciones && <div style={{ fontSize: '13px', color: '#374151', marginTop: '6px', padding: '8px', background: 'white', borderRadius: '6px', border: '1px solid #e5e7eb' }}>{v.observaciones}</div>}
-                      </div>
-                      <button onClick={() => eliminarVisita(v.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#ef4444' }}>✕</button>
-                    </div>
-                  </div>
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+    <div style={{ flex: 1 }}>
+      <div style={{ fontWeight: '700', fontSize: '15px', color: '#8B1E2D' }}>{v.visita_motivos?.motivo || '-'}</div>
+      <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '3px' }}>{fmtFecha(v.fecha)} {fmtHora(v.fecha)}</div>
+      {v.ventas && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>🔗 Venta #{v.ventas.id} — {new Date(v.ventas.fecha).toLocaleDateString('es-AR')}</div>}
+
+      {visitaEditandoObs?.id === v.id ? (
+        <div style={{ marginTop: '8px' }}>
+          <textarea
+            value={visitaEditandoObs.texto}
+            onChange={(e) => setVisitaEditandoObs({ ...visitaEditandoObs, texto: e.target.value })}
+            rows={3}
+            style={{ ...inputStyle, fontSize: '13px', resize: 'vertical' }}
+          />
+          <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+            <button onClick={() => guardarObsVisita(v.id, visitaEditandoObs.texto)} style={{ ...btnPrimario, fontSize: '12px', padding: '6px 12px' }}>💾 Guardar</button>
+            <button onClick={() => setVisitaEditandoObs(null)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px' }}>Cancelar</button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ marginTop: '6px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+          {v.observaciones
+            ? <div style={{ fontSize: '13px', color: '#374151', padding: '8px', background: 'white', borderRadius: '6px', border: '1px solid #e5e7eb', flex: 1 }}>{v.observaciones}</div>
+            : <div style={{ fontSize: '13px', color: '#d1d5db', fontStyle: 'italic' }}>Sin observaciones</div>
+          }
+          <button onClick={() => setVisitaEditandoObs({ id: v.id, texto: v.observaciones || '' })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#9ca3af', flexShrink: 0 }}>✏️</button>
+        </div>
+      )}
+    </div>
+    <button onClick={() => eliminarVisita(v.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#ef4444' }}>✕</button>
+  </div>
+</div>
                 ))}
               </div>
             )}
