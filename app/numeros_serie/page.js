@@ -17,6 +17,7 @@ export default function NumerosSerie() {
   const [depositos, setDepositos] = useState([])
   const [filtroEstado, setFiltroEstado] = useState('stock')
   const [filtroProducto, setFiltroProducto] = useState('')
+  const [filtroModelo, setFiltroModelo] = useState('')
   const [filtroDeposito, setFiltroDeposito] = useState('')
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [modoMasivo, setModoMasivo] = useState(false)
@@ -149,11 +150,12 @@ export default function NumerosSerie() {
   }
 
   const seriesFiltradas = series.filter(s => {
-    const estadoOk = filtroEstado === 'todos' ? true : filtroEstado === 'stock' ? s.en_stock : !s.en_stock
-    const productoOk = filtroProducto ? s.productos?.id == filtroProducto : true
-    const depositoOk = filtroDeposito ? s.depositos?.id == filtroDeposito : true
-    return estadoOk && productoOk && depositoOk
-  })
+  const estadoOk = filtroEstado === 'todos' ? true : filtroEstado === 'stock' ? s.en_stock : !s.en_stock
+  const productoOk = filtroProducto ? s.productos?.id == filtroProducto : true
+  const modeloOk = filtroModelo ? s.modelo_id == filtroModelo : true
+  const depositoOk = filtroDeposito ? s.depositos?.id == filtroDeposito : true
+  return estadoOk && productoOk && modeloOk && depositoOk
+})
 
   const totalStock = series.filter(s => s.en_stock).length
   const totalVendidos = series.filter(s => !s.en_stock).length
