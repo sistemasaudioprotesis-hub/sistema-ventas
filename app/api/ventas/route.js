@@ -13,17 +13,16 @@ export async function GET(request) {
 
     const supabase = createServerClient()
     let query = supabase.from('ventas').select(`
-      id, fecha, confirmada, total_pesos, total_dolares, obra_social_id,
-      pacientes (apellido_paciente, nombres_paciente, dni),
-      obras_sociales (obra_social),
-      venta_detalle (
-  id, precio_venta_pesos, precio_venta_usd, cantidad,
-  numero_serie_id, producto_id,
-  numeros_serie (id, numero_serie, productos (producto)),
-  productos (id, producto)
-)
-Mismo cambio que hiciste en app/api/ventas/[id]/route.js. Con esto item.numero_serie_id va a llegar con valor y el select va a aparecer.
-    `).order('fecha', { ascending: false })
+  id, fecha, confirmada, total_pesos, total_dolares, obra_social_id,
+  pacientes (apellido_paciente, nombres_paciente, dni),
+  obras_sociales (obra_social),
+  venta_detalle (
+    id, precio_venta_pesos, precio_venta_usd, cantidad,
+    numero_serie_id, producto_id,
+    numeros_serie (id, numero_serie, modelo_id, productos (id, producto)),
+    productos (id, producto)
+  )
+`).order('fecha', { ascending: false })
 
     if (pacienteId) query = query.eq('paciente_id', pacienteId)
     if (desde) query = query.gte('fecha', `${desde}T00:00:00`)
