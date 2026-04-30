@@ -11,6 +11,8 @@ export default function NumerosSerie() {
   const [series, setSeries] = useState([])
   const [productos, setProductos] = useState([])
   const [productosFiltrados, setProductosFiltrados] = useState([])
+  const [modelos, setModelos] = useState([])
+  const [modelosFiltrados, setModelosFiltrados] = useState([])
   const [tipos, setTipos] = useState([])
   const [depositos, setDepositos] = useState([])
   const [filtroEstado, setFiltroEstado] = useState('stock')
@@ -25,26 +27,28 @@ export default function NumerosSerie() {
   const [modalEditar, setModalEditar] = useState(null)
   const [formEditar, setFormEditar] = useState({ numero_serie: '', costo_usd: '', deposito_id: '' })
 
-  const [form, setForm] = useState({ tipo_id: '', producto_id: '', numero_serie: '', costo_usd: '', deposito_id: '' })
+  const [form, setForm] = useState({ tipo_id: '', producto_id: '', modelo_id: '', numero_serie: '', costo_usd: '', deposito_id: '' })
 
   useEffect(() => { obtenerDatos() }, [])
 
   if (verificando || !permitido) return null
 
   async function obtenerDatos() {
-    const [resSeries, resProductos, resTipos, resDepositos] = await Promise.all([
+    const [resSeries, resProductos, resTipos, resDepositos, resModelos] = await Promise.all([
       fetchConToken('/api/stock/series'),
       fetchConToken('/api/configuracion/productos'),
       fetchConToken('/api/configuracion/tipos-producto'),
       fetchConToken('/api/configuracion/depositos'),
+      fetchConToken('/api/configuracion/modelos'),
     ])
-    const [dSeries, dProductos, dTipos, dDepositos] = await Promise.all([
-      resSeries.json(), resProductos.json(), resTipos.json(), resDepositos.json()
+    const [dSeries, dProductos, dTipos, dDepositos, dModelos] = await Promise.all([
+      resSeries.json(), resProductos.json(), resTipos.json(), resDepositos.json(), resModelos.json()
     ])
     setSeries(dSeries.series || [])
     setProductos(dProductos.productos || [])
     setTipos(dTipos.tipos || [])
     setDepositos(dDepositos.depositos || [])
+    setModelos(dModelos.modelos || [])
   }
 
   function handleChange(e) {
@@ -52,7 +56,15 @@ export default function NumerosSerie() {
     if (name === 'tipo_id') {
       const filtrados = productos.filter(p => p.tipo_id === Number(value))
       setProductosFiltrados(filtrados)
-      setForm({ ...form, tipo_id: value, producto_id: '' })
+      setModelosFiltrados([])
+      setForm({ ...form, tipo_id: value, producto_id: '', modelo_id: '' })
+      return
+    }
+    if (name === 'producto_id') {
+      const prod = productos.find(p => p.id === Number(value))
+      const mods = prod?.requiere_modelo ? modelos.filter(m => m.producto_id === Number(value) && m.activo) : []
+      setModelosFiltrados(mods)
+      setForm({ ...form, producto_id: value, modelo_id: '' })
       return
     }
     const nuevoValor = name === 'numero_serie' ? normalizarTexto(value) : value
@@ -61,10 +73,13 @@ export default function NumerosSerie() {
 
   async function guardar() {
     if (!form.producto_id || !form.numero_serie || !form.deposito_id) { alert('Completar campos obligatorios'); return }
+    const prod = productos.find(p => p.id === Number(form.producto_id))
+    if (prod?.requiere_modelo && !form.modelo_id) { alert('Seleccionar modelo'); return }
     const res = await fetchConToken('/api/stock/series', {
       method: 'POST',
       body: JSON.stringify({
         producto_id: Number(form.producto_id),
+        modelo_id: form.modelo_id ? Number(form.modelo_id) : null,
         numero_serie: normalizarTexto(form.numero_serie),
         costo_usd: form.costo_usd ? Number(form.costo_usd) : null,
         deposito_id: Number(form.deposito_id),
@@ -72,14 +87,17 @@ export default function NumerosSerie() {
     })
     if (!res.ok) { alert('❌ Ese número de serie ya existe en el sistema'); return }
     alert('✅ Número de serie guardado')
-    setForm({ tipo_id: '', producto_id: '', numero_serie: '', costo_usd: '', deposito_id: '' })
+    setForm({ tipo_id: '', producto_id: '', modelo_id: '', numero_serie: '', costo_usd: '', deposito_id: '' })
     setProductosFiltrados([])
+    setModelosFiltrados([])
     setMostrarFormulario(false)
     obtenerDatos()
   }
 
   async function guardarMasivo() {
     if (!form.producto_id || !form.deposito_id) { alert('Seleccionar producto y depósito'); return }
+    const prod = productos.find(p => p.id === Number(form.producto_id))
+    if (prod?.requiere_modelo && !form.modelo_id) { alert('Seleccionar modelo'); return }
     const lineas = seriesMasivas.split('\n').map(l => l.trim()).filter(Boolean)
     if (lineas.length === 0) { alert('Ingresar al menos un número de serie'); return }
     setGuardandoMasivo(true)
@@ -89,6 +107,7 @@ export default function NumerosSerie() {
         method: 'POST',
         body: JSON.stringify({
           producto_id: Number(form.producto_id),
+          modelo_id: form.modelo_id ? Number(form.modelo_id) : null,
           numero_serie: normalizarTexto(linea),
           costo_usd: form.costo_usd ? Number(form.costo_usd) : null,
           deposito_id: Number(form.deposito_id),
@@ -101,8 +120,9 @@ export default function NumerosSerie() {
     if (errores.length > 0) alert(`✅ ${ok} series guardadas\n❌ ${errores.length} duplicadas o con error:\n${errores.join('\n')}`)
     else alert(`✅ ${ok} series guardadas correctamente`)
     setSeriesMasivas('')
-    setForm({ tipo_id: '', producto_id: '', numero_serie: '', costo_usd: '', deposito_id: '' })
+    setForm({ tipo_id: '', producto_id: '', modelo_id: '', numero_serie: '', costo_usd: '', deposito_id: '' })
     setProductosFiltrados([])
+    setModelosFiltrados([])
     setMostrarFormulario(false)
     setModoMasivo(false)
     obtenerDatos()
@@ -180,6 +200,14 @@ export default function NumerosSerie() {
                 {productosFiltrados.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
               </select>
             </Field>
+            {modelosFiltrados.length > 0 && (
+              <Field label="Modelo *">
+                <select name="modelo_id" value={form.modelo_id} onChange={handleChange} style={inputStyle}>
+                  <option value="">Seleccionar modelo</option>
+                  {modelosFiltrados.map(m => <option key={m.id} value={m.id}>{m.modelo}</option>)}
+                </select>
+              </Field>
+            )}
             <Field label="Costo USD">
               <input type="number" name="costo_usd" placeholder="0.00" value={form.costo_usd} onChange={handleChange} style={inputStyle} />
             </Field>
@@ -256,6 +284,7 @@ export default function NumerosSerie() {
                   <div style={{ fontWeight: '600', fontSize: '15px', color: '#1a1a1a' }}>{s.numero_serie}</div>
                   <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
                     {s.productos?.producto || '-'}
+                    {s.modelos?.modelo ? ` · ${s.modelos.modelo}` : ''}
                     {s.depositos?.deposito ? ` · ${s.depositos.deposito}` : ''}
                     {s.costo_usd ? ` · Costo: U$S ${s.costo_usd}` : ''}
                   </div>
@@ -278,7 +307,10 @@ export default function NumerosSerie() {
         <div style={modalOverlay}>
           <div style={modalBox}>
             <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a', marginBottom: '4px' }}>✏️ Editar serie</div>
-            <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>{modalEditar.productos?.producto}</div>
+            <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>
+              {modalEditar.productos?.producto}
+              {modalEditar.modelos?.modelo ? ` · ${modalEditar.modelos.modelo}` : ''}
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <Field label="Número de serie *">
                 <input value={formEditar.numero_serie} onChange={(e) => setFormEditar({ ...formEditar, numero_serie: e.target.value })} style={{ ...inputStyle, textTransform: 'uppercase' }} />
