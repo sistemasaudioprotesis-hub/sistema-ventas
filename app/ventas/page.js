@@ -50,6 +50,10 @@ export default function Ventas() {
   const [form, setForm] = useState({ numero_serie_id: '', producto_id: '', precio_pesos: '', precio_usd: '', cantidad: '1' })
   const [modalSalir, setModalSalir] = useState(false)
   const [paramsPendientes, setParamsPendientes] = useState(null)
+  const [tipos, setTipos] = useState([])
+const [modelosVenta, setModelosVenta] = useState([])
+const [modelosFiltradosVenta, setModelosFiltradosVenta] = useState([])
+const [productosFiltradosVenta, setProductosFiltradosVenta] = useState([])
 
   useEffect(() => {
   obtenerSeries()
@@ -117,10 +121,18 @@ useEffect(() => {
   }
 
   async function obtenerProductos() {
-    const res = await fetchConToken('/api/productos')
-    const data = await res.json()
-    setProductos(data.productos || [])
-  }
+  const [resProductos, resTipos, resModelos] = await Promise.all([
+    fetchConToken('/api/productos'),
+    fetchConToken('/api/configuracion/tipos-producto'),
+    fetchConToken('/api/configuracion/modelos'),
+  ])
+  const [dProductos, dTipos, dModelos] = await Promise.all([
+    resProductos.json(), resTipos.json(), resModelos.json()
+  ])
+  setProductos(dProductos.productos || [])
+  setTipos(dTipos.tipos || [])
+  setModelosVenta(dModelos.modelos || [])
+}
 
   async function obtenerObrasSociales() {
     const res = await fetchConToken('/api/configuracion/obras-sociales')
@@ -207,20 +219,40 @@ useEffect(() => {
   }
 
   async function handleChange(e) {
-    const { name, value } = e.target
-    if (name === 'producto_id') {
-      const prod = productos.find(p => p.id === Number(value))
-      const requiereSerie = prod?.tipo_producto?.requiere_serie
-      const ctrlStock = prod?.controla_stock || false
-      setModoConSerie(requiereSerie); setControlaStock(ctrlStock)
-      setSeriesFiltradas(series.filter(s => s.producto_id === Number(value)))
-      setForm({ ...form, producto_id: value, numero_serie_id: '', cantidad: '1' })
-      if (ctrlStock && !requiereSerie) { const stock = await verificarStock(Number(value)); setStockDisponible(stock) }
-      else setStockDisponible(null)
-      return
-    }
-    setForm({ ...form, [name]: value })
+  const { name, value } = e.target
+
+  if (name === 'tipo_id') {
+    const filtrados = productos.filter(p => p.tipo_id === Number(value))
+    setProductosFiltradosVenta(filtrados)
+    setModelosFiltradosVenta([])
+    setSeriesFiltradas([])
+    setForm({ ...form, tipo_id: value, producto_id: '', modelo_id: '', numero_serie_id: '', cantidad: '1' })
+    return
   }
+
+  if (name === 'producto_id') {
+    const prod = productos.find(p => p.id === Number(value))
+    const requiereSerie = prod?.tipo_producto?.requiere_serie
+    const ctrlStock = prod?.controla_stock || false
+    const mods = prod?.requiere_modelo ? modelosVenta.filter(m => m.producto_id === Number(value) && m.activo) : []
+    setModoConSerie(requiereSerie)
+    setControlaStock(ctrlStock)
+    setModelosFiltradosVenta(mods)
+    setSeriesFiltradas(mods.length > 0 ? [] : series.filter(s => s.producto_id === Number(value)))
+    setForm({ ...form, producto_id: value, modelo_id: '', numero_serie_id: '', cantidad: '1' })
+    if (ctrlStock && !requiereSerie) { const stock = await verificarStock(Number(value)); setStockDisponible(stock) }
+    else setStockDisponible(null)
+    return
+  }
+
+  if (name === 'modelo_id') {
+    setSeriesFiltradas(series.filter(s => s.producto_id === Number(form.producto_id) && s.modelo_id === Number(value)))
+    setForm({ ...form, modelo_id: value, numero_serie_id: '' })
+    return
+  }
+
+  setForm({ ...form, [name]: value })
+}
 
   async function agregarItem() {
     if (!paciente) return alert('Seleccionar paciente')
@@ -246,7 +278,7 @@ useEffect(() => {
     else if (controlaStock) await fetchConToken(`/api/stock/productos/${form.producto_id}/movimiento`, { method: 'POST', body: JSON.stringify({ tipo: 'egreso', cantidad, concepto: `Venta #${ventaActualId}` }) })
     const prod = productos.find(p => p.id == form.producto_id)
     setItems([...items, { id: dataDetalle.detalle.id, numero_serie_id: form.numero_serie_id, producto_id: form.producto_id, producto: modoConSerie ? series.find(s => s.id == form.numero_serie_id)?.productos?.producto : prod?.producto, serie: modoConSerie ? series.find(s => s.id == form.numero_serie_id)?.numero_serie : '-', precio_pesos: form.precio_pesos, precio_usd: form.precio_usd, cantidad: modoConSerie ? 1 : cantidad, controla_stock: controlaStock }])
-    setForm({ numero_serie_id: '', producto_id: '', precio_pesos: '', precio_usd: '', cantidad: '1' })
+    setForm({ tipo_id: '', modelo_id: '', numero_serie_id: '', producto_id: '', precio_pesos: '', precio_usd: '', cantidad: '1' })
     setStockDisponible(null); setControlaStock(false); obtenerSeries(); setModalSinStock(null)
   }
 
@@ -478,17 +510,53 @@ if (derivadorEdicionId && valorComisionEdicion) {
               </div>
             </div>
           )}
-          <div style={card}>
-            <div style={cardTitle}>➕ Agregar producto</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div><label style={labelStyle}>Producto</label><select name="producto_id" value={form.producto_id} onChange={handleChange} style={inputStyle}><option value="">Seleccionar producto</option>{productos.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}</select></div>
-              {modoConSerie && <div><label style={labelStyle}>Número de serie</label><select name="numero_serie_id" value={form.numero_serie_id} onChange={handleChange} style={inputStyle}><option value="">Seleccionar serie</option>{seriesFiltradas.map(s => <option key={s.id} value={s.id}>{s.numero_serie} — {s.productos?.producto}</option>)}</select></div>}
-              {!modoConSerie && form.producto_id && <div><label style={labelStyle}>Cantidad {stockDisponible !== null && <span style={{ marginLeft: '8px', fontWeight: '400', color: stockDisponible > 0 ? '#16a34a' : '#dc2626' }}>(Stock: {stockDisponible})</span>}</label><input name="cantidad" type="number" min="1" placeholder="1" value={form.cantidad} onChange={handleChange} style={inputStyle} /></div>}
-              <div><label style={labelStyle}>Precio en pesos</label><input name="precio_pesos" placeholder="$0" value={form.precio_pesos} onChange={handleChange} style={inputStyle} /></div>
-              <div><label style={labelStyle}>Precio en USD</label><input name="precio_usd" placeholder="USD 0" value={form.precio_usd} onChange={handleChange} style={inputStyle} /></div>
-            </div>
-            <div style={{ marginTop: '14px' }}><button onClick={agregarItem} style={btnPrimario}>+ Agregar al carrito</button></div>
-          </div>
+         <div style={card}>
+  <div style={cardTitle}>➕ Agregar producto</div>
+  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+    <div>
+      <label style={labelStyle}>Tipo de producto</label>
+      <select name="tipo_id" value={form.tipo_id} onChange={handleChange} style={inputStyle}>
+        <option value="">Seleccionar tipo</option>
+        {tipos.map(t => <option key={t.id} value={t.id}>{t.tipo}</option>)}
+      </select>
+    </div>
+    <div>
+      <label style={labelStyle}>Producto</label>
+      <select name="producto_id" value={form.producto_id} onChange={handleChange} style={inputStyle} disabled={!form.tipo_id}>
+        <option value="">Seleccionar producto</option>
+        {(form.tipo_id ? productosFiltradosVenta : productos).map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
+      </select>
+    </div>
+    {modelosFiltradosVenta.length > 0 && (
+      <div>
+        <label style={labelStyle}>Modelo</label>
+        <select name="modelo_id" value={form.modelo_id} onChange={handleChange} style={inputStyle}>
+          <option value="">Seleccionar modelo</option>
+          {modelosFiltradosVenta.map(m => <option key={m.id} value={m.id}>{m.modelo}</option>)}
+        </select>
+      </div>
+    )}
+    {modoConSerie && (
+      <div>
+        <label style={labelStyle}>Número de serie</label>
+        <select name="numero_serie_id" value={form.numero_serie_id} onChange={handleChange} style={inputStyle}
+          disabled={modelosFiltradosVenta.length > 0 && !form.modelo_id}>
+          <option value="">Seleccionar serie</option>
+          {seriesFiltradas.map(s => <option key={s.id} value={s.id}>{s.numero_serie} — {s.productos?.producto}</option>)}
+        </select>
+      </div>
+    )}
+    {!modoConSerie && form.producto_id && (
+      <div>
+        <label style={labelStyle}>Cantidad {stockDisponible !== null && <span style={{ marginLeft: '8px', fontWeight: '400', color: stockDisponible > 0 ? '#16a34a' : '#dc2626' }}>(Stock: {stockDisponible})</span>}</label>
+        <input name="cantidad" type="number" min="1" placeholder="1" value={form.cantidad} onChange={handleChange} style={inputStyle} />
+      </div>
+    )}
+    <div><label style={labelStyle}>Precio en pesos</label><input name="precio_pesos" placeholder="$0" value={form.precio_pesos} onChange={handleChange} style={inputStyle} /></div>
+    <div><label style={labelStyle}>Precio en USD</label><input name="precio_usd" placeholder="USD 0" value={form.precio_usd} onChange={handleChange} style={inputStyle} /></div>
+  </div>
+  <div style={{ marginTop: '14px' }}><button onClick={agregarItem} style={btnPrimario}>+ Agregar al carrito</button></div>
+</div>
 
           <div style={card}>
             <div style={cardTitle}>🛒 Carrito</div>
