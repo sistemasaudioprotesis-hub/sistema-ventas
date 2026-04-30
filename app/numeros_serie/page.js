@@ -254,22 +254,28 @@ export default function NumerosSerie() {
 
       {/* Filtros */}
       <div style={{ ...card, padding: '14px 20px' }}>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            {[['stock', '✅ En stock'], ['vendido', '📦 Vendidos'], ['todos', 'Todos']].map(([val, label]) => (
-              <button key={val} onClick={() => setFiltroEstado(val)} style={{ padding: '7px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', background: filtroEstado === val ? '#8B1E2D' : 'white', color: filtroEstado === val ? 'white' : '#374151', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>{label}</button>
-            ))}
-          </div>
-          <select value={filtroProducto} onChange={(e) => setFiltroProducto(e.target.value)} style={{ ...inputStyle, width: 'auto', flex: 1, minWidth: '180px' }}>
-            <option value="">Todos los productos</option>
-            {productos.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
-          </select>
-          <select value={filtroDeposito} onChange={(e) => setFiltroDeposito(e.target.value)} style={{ ...inputStyle, width: 'auto', flex: 1, minWidth: '180px' }}>
-            <option value="">Todos los depósitos</option>
-            {depositos.map(d => <option key={d.id} value={d.id}>{d.deposito}</option>)}
-          </select>
-        </div>
-      </div>
+  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+    <div style={{ display: 'flex', gap: '6px' }}>
+      {[['stock', '✅ En stock'], ['vendido', '📦 Vendidos'], ['todos', 'Todos']].map(([val, label]) => (
+        <button key={val} onClick={() => setFiltroEstado(val)} style={{ padding: '7px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', background: filtroEstado === val ? '#8B1E2D' : 'white', color: filtroEstado === val ? 'white' : '#374151', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>{label}</button>
+      ))}
+    </div>
+    <select value={filtroProducto} onChange={(e) => { setFiltroProducto(e.target.value); setFiltroModelo('') }} style={{ ...inputStyle, width: 'auto', flex: 1, minWidth: '180px' }}>
+      <option value="">Todos los productos</option>
+      {productos.map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
+    </select>
+    {filtroProducto && modelos.filter(m => m.producto_id == filtroProducto).length > 0 && (
+      <select value={filtroModelo} onChange={(e) => setFiltroModelo(e.target.value)} style={{ ...inputStyle, width: 'auto', flex: 1, minWidth: '180px' }}>
+        <option value="">Todos los modelos</option>
+        {modelos.filter(m => m.producto_id == filtroProducto).map(m => <option key={m.id} value={m.id}>{m.modelo}</option>)}
+      </select>
+    )}
+    <select value={filtroDeposito} onChange={(e) => setFiltroDeposito(e.target.value)} style={{ ...inputStyle, width: 'auto', flex: 1, minWidth: '180px' }}>
+      <option value="">Todos los depósitos</option>
+      {depositos.map(d => <option key={d.id} value={d.id}>{d.deposito}</option>)}
+    </select>
+  </div>
+</div>
 
       {/* Lista */}
       <div style={card}>
