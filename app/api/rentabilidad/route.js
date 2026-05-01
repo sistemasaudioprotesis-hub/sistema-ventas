@@ -18,10 +18,10 @@ export async function GET(request) {
         id, fecha, total_pesos, total_dolares,
         pacientes (apellido_paciente, nombres_paciente),
         venta_detalle (
-          id, precio_venta_pesos, precio_venta_usd,
-          numeros_serie (id, costo_usd, productos (producto)),
-          productos (producto)
-        )
+  id, precio_venta_pesos, precio_venta_usd,
+  numeros_serie (id, costo_usd, modelo_id, productos (id, producto, tipo_id, tipo_producto (id, tipo))),
+  productos (id, producto)
+)
       `)
       .eq('confirmada', true)
       .gte('fecha', desde + 'T00:00:00')
