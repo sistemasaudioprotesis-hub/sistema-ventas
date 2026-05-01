@@ -32,7 +32,7 @@ export async function POST(request) {
 
     const { data, error } = await supabase
       .from('usuarios')
-      .insert([{ ...body, creado_por: usuario.id }])
+     .insert([{ ...body }])
       .select('id, nombre, usuario, rol, activo')
       .single()
 
