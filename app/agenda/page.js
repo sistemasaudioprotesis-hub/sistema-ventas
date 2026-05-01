@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { fetchConToken } from '../../lib/fetchConToken'
 import { normalizarTexto } from '../../lib/formatText'
+import { usePermiso } from '../../lib/usePermisos'
 
 const HORA_INICIO = 9
 const HORA_FIN_SEMANA = 18
@@ -56,6 +57,7 @@ export default function Agenda() {
   const [verCancelados, setVerCancelados] = useState(false)
   const [verBloqueos, setVerBloqueos] = useState(false)
   const [calAbierto, setCalAbierto] = useState(false)
+  const { verificando, permitido } = usePermiso('agenda') 
 
   const [modalNuevo, setModalNuevo] = useState(null)
   const [formTurno, setFormTurno] = useState({ agenda_id: '', nombre_libre: '', telefono: '', motivo_id: '', obra_social_id: '', observaciones: '' })
@@ -316,6 +318,8 @@ const [obsEditada, setObsEditada] = useState('')
   const hoyStr = formatFecha(hoy)
   const semanaActualStr = formatFecha(semanaBase)
 
+if (verificando || !permitido) return null
+  
   return (
     <div style={{ maxWidth: '100%' }}>
 
