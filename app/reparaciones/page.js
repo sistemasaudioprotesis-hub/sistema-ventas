@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { fetchConToken } from '../../lib/fetchConToken'
 import { normalizarTexto } from '../../lib/formatText'
+import { usePermiso } from '../../lib/usePermisos'
 
 const ESTADOS = [
   { key: 'ingresada', label: 'Ingresada', color: '#4b5563', bg: '#f3f4f6', border: '#d1d5db' },
@@ -34,6 +35,8 @@ export default function Reparaciones() {
   const [cargando, setCargando] = useState(false)
   const [historial, setHistorial] = useState([])
 
+const { verificando, permitido } = usePermiso('reparaciones') 
+  
   const [busquedaPaciente, setBusquedaPaciente] = useState('')
   const [pacientesResultados, setPacientesResultados] = useState([])
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null)
@@ -169,6 +172,8 @@ export default function Reparaciones() {
   const fmtFecha = (f) => f ? new Date(f + (f.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('es-AR') : '-'
   const fmtFechaHora = (f) => f ? new Date(f).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'
 
+if (verificando || !permitido) return null
+  
   return (
     <div style={{ maxWidth: '860px' }}>
 
