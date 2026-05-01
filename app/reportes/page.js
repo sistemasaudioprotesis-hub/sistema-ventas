@@ -468,9 +468,19 @@ const totalVentasUSD = ventas.reduce((acc, v) => {
                       <td style={{ ...tdStyle, fontWeight: '600' }}>{v.pacientes?.apellido_paciente} {v.pacientes?.nombres_paciente}</td>
                       <td style={tdStyle}>{v.pacientes?.dni}</td>
                       <td style={tdStyle}>{v.venta_detalle?.map(d => <div key={d.id} style={{ fontSize: '12px', color: '#6b7280' }}>{d.numeros_serie?.productos?.producto || d.productos?.producto || '-'}{d.numeros_serie?.numero_serie ? ` (${d.numeros_serie.numero_serie})` : ''}</div>)}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right', color: '#16a34a', fontWeight: '600' }}>{v.total_pesos > 0 ? fmt(v.total_pesos) : '-'}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right', color: '#2563eb', fontWeight: '600' }}>{v.total_dolares > 0 ? fmtUSD(v.total_dolares) : '-'}</td>
-                      <td style={tdStyle}><span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: v.confirmada ? '#dcfce7' : '#fef9c3', color: v.confirmada ? '#16a34a' : '#ca8a04' }}>{v.confirmada ? 'Confirmada' : 'Pendiente'}</span></td>
+        <td style={{ ...tdStyle, textAlign: 'right', color: '#16a34a', fontWeight: '600' }}>
+  {hayFiltroProducto
+    ? (() => { const t = (v.venta_detalle || []).reduce((a, d) => a + ((Number(d.precio_venta_pesos) || 0) * (Number(d.cantidad) || 1)), 0); return t > 0 ? fmt(t) : '-' })()
+    : v.total_pesos > 0 ? fmt(v.total_pesos) : '-'
+  }
+</td>
+<td style={{ ...tdStyle, textAlign: 'right', color: '#2563eb', fontWeight: '600' }}>
+  {hayFiltroProducto
+    ? (() => { const t = (v.venta_detalle || []).reduce((a, d) => a + ((Number(d.precio_venta_usd) || 0) * (Number(d.cantidad) || 1)), 0); return t > 0 ? fmtUSD(t) : '-' })()
+    : v.total_dolares > 0 ? fmtUSD(v.total_dolares) : '-'
+  }
+</td>              
+        <td style={tdStyle}><span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: v.confirmada ? '#dcfce7' : '#fef9c3', color: v.confirmada ? '#16a34a' : '#ca8a04' }}>{v.confirmada ? 'Confirmada' : 'Pendiente'}</span></td>
                     </tr>
                   ))}
                   <tr style={{ background: '#1a1a1a' }}>
