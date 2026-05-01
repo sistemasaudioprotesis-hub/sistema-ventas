@@ -107,17 +107,20 @@ async function cargarVentas() {
   let resultado = data.ventas || []
 
   if (filtroProductoId || filtroModeloId) {
-    resultado = resultado.filter(v =>
-      v.venta_detalle?.some(d => {
-        const productoOk = filtroProductoId
-          ? (d.producto_id == filtroProductoId || d.numeros_serie?.productos?.id == filtroProductoId)
-          : true
-        const modeloOk = filtroModeloId
-          ? d.numeros_serie?.modelo_id == filtroModeloId
-          : true
-        return productoOk && modeloOk
+    resultado = resultado
+      .map(v => {
+        const detalleFiltrado = (v.venta_detalle || []).filter(d => {
+          const productoOk = filtroProductoId
+            ? (d.producto_id == filtroProductoId || d.numeros_serie?.productos?.id == filtroProductoId)
+            : true
+          const modeloOk = filtroModeloId
+            ? d.numeros_serie?.modelo_id == filtroModeloId
+            : true
+          return productoOk && modeloOk
+        })
+        return { ...v, venta_detalle: detalleFiltrado }
       })
-    )
+      .filter(v => v.venta_detalle.length > 0)
   }
 
   setVentas(resultado)
@@ -176,8 +179,19 @@ async function cargarVentas() {
     setReparaciones(data.reparaciones || [])
   }
 
-  const totalVentasPesos = ventas.reduce((acc, v) => acc + (Number(v.total_pesos) || 0), 0)
-  const totalVentasUSD = ventas.reduce((acc, v) => acc + (Number(v.total_dolares) || 0), 0)
+  const totalVentasPesos = ventas.reduce((acc, v) => {
+  if (filtroProductoId || filtroModeloId) {
+    return acc + (v.venta_detalle || []).reduce((a, d) => a + ((Number(d.precio_venta_pesos) || 0) * (Number(d.cantidad) || 1)), 0)
+  }
+  return acc + (Number(v.total_pesos) || 0)
+}, 0)
+
+const totalVentasUSD = ventas.reduce((acc, v) => {
+  if (filtroProductoId || filtroModeloId) {
+    return acc + (v.venta_detalle || []).reduce((a, d) => a + ((Number(d.precio_venta_usd) || 0) * (Number(d.cantidad) || 1)), 0)
+  }
+  return acc + (Number(v.total_dolares) || 0)
+}, 0)
   const totalPagadoPesos = pagos.reduce((acc, p) => acc + (Number(p.monto_pesos) || 0), 0)
   const totalPagadoUSD = pagos.reduce((acc, p) => acc + (Number(p.monto_usd) || 0), 0)
   const ingresosPesos = movimientosCaja.filter(m => m.tipo === 'ingreso').reduce((acc, m) => acc + (Number(m.monto_pesos) || 0), 0)
