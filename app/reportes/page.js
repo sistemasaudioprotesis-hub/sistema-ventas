@@ -147,13 +147,16 @@ async function cargarVentas(productoId = '', modeloId = '', tipoId = '') {
 }
 
   async function cargarPagos() {
-    const params = new URLSearchParams({ desde, hasta })
-    if (operadorId) params.set('creado_por', operadorId)
-    if (formaPagoId) params.set('forma_pago_id', formaPagoId)
-    const res = await fetchConToken(`/api/pagos?${params}`)
-    const data = await res.json()
-    setPagos(data.pagos || [])
+  const params = new URLSearchParams({ desde, hasta })
+  if (formaPagoId) params.set('forma_pago_id', formaPagoId)
+  const res = await fetchConToken(`/api/pagos?${params}`)
+  const data = await res.json()
+  let resultado = data.pagos || []
+  if (obraSocialId) {
+    resultado = resultado.filter(p => p.ventas?.obra_social_id == obraSocialId)
   }
+  setPagos(resultado)
+}
 
   async function cargarCaja() {
     const [resPagos, resManuales] = await Promise.all([
