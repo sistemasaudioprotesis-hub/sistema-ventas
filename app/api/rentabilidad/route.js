@@ -17,9 +17,9 @@ export async function GET(request) {
       .select(`
         id, fecha, total_pesos, total_dolares,
         pacientes (apellido_paciente, nombres_paciente),
-       venta_detalle (
+      venta_detalle (
   id, precio_venta_pesos, precio_venta_usd,
-  numeros_serie (id, costo_usd, modelo_id, modelos (modelo), productos (id, producto, tipo_id, tipo_producto (id, tipo)))
+  numeros_serie (id, costo_usd, modelo_id, modelos (modelo), productos (id, producto)),
   productos (id, producto)
 )
       `)
