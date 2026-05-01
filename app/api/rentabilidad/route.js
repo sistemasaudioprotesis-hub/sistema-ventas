@@ -53,20 +53,12 @@ export async function GET(request) {
 
       // Factor proporcional según forma de pago
       const pagosData = pagos || []
-      let factorPago = 1
-      if (pagosData.length > 0) {
-        const totalPagado = pagosData.reduce((acc, p) => {
-          return acc + (Number(p.monto_pesos) || Number(p.monto_usd) || 0)
-        }, 0)
-        if (totalPagado > 0) {
-          factorPago = pagosData.reduce((acc, p) => {
-            const monto = Number(p.monto_pesos) || Number(p.monto_usd) || 0
-            const factor = Number(p.formas_pago?.factor_rentabilidad) || 1
-            return acc + (monto / totalPagado) * factor
-          }, 0)
-        }
-      }
-      const todosEfectivo = factorPago === 1
+let factorPago = 1
+if (pagosData.length > 0) {
+  const factorMinimo = Math.min(...pagosData.map(p => Number(p.formas_pago?.factor_rentabilidad) || 1))
+  factorPago = factorMinimo
+}
+const todosEfectivo = factorPago === 1
 
       const itemsConSerie = (v.venta_detalle || []).filter(d => d.numeros_serie?.costo_usd)
       const precioVentaUSD = itemsConSerie.reduce((acc, d) => acc + (Number(d.precio_venta_usd) || 0), 0)
