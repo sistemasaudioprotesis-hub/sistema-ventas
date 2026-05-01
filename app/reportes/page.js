@@ -104,6 +104,10 @@ async function cargarVentas() {
   if (pacienteSeleccionado) params.set('paciente_id', pacienteSeleccionado.id)
   const res = await fetchConToken(`/api/ventas?${params}`)
   const data = await res.json()
+  console.log('filtroProductoId:', filtroProductoId)
+  console.log('filtroModeloId:', filtroModeloId)
+  console.log('primera venta detalle:', JSON.stringify(data.ventas?.[0]?.venta_detalle?.[0], null, 2))
+  
   let resultado = data.ventas || []
 
   if (filtroProductoId || filtroModeloId) {
