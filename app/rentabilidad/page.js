@@ -161,7 +161,7 @@ const rankingModelos = Object.entries(porModelo)
                     <td style={{ ...tdStyle, textAlign: 'right', color: '#374151' }}>{fmtUSD(v.gananciaBrutaUSD)}</td>
                     <td style={{ ...tdStyle, textAlign: 'center' }}>
                       <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', fontWeight: '600', background: v.todosEfectivo ? '#dcfce7' : '#eff6ff', color: v.todosEfectivo ? '#16a34a' : '#1d4ed8' }}>
-                        {v.todosEfectivo ? '💵 100%' : '💳 70%'}
+                        {`${v.todosEfectivo ? '💵' : '💳'} ${(v.factorPago * 100).toFixed(0)}%`}
                       </span>
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '700', color: v.gananciaNeta >= 0 ? '#16a34a' : '#dc2626' }}>{fmtUSD(v.gananciaNeta)}</td>
