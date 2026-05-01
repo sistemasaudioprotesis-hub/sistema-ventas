@@ -314,6 +314,13 @@ const totalVentasUSD = ventas.reduce((acc, v) => {
     ])
   }
 
+  function exportarMoldes() {
+  exportarExcel('moldes', [
+    ['#', 'Fecha ingreso', 'Paciente', 'DNI', 'Teléfono', 'Producto', 'Estado', 'Costo $', 'Costo U$S', 'Fecha entrega', 'Observaciones'],
+    ...moldes.map(r => [r.numero_orden, fmtFecha(r.fecha), `${r.pacientes?.apellido_paciente || ''} ${r.pacientes?.nombres_paciente || ''}`, r.pacientes?.dni || '', r.pacientes?.telefono || '', r.marca || '', ESTADOS_MOLDES.find(e => e.key === r.respuesta_paciente)?.label || r.respuesta_paciente || 'Ingresado', r.costo_pesos || 0, r.costo_usd || 0, r.fecha_entrega ? new Date(r.fecha_entrega + 'T12:00:00').toLocaleDateString('es-AR') : '', r.observaciones || '']),
+  ])
+}
+
 if (verificando || !permitido) return null
   
   return (
@@ -754,6 +761,62 @@ if (verificando || !permitido) return null
           </div>
         </>
       )}
+
+{tab === 'moldes' && (
+  <>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+      <div style={{ fontSize: '14px', color: '#6b7280', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <span><strong>{moldes.length}</strong> órdenes</span>
+        {Object.entries(moldes.reduce((acc, r) => { const e = r.respuesta_paciente || 'ingresado'; acc[e] = (acc[e] || 0) + 1; return acc }, {})).map(([estado, cant]) => {
+          const c = ESTADOS_MOLDES.find(e => e.key === estado)
+          return <span key={estado} style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '11px', background: '#f3f4f6', color: '#4b5563' }}>{c?.label || estado}: <strong>{cant}</strong></span>
+        })}
+      </div>
+      <div style={{ display: 'flex', gap: '8px' }} className="no-print">
+        <button onClick={exportarMoldes} style={btnExcel}>📥 Excel</button>
+        <button onClick={() => window.print()} style={btnImprimir}>🖨️ Imprimir</button>
+      </div>
+    </div>
+    <div style={card}>
+      {moldes.length === 0 ? <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay órdenes para el período seleccionado</div> : (
+        <table style={tableStyle}>
+          <thead>
+            <tr>
+              <th style={thStyle}>#</th>
+              <th style={thStyle}>Fecha</th>
+              <th style={thStyle}>Paciente</th>
+              <th style={thStyle}>DNI</th>
+              <th style={thStyle}>Producto</th>
+              <th style={thStyle}>Estado</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>Costo $</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>Costo U$S</th>
+              <th style={thStyle}>Entrega</th>
+            </tr>
+          </thead>
+          <tbody>
+            {moldes.map((r, i) => {
+              const estadoLabel = ESTADOS_MOLDES.find(e => e.key === r.respuesta_paciente)?.label || r.respuesta_paciente || 'Ingresado'
+              return (
+                <tr key={r.id} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
+                  <td style={{ ...tdStyle, fontWeight: '700', color: '#8B1E2D' }}>#{r.numero_orden}</td>
+                  <td style={tdStyle}>{fmtFecha(r.fecha)}</td>
+                  <td style={{ ...tdStyle, fontWeight: '600' }}>{r.pacientes?.apellido_paciente} {r.pacientes?.nombres_paciente}</td>
+                  <td style={tdStyle}>{r.pacientes?.dni || '-'}</td>
+                  <td style={tdStyle}>{r.marca || '-'}</td>
+                  <td style={tdStyle}><span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: '#f3f4f6', color: '#4b5563' }}>{estadoLabel}</span></td>
+                  <td style={{ ...tdStyle, textAlign: 'right', color: '#16a34a', fontWeight: '600' }}>{r.costo_pesos ? fmt(r.costo_pesos) : '-'}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right', color: '#2563eb', fontWeight: '600' }}>{r.costo_usd ? fmtUSD(r.costo_usd) : '-'}</td>
+                  <td style={tdStyle}>{r.fecha_entrega ? new Date(r.fecha_entrega + 'T12:00:00').toLocaleDateString('es-AR') : '-'}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  </>
+)}
+        
     </div>
   )
 }
