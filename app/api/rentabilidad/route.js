@@ -60,6 +60,8 @@ if (pagosData.length > 0) {
 }
 const todosEfectivo = factorPago === 1
 
+      console.log('venta', v.id, 'pagosData:', JSON.stringify(pagosData.map(p => ({ factor: p.formas_pago?.factor_rentabilidad, monto_pesos: p.monto_pesos, monto_usd: p.monto_usd }))), 'factorFinal:', factorPago)
+
       const itemsConSerie = (v.venta_detalle || []).filter(d => d.numeros_serie?.costo_usd)
       const precioVentaUSD = itemsConSerie.reduce((acc, d) => acc + (Number(d.precio_venta_usd) || 0), 0)
       const costoUSD = itemsConSerie.reduce((acc, d) => acc + (Number(d.numeros_serie?.costo_usd) || 0), 0)
