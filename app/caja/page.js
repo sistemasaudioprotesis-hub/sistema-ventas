@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { fetchConToken } from '../../lib/fetchConToken'
+import { usePermiso } from '../../lib/usePermisos'
 
 const EFECTIVO_ID = 1
 
@@ -16,6 +17,7 @@ export default function Caja() {
   const [cargandoDolar, setCargandoDolar] = useState(false)
   const [dolarManual, setDolarManual] = useState('')
   const [formasPago, setFormasPago] = useState([])
+  const { verificando, permitido } = usePermiso('caja') 
 
   const [form, setForm] = useState({ tipo: 'ingreso', concepto: '', monto_pesos: '', monto_usd: '' })
 
@@ -205,6 +207,8 @@ export default function Caja() {
   const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0)
   const fmtUSD = (n) => `U$S ${Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
+if (verificando || !permitido) return null
+  
   return (
     <div style={{ maxWidth: '850px' }}>
 
