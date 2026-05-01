@@ -20,9 +20,10 @@ const SECCIONES = [
   { key: 'stock_series', label: 'Stock Números de Serie' },
   { key: 'configuracion', label: 'Configuración' },
   { key: 'usuarios', label: 'Usuarios' },
+  { key: 'moldes_tapones', label: 'Moldes y Tapones' },
 ]
 
-const ROLES = ['admin', 'director', 'vendedor']
+const ROLES = ['admin', 'director', 'vendedor', 'laboratorio']
 
 export default function Permisos() {
   const router = useRouter()
