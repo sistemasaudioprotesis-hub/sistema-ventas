@@ -167,7 +167,7 @@ export default function Caja() {
   const formasPagoOtras = formasPago.filter(f => f.id !== EFECTIVO_ID)
 
   const otrosAgrupados = pagosOtrosFiltrados.reduce((acc, p) => {
-    const nombre = p.formas_pago?.forma_pago || 'Sin forma'
+    const nombre = p.formas_pago?.forma_pago || formasPago.find(f => f.id === p.forma_pago_id)?.forma_pago || 'Sin forma'
     if (!acc[nombre]) acc[nombre] = { ingresosPesos: 0, egresosPesos: 0, ingresosUSD: 0, egresosUSD: 0, items: [] }
     if (p.tipo === 'egreso') {
       acc[nombre].egresosPesos += Number(p.monto_pesos) || 0
