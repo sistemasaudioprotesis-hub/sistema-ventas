@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { fetchConToken } from '../../lib/fetchConToken'
+import { usePermiso } from '../../lib/usePermisos'
 
 const ESTADOS_REPARACION = [
   { key: 'ingresada', label: 'Ingresada' },
@@ -36,6 +37,8 @@ export default function Reportes() {
   const [tab, setTab] = useState('ventas')
   const [cargando, setCargando] = useState(false)
 
+  const { verificando, permitido } = usePermiso('reportes')
+  
   const [busquedaPaciente, setBusquedaPaciente] = useState('')
   const [resultadosPaciente, setResultadosPaciente] = useState([])
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null)
@@ -296,6 +299,8 @@ const totalVentasUSD = ventas.reduce((acc, v) => {
     ])
   }
 
+if (verificando || !permitido) return null
+  
   return (
     <div style={{ maxWidth: '960px' }}>
       <style>{`
