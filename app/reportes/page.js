@@ -37,6 +37,17 @@ export default function Reportes() {
   const [tab, setTab] = useState('ventas')
   const [cargando, setCargando] = useState(false)
 
+  const [estadoMolde, setEstadoMolde] = useState('')
+const [moldes, setMoldes] = useState([])
+
+const ESTADOS_MOLDES = [
+  { key: 'ingresado', label: 'Ingresado' },
+  { key: 'en_proceso', label: 'En proceso' },
+  { key: 'listo_entregar', label: 'Listo para entregar' },
+  { key: 'entregado', label: 'Entregado' },
+  { key: 'cancelado', label: 'Cancelado' },
+]
+
   const { verificando, permitido } = usePermiso('reportes')
   
   const [busquedaPaciente, setBusquedaPaciente] = useState('')
@@ -96,14 +107,7 @@ const [modelosFiltradosReporte, setModelosFiltradosReporte] = useState([])
 
   async function buscar() {
   setCargando(true)
-  await Promise.all([
-    cargarVentas(filtroProductoId, filtroModeloId, filtroTipoId),
-    cargarPagos(),
-    cargarCaja(),
-    cargarVisitas(),
-    cargarTurnos(),
-    cargarReparaciones()
-  ])
+  await Promise.all([cargarVentas(filtroProductoId, filtroModeloId, filtroTipoId), cargarPagos(), cargarCaja(), cargarVisitas(), cargarTurnos(), cargarReparaciones(), cargarMoldes()])
   setCargando(false)
 }
 
@@ -195,6 +199,14 @@ async function cargarVentas(productoId = '', modeloId = '', tipoId = '') {
     setReparaciones(data.reparaciones || [])
   }
 
+  async function cargarMoldes() {
+  const params = new URLSearchParams({ desde, hasta })
+  if (estadoMolde) params.set('estado', estadoMolde)
+  if (pacienteSeleccionado) params.set('paciente_id', pacienteSeleccionado.id)
+  const res = await fetchConToken(`/api/moldes?${params}`)
+  const data = await res.json()
+  setMoldes(data.moldes || [])
+}
   const hayFiltroProducto = filtroProductoId || filtroModeloId || filtroTipoId
 
 const totalVentasPesos = ventas.reduce((acc, v) => {
@@ -340,105 +352,126 @@ if (verificando || !permitido) return null
       </div>
 
       <div style={card} className="no-print">
-        <div style={cardTitle}>🔍 Filtros</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '14px' }}>
-          <Field label="Desde"><input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} style={inputStyle} /></Field>
-          <Field label="Hasta"><input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} style={inputStyle} /></Field>
-          <Field label="Operador">
-            <select value={operadorId} onChange={(e) => setOperadorId(e.target.value)} style={inputStyle}>
-              <option value="">Todos</option>
-              {usuarios.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}
-            </select>
-          </Field>
+  <div style={cardTitle}>🔍 Filtros</div>
+
+  {/* Fila 1: fechas y paciente */}
+  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: '14px', marginBottom: '14px' }}>
+    <Field label="Desde"><input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} style={inputStyle} /></Field>
+    <Field label="Hasta"><input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} style={inputStyle} /></Field>
+    <Field label="Paciente">
+      {pacienteSeleccionado ? (
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <div style={{ ...inputStyle, padding: '10px 14px', background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600', fontSize: '13px' }}>
+            {pacienteSeleccionado.apellido_paciente} {pacienteSeleccionado.nombres_paciente}
+          </div>
+          <button onClick={() => { setPacienteSeleccionado(null); setBusquedaPaciente(''); setResultadosPaciente([]) }} style={{ padding: '10px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>✕</button>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '14px' }}>
-          <Field label="Obra social">
-            <select value={obraSocialId} onChange={(e) => setObraSocialId(e.target.value)} style={inputStyle}>
-              <option value="">Todas</option>
-              {obrasSociales.map(o => <option key={o.id} value={o.id}>{o.obra_social}</option>)}
-            </select>
-          </Field>
-          <Field label="Forma de pago">
-            <select value={formaPagoId} onChange={(e) => setFormaPagoId(e.target.value)} style={inputStyle}>
-              <option value="">Todas</option>
-              {formasPago.map(f => <option key={f.id} value={f.id}>{f.forma_pago}</option>)}
-            </select>
-          </Field>
-                <Field label="Tipo producto (ventas)">
-  <select value={filtroTipoId} onChange={(e) => {
-    const val = e.target.value
-    setFiltroTipoId(val)
-    setFiltroProductoId('')
-    setFiltroModeloId('')
-    setProductosFiltradosReporte(productosReporte.filter(p => p.tipo_id === Number(val)))
-    setModelosFiltradosReporte([])
-  }} style={inputStyle}>
-    <option value="">Todos los tipos</option>
-    {tipos.map(t => <option key={t.id} value={t.id}>{t.tipo}</option>)}
-  </select>
-</Field>
-<Field label="Producto (ventas)">
-  <select value={filtroProductoId} onChange={(e) => {
-    const val = e.target.value
-    setFiltroProductoId(val)
-    setFiltroModeloId('')
-    setModelosFiltradosReporte(modelosReporte.filter(m => m.producto_id === Number(val) && m.activo))
-  }} style={inputStyle} disabled={!filtroTipoId}>
-    <option value="">Todos los productos</option>
-    {(filtroTipoId ? productosFiltradosReporte : productosReporte).map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
-  </select>
-</Field>
-<Field label="Modelo (ventas)">
-  <select value={filtroModeloId} onChange={(e) => setFiltroModeloId(e.target.value)}
-    style={inputStyle} disabled={!filtroProductoId || modelosFiltradosReporte.length === 0}>
-    <option value="">Todos los modelos</option>
-    {modelosFiltradosReporte.map(m => <option key={m.id} value={m.id}>{m.modelo}</option>)}
-  </select>
-</Field>
-          <Field label="Motivo / Agenda">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <select value={motivoId} onChange={(e) => setMotivoId(e.target.value)} style={inputStyle}>
-                <option value="">Todos los motivos</option>
-                {motivos.map(m => <option key={m.id} value={m.id}>{m.motivo}</option>)}
-              </select>
-              <select value={agendaId} onChange={(e) => setAgendaId(e.target.value)} style={inputStyle}>
-                <option value="">Todas las agendas</option>
-                {agendas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
-              </select>
-            </div>
-          </Field>
-          <Field label="Paciente / Estado reparación">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {pacienteSeleccionado ? (
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  <div style={{ ...inputStyle, padding: '10px 14px', background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600', fontSize: '13px' }}>
-                    {pacienteSeleccionado.apellido_paciente} {pacienteSeleccionado.nombres_paciente}
-                  </div>
-                  <button onClick={() => { setPacienteSeleccionado(null); setBusquedaPaciente(''); setResultadosPaciente([]) }} style={{ padding: '10px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>✕</button>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <input placeholder="DNI o apellido..." value={busquedaPaciente} onChange={(e) => setBusquedaPaciente(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && buscarPacientes()} style={{ ...inputStyle, flex: 1 }} />
-                  <button onClick={buscarPacientes} style={{ padding: '10px 14px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>Buscar</button>
-                </div>
-              )}
-              {resultadosPaciente.length > 0 && !pacienteSeleccionado && (
-                <select value="" onChange={(e) => { const p = resultadosPaciente.find(x => x.id == e.target.value); if (!p) return; setPacienteSeleccionado(p); setResultadosPaciente([]); setBusquedaPaciente('') }} style={inputStyle}>
-                  <option value="">Seleccionar ({resultadosPaciente.length} encontrados)</option>
-                  {resultadosPaciente.map(p => <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>)}
-                </select>
-              )}
-              <select value={estadoReparacion} onChange={(e) => setEstadoReparacion(e.target.value)} style={inputStyle}>
-                <option value="">Todos los estados (reparaciones)</option>
-                {ESTADOS_REPARACION.map(e => <option key={e.key} value={e.key}>{e.label}</option>)}
-              </select>
-            </div>
-          </Field>
+      ) : (
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <input placeholder="DNI o apellido..." value={busquedaPaciente} onChange={(e) => setBusquedaPaciente(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && buscarPacientes()} style={{ ...inputStyle, flex: 1 }} />
+          <button onClick={buscarPacientes} style={{ padding: '10px 14px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>Buscar</button>
         </div>
-        <button onClick={buscar} disabled={cargando} style={{ ...btnPrimario, opacity: cargando ? 0.7 : 1 }}>
-          {cargando ? 'Buscando...' : '🔍 Buscar'}
-        </button>
-      </div>
+      )}
+      {resultadosPaciente.length > 0 && !pacienteSeleccionado && (
+        <select value="" onChange={(e) => { const p = resultadosPaciente.find(x => x.id == e.target.value); if (!p) return; setPacienteSeleccionado(p); setResultadosPaciente([]); setBusquedaPaciente('') }} style={{ ...inputStyle, marginTop: '6px' }}>
+          <option value="">Seleccionar ({resultadosPaciente.length} encontrados)</option>
+          {resultadosPaciente.map(p => <option key={p.id} value={p.id}>{p.apellido_paciente} {p.nombres_paciente} — DNI: {p.dni}</option>)}
+        </select>
+      )}
+    </Field>
+  </div>
+
+  {/* Grupo Ventas */}
+  <div style={{ padding: '12px 14px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', marginBottom: '12px' }}>
+    <div style={{ fontSize: '11px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>💰 Ventas y Pagos </div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+      <Field label="Obra social">
+        <select value={obraSocialId} onChange={(e) => setObraSocialId(e.target.value)} style={inputStyle}>
+          <option value="">Todas</option>
+          {obrasSociales.map(o => <option key={o.id} value={o.id}>{o.obra_social}</option>)}
+        </select>
+      </Field>
+      <Field label="Forma de pago">
+        <select value={formaPagoId} onChange={(e) => setFormaPagoId(e.target.value)} style={inputStyle}>
+          <option value="">Todas</option>
+          {formasPago.map(f => <option key={f.id} value={f.id}>{f.forma_pago}</option>)}
+        </select>
+      </Field>
+      <Field label="Tipo producto">
+        <select value={filtroTipoId} onChange={(e) => {
+          const val = e.target.value
+          setFiltroTipoId(val)
+          setFiltroProductoId('')
+          setFiltroModeloId('')
+          setProductosFiltradosReporte(productosReporte.filter(p => p.tipo_id === Number(val)))
+          setModelosFiltradosReporte([])
+        }} style={inputStyle}>
+          <option value="">Todos</option>
+          {tipos.map(t => <option key={t.id} value={t.id}>{t.tipo}</option>)}
+        </select>
+      </Field>
+      <Field label="Producto">
+        <select value={filtroProductoId} onChange={(e) => {
+          const val = e.target.value
+          setFiltroProductoId(val)
+          setFiltroModeloId('')
+          setModelosFiltradosReporte(productosReporte.find(p => p.id === Number(val))?.requiere_modelo ? modelosReporte.filter(m => m.producto_id === Number(val) && m.activo) : [])
+        }} style={inputStyle} disabled={!filtroTipoId}>
+          <option value="">Todos</option>
+          {(filtroTipoId ? productosFiltradosReporte : productosReporte).map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
+        </select>
+      </Field>
+      <Field label="Modelo">
+        <select value={filtroModeloId} onChange={(e) => setFiltroModeloId(e.target.value)} style={inputStyle} disabled={!filtroProductoId || modelosFiltradosReporte.length === 0}>
+          <option value="">Todos</option>
+          {modelosFiltradosReporte.map(m => <option key={m.id} value={m.id}>{m.modelo}</option>)}
+        </select>
+      </Field>
+    </div>
+  </div>
+
+  {/* Grupo Visitas y Turnos */}
+  <div style={{ padding: '12px 14px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', marginBottom: '12px' }}>
+    <div style={{ fontSize: '11px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>📅 Visitas y Turnos</div>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+      <Field label="Motivo">
+        <select value={motivoId} onChange={(e) => setMotivoId(e.target.value)} style={inputStyle}>
+          <option value="">Todos los motivos</option>
+          {motivos.map(m => <option key={m.id} value={m.id}>{m.motivo}</option>)}
+        </select>
+      </Field>
+      <Field label="Agenda">
+        <select value={agendaId} onChange={(e) => setAgendaId(e.target.value)} style={inputStyle}>
+          <option value="">Todas las agendas</option>
+          {agendas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+        </select>
+      </Field>
+    </div>
+  </div>
+
+  {/* Grupo Estados */}
+  <div style={{ padding: '12px 14px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', marginBottom: '14px' }}>
+    <div style={{ fontSize: '11px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>📋 Estados</div>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+      <Field label="Estado reparación">
+        <select value={estadoReparacion} onChange={(e) => setEstadoReparacion(e.target.value)} style={inputStyle}>
+          <option value="">Todos</option>
+          {ESTADOS_REPARACION.map(e => <option key={e.key} value={e.key}>{e.label}</option>)}
+        </select>
+      </Field>
+      <Field label="Estado moldes y tapones">
+        <select value={estadoMolde} onChange={(e) => setEstadoMolde(e.target.value)} style={inputStyle}>
+          <option value="">Todos</option>
+          {ESTADOS_MOLDES.map(e => <option key={e.key} value={e.key}>{e.label}</option>)}
+        </select>
+      </Field>
+    </div>
+  </div>
+
+  <button onClick={buscar} disabled={cargando} style={{ ...btnPrimario, opacity: cargando ? 0.7 : 1 }}>
+    {cargando ? 'Buscando...' : '🔍 Buscar'}
+  </button>
+</div>
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }} className="no-print">
         {[
@@ -448,6 +481,7 @@ if (verificando || !permitido) return null
           ['visitas', `🏥 Visitas${visitas.length > 0 ? ` (${visitas.length})` : ''}`],
           ['turnos', `📅 Turnos${turnos.length > 0 ? ` (${turnos.length})` : ''}`],
           ['reparaciones', `🔧 Reparaciones${reparaciones.length > 0 ? ` (${reparaciones.length})` : ''}`],
+          ['moldes', `🧩 Moldes${moldes.length > 0 ? ` (${moldes.length})` : ''}`],
         ].map(([val, label]) => (
           <button key={val} onClick={() => setTab(val)} style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid #e5e7eb', background: tab === val ? '#8B1E2D' : 'white', color: tab === val ? 'white' : '#374151', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>{label}</button>
         ))}
