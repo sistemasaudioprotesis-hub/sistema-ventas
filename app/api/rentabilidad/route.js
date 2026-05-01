@@ -17,11 +17,11 @@ export async function GET(request) {
       .select(`
         id, fecha, total_pesos, total_dolares,
         pacientes (apellido_paciente, nombres_paciente),
-      venta_detalle (
-  id, precio_venta_pesos, precio_venta_usd,
-  numeros_serie (id, costo_usd, modelo_id, modelos (modelo), productos (id, producto)),
-  productos (id, producto)
-)
+        venta_detalle (
+          id, precio_venta_pesos, precio_venta_usd,
+          numeros_serie (id, costo_usd, modelo_id, modelos (modelo), productos (id, producto)),
+          productos (id, producto)
+        )
       `)
       .eq('confirmada', true)
       .gte('fecha', desde + 'T00:00:00')
@@ -33,7 +33,7 @@ export async function GET(request) {
     const ventasCompletas = await Promise.all((ventas || []).map(async v => {
       const [{ data: pagos }, { data: derivador }] = await Promise.all([
         supabase.from('pagos')
-          .select('monto_pesos, monto_usd, formas_pago (es_efectivo)')
+          .select('monto_pesos, monto_usd, formas_pago (es_efectivo, factor_rentabilidad)')
           .eq('venta_id', v.id),
         supabase.from('venta_derivadores')
           .select('monto_calculado, tipo_comision, valor_comision')
@@ -51,8 +51,23 @@ export async function GET(request) {
         .maybeSingle()
       const cotiz = cotizData?.dolar_vendedor
 
-      const todosEfectivo = (pagos || []).length > 0 && (pagos || []).every(p => p.formas_pago?.es_efectivo)
-      const factorPago = todosEfectivo ? 1 : 0.7
+      // Factor proporcional según forma de pago
+      const pagosData = pagos || []
+      let factorPago = 1
+      if (pagosData.length > 0) {
+        const totalPagado = pagosData.reduce((acc, p) => {
+          return acc + (Number(p.monto_pesos) || Number(p.monto_usd) || 0)
+        }, 0)
+        if (totalPagado > 0) {
+          factorPago = pagosData.reduce((acc, p) => {
+            const monto = Number(p.monto_pesos) || Number(p.monto_usd) || 0
+            const factor = Number(p.formas_pago?.factor_rentabilidad) || 1
+            return acc + (monto / totalPagado) * factor
+          }, 0)
+        }
+      }
+      const todosEfectivo = factorPago === 1
+
       const itemsConSerie = (v.venta_detalle || []).filter(d => d.numeros_serie?.costo_usd)
       const precioVentaUSD = itemsConSerie.reduce((acc, d) => acc + (Number(d.precio_venta_usd) || 0), 0)
       const costoUSD = itemsConSerie.reduce((acc, d) => acc + (Number(d.numeros_serie?.costo_usd) || 0), 0)
@@ -88,7 +103,6 @@ export async function GET(request) {
     }))
 
     return Response.json({ ventas: ventasCompletas })
-
   } catch (e) {
     return Response.json({ error: 'Error interno' }, { status: 500 })
   }
