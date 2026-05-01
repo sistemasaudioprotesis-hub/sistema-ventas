@@ -37,6 +37,23 @@ export default function Rentabilidad() {
   const totalGananciaNeta = ventasConAudifonos.reduce((acc, v) => acc + v.gananciaNeta, 0)
   const margenPromedio = totalPrecioUSD > 0 ? ((totalGananciaNeta / totalPrecioUSD) * 100).toFixed(1) : 0
 
+const porTipo = {}
+ventasConAudifonos.forEach(v => {
+  v.itemsConSerie.forEach(d => {
+    const tipo = d.numeros_serie?.productos?.tipo_producto?.tipo || 'Sin tipo'
+    if (!porTipo[tipo]) porTipo[tipo] = { ventas: 0, precioUSD: 0, costoUSD: 0, gananciaNeta: 0 }
+    const ganItem = ((Number(d.precio_venta_usd) || 0) - (Number(d.numeros_serie?.costo_usd) || 0)) * v.factorPago
+    porTipo[tipo].ventas++
+    porTipo[tipo].precioUSD += Number(d.precio_venta_usd) || 0
+    porTipo[tipo].costoUSD += Number(d.numeros_serie?.costo_usd) || 0
+    porTipo[tipo].gananciaNeta += ganItem
+  })
+})
+const rankingTipos = Object.entries(porTipo)
+  .map(([nombre, data]) => ({ nombre, ...data, margen: data.precioUSD > 0 ? ((data.gananciaNeta / data.precioUSD) * 100).toFixed(1) : 0 }))
+  .sort((a, b) => b.gananciaNeta - a.gananciaNeta)
+
+  
   const porProducto = {}
   ventasConAudifonos.forEach(v => {
     v.itemsConSerie.forEach(d => {
@@ -53,6 +70,22 @@ export default function Rentabilidad() {
     .map(([nombre, data]) => ({ nombre, ...data, margen: data.precioUSD > 0 ? ((data.gananciaNeta / data.precioUSD) * 100).toFixed(1) : 0 }))
     .sort((a, b) => b.gananciaNeta - a.gananciaNeta)
 
+const porModelo = {}
+ventasConAudifonos.forEach(v => {
+  v.itemsConSerie.forEach(d => {
+    const modelo = d.numeros_serie?.modelos?.modelo || 'Sin modelo'
+    if (!porModelo[modelo]) porModelo[modelo] = { ventas: 0, precioUSD: 0, costoUSD: 0, gananciaNeta: 0 }
+    const ganItem = ((Number(d.precio_venta_usd) || 0) - (Number(d.numeros_serie?.costo_usd) || 0)) * v.factorPago
+    porModelo[modelo].ventas++
+    porModelo[modelo].precioUSD += Number(d.precio_venta_usd) || 0
+    porModelo[modelo].costoUSD += Number(d.numeros_serie?.costo_usd) || 0
+    porModelo[modelo].gananciaNeta += ganItem
+  })
+})
+const rankingModelos = Object.entries(porModelo)
+  .map(([nombre, data]) => ({ nombre, ...data, margen: data.precioUSD > 0 ? ((data.gananciaNeta / data.precioUSD) * 100).toFixed(1) : 0 }))
+  .sort((a, b) => b.gananciaNeta - a.gananciaNeta)
+  
   const fmtUSD = (n) => `U$S ${Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   const fmtPct = (n) => `${n}%`
 
@@ -83,9 +116,14 @@ export default function Rentabilidad() {
 
       {ventasConAudifonos.length > 0 && (
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          {[['ventas', `📋 Por venta (${ventasConAudifonos.length})`], ['productos', `📦 Por producto (${rankingProductos.length})`]].map(([val, label]) => (
-            <button key={val} onClick={() => setTab(val)} style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid #e5e7eb', background: tab === val ? '#8B1E2D' : 'white', color: tab === val ? 'white' : '#374151', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>{label}</button>
-          ))}
+          {[
+  ['ventas', `📋 Por venta (${ventasConAudifonos.length})`],
+  ['tipos', `🏷️ Por tipo (${rankingTipos.length})`],
+  ['productos', `📦 Por producto (${rankingProductos.length})`],
+  ['modelos', `🎯 Por modelo (${rankingModelos.length})`],
+].map(([val, label]) => (
+  <button key={val} onClick={() => setTab(val)} style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid #e5e7eb', background: tab === val ? '#8B1E2D' : 'white', color: tab === val ? 'white' : '#374151', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>{label}</button>
+))}
         </div>
       )}
 
@@ -150,6 +188,40 @@ export default function Rentabilidad() {
         </div>
       )}
 
+
+{tab === 'tipos' && (
+  <div style={card}>
+    {rankingTipos.length === 0 ? <div style={{ color: '#9ca3af', textAlign: 'center', padding: '40px' }}>No hay datos</div> : (
+      <table style={tableStyle}>
+        <thead>
+          <tr>
+            <th style={thStyle}>Tipo</th>
+            <th style={{ ...thStyle, textAlign: 'center' }}>Items</th>
+            <th style={{ ...thStyle, textAlign: 'right' }}>Precio total</th>
+            <th style={{ ...thStyle, textAlign: 'right' }}>Costo total</th>
+            <th style={{ ...thStyle, textAlign: 'right' }}>Ganancia neta</th>
+            <th style={{ ...thStyle, textAlign: 'right' }}>Margen</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rankingTipos.map((t, i) => (
+            <tr key={t.nombre} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
+              <td style={{ ...tdStyle, fontWeight: '600' }}>{t.nombre}</td>
+              <td style={{ ...tdStyle, textAlign: 'center' }}>{t.ventas}</td>
+              <td style={{ ...tdStyle, textAlign: 'right' }}>{fmtUSD(t.precioUSD)}</td>
+              <td style={{ ...tdStyle, textAlign: 'right', color: '#dc2626' }}>{fmtUSD(t.costoUSD)}</td>
+              <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '700', color: t.gananciaNeta >= 0 ? '#16a34a' : '#dc2626' }}>{fmtUSD(t.gananciaNeta)}</td>
+              <td style={{ ...tdStyle, textAlign: 'right' }}>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: Number(t.margen) >= 30 ? '#16a34a' : Number(t.margen) >= 15 ? '#f59e0b' : '#dc2626' }}>{fmtPct(t.margen)}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </div>
+)}
+
       {tab === 'productos' && (
         <div style={card}>
           {rankingProductos.length === 0 ? <div style={{ color: '#9ca3af', textAlign: 'center', padding: '40px' }}>No hay datos para el período seleccionado</div> : (
@@ -182,6 +254,39 @@ export default function Rentabilidad() {
           )}
         </div>
       )}
+
+{tab === 'modelos' && (
+  <div style={card}>
+    {rankingModelos.length === 0 ? <div style={{ color: '#9ca3af', textAlign: 'center', padding: '40px' }}>No hay datos</div> : (
+      <table style={tableStyle}>
+        <thead>
+          <tr>
+            <th style={thStyle}>Modelo</th>
+            <th style={{ ...thStyle, textAlign: 'center' }}>Items</th>
+            <th style={{ ...thStyle, textAlign: 'right' }}>Precio total</th>
+            <th style={{ ...thStyle, textAlign: 'right' }}>Costo total</th>
+            <th style={{ ...thStyle, textAlign: 'right' }}>Ganancia neta</th>
+            <th style={{ ...thStyle, textAlign: 'right' }}>Margen</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rankingModelos.map((m, i) => (
+            <tr key={m.nombre} style={{ background: i % 2 === 0 ? 'white' : '#f9fafb' }}>
+              <td style={{ ...tdStyle, fontWeight: '600' }}>{m.nombre}</td>
+              <td style={{ ...tdStyle, textAlign: 'center' }}>{m.ventas}</td>
+              <td style={{ ...tdStyle, textAlign: 'right' }}>{fmtUSD(m.precioUSD)}</td>
+              <td style={{ ...tdStyle, textAlign: 'right', color: '#dc2626' }}>{fmtUSD(m.costoUSD)}</td>
+              <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '700', color: m.gananciaNeta >= 0 ? '#16a34a' : '#dc2626' }}>{fmtUSD(m.gananciaNeta)}</td>
+              <td style={{ ...tdStyle, textAlign: 'right' }}>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: Number(m.margen) >= 30 ? '#16a34a' : Number(m.margen) >= 15 ? '#f59e0b' : '#dc2626' }}>{fmtPct(m.margen)}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </div>
+)}
 
       {ventasConAudifonos.length > 0 && (
         <div style={{ fontSize: '12px', color: '#9ca3af', padding: '0 4px' }}>
