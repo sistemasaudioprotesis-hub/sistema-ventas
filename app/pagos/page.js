@@ -6,11 +6,13 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { fetchConToken } from '../../lib/fetchConToken'
 import { formatearPesos } from '../../lib/format'
+import { usePermiso } from '../../lib/usePermisos'
 
 export default function Pagos() {
   const searchParams = useSearchParams()
   const ventaIdParam = searchParams.get('venta_id')
   const dniParam = searchParams.get('dni')
+  const { verificando, permitido } = usePermiso('pagos')
 
   const [dni, setDni] = useState(dniParam || '')
   const [paciente, setPaciente] = useState(null)
@@ -227,6 +229,8 @@ async function guardarAltaRapida() {
   const ventaEsPesos = totalPesos > 0 && totalUSD === 0
   const pagoEnMonedaDistinta = (ventaEsUSD && Number(form.monto_pesos) > 0) || (ventaEsPesos && Number(form.monto_usd) > 0)
 
+if (verificando || !permitido) return null
+  
   return (
     <div style={{ maxWidth: '750px' }}>
 
