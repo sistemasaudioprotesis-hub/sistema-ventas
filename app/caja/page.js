@@ -302,7 +302,7 @@ export default function Caja() {
                   <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: m.tipo === 'ingreso' ? '#f0fdf4' : '#fef2f2', borderRadius: '8px', border: `1px solid ${m.tipo === 'ingreso' ? '#bbf7d0' : '#fecaca'}`, flexWrap: 'wrap', gap: '8px' }}>
                     <div>
                       <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a' }}>{m.concepto}</div>
-                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{m.origen === 'pago' ? '🔗 Pago de venta' : '✏️ Manual'} · {new Date(m.created_at).toLocaleDateString('es-AR')} {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{m.origen === 'pago' ? '🔗 Pago de venta' : `✏️ Manual${m.forma_pago_id && m.forma_pago_id !== EFECTIVO_ID ? ` · ${formasPago.find(f => f.id === m.forma_pago_id)?.forma_pago || ''}` : ''}`} · {new Date(m.created_at).toLocaleDateString('es-AR')} {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div style={{ textAlign: 'right' }}>
