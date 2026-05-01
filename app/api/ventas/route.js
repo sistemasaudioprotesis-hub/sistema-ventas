@@ -10,6 +10,8 @@ export async function GET(request) {
     const pacienteId = searchParams.get('paciente_id')
     const desde = searchParams.get('desde')
     const hasta = searchParams.get('hasta')
+    const obraSocialId = searchParams.get('obra_social_id')
+
 
     const supabase = createServerClient()
     let query = supabase.from('ventas').select(`
@@ -27,6 +29,7 @@ export async function GET(request) {
     if (pacienteId) query = query.eq('paciente_id', pacienteId)
     if (desde) query = query.gte('fecha', `${desde}T00:00:00`)
     if (hasta) query = query.lte('fecha', `${hasta}T23:59:59`)
+    if (obraSocialId) query = query.eq('obra_social_id', obraSocialId)
 
     const { data, error } = await query
     if (error) return Response.json({ error: error.message }, { status: 500 })
