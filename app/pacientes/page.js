@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { fetchConToken } from '../../lib/fetchConToken'
 import { normalizarTexto } from '../../lib/formatText'
+import { usePermiso } from '../../lib/usePermisos'
 
 const ESTADOS_REPARACION = {
   ingresada: { label: 'Ingresada', color: '#4b5563', bg: '#f3f4f6' },
@@ -30,6 +31,7 @@ export default function Pacientes() {
   const [pacienteId, setPacienteId] = useState(null)
   const [guardado, setGuardado] = useState(false)
   const [tab, setTab] = useState('datos')
+  const { verificando, permitido } = usePermiso('pacientes')
 
   const [visitas, setVisitas] = useState([])
   const [motivos, setMotivos] = useState([])
@@ -290,6 +292,8 @@ export default function Pacientes() {
     cancelado: { bg: '#f3f4f6', color: '#6b7280' },
   }
 
+  if (verificando || !permitido) return null
+  
   return (
     <div style={{ maxWidth: '720px' }}>
 
