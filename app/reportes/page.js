@@ -94,7 +94,7 @@ const [modelosFiltradosReporte, setModelosFiltradosReporte] = useState([])
   async function buscar() {
   setCargando(true)
   await Promise.all([
-    cargarVentas(filtroProductoId, filtroModeloId),
+    cargarVentas(filtroProductoId, filtroModeloId, filtroTipoId),
     cargarPagos(),
     cargarCaja(),
     cargarVisitas(),
@@ -104,7 +104,7 @@ const [modelosFiltradosReporte, setModelosFiltradosReporte] = useState([])
   setCargando(false)
 }
 
-async function cargarVentas(productoId = '', modeloId = '') {
+async function cargarVentas(productoId = '', modeloId = '', tipoId = '') {
   const params = new URLSearchParams({ desde, hasta })
   if (operadorId) params.set('creado_por', operadorId)
   if (obraSocialId) params.set('obra_social_id', obraSocialId)
@@ -113,22 +113,28 @@ async function cargarVentas(productoId = '', modeloId = '') {
   const data = await res.json()
   let resultado = data.ventas || []
 
-  if (productoId || modeloId) {
-    resultado = resultado
-      .map(v => {
-        const detalleFiltrado = (v.venta_detalle || []).filter(d => {
-          const productoOk = productoId
-            ? (d.producto_id == productoId || d.numeros_serie?.productos?.id == productoId)
+  if (productoId || modeloId || tipoId) {
+  const productosDelTipo = productoId ? [Number(productoId)] : 
+    productosFiltradosReporte.map(p => p.id)
+
+  resultado = resultado
+    .map(v => {
+      const detalleFiltrado = (v.venta_detalle || []).filter(d => {
+        const productoRealId = d.producto_id || d.numeros_serie?.productos?.id
+        const productoOk = tipoId && !productoId
+          ? productosDelTipo.includes(productoRealId)
+          : productoId
+            ? productoRealId == productoId
             : true
-          const modeloOk = modeloId
-            ? d.numeros_serie?.modelo_id == modeloId
-            : true
-          return productoOk && modeloOk
-        })
-        return { ...v, venta_detalle: detalleFiltrado }
+        const modeloOk = modeloId
+          ? d.numeros_serie?.modelo_id == modeloId
+          : true
+        return productoOk && modeloOk
       })
-      .filter(v => v.venta_detalle.length > 0)
-  }
+      return { ...v, venta_detalle: detalleFiltrado }
+    })
+    .filter(v => v.venta_detalle.length > 0)
+}
 
   setVentas(resultado)
 }
@@ -186,7 +192,7 @@ async function cargarVentas(productoId = '', modeloId = '') {
     setReparaciones(data.reparaciones || [])
   }
 
-  const hayFiltroProducto = filtroProductoId || filtroModeloId
+  const hayFiltroProducto = filtroProductoId || filtroModeloId || filtroTipoId
 
 const totalVentasPesos = ventas.reduce((acc, v) => {
   if (hayFiltroProducto) {
