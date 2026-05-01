@@ -42,7 +42,7 @@ export default function Caja() {
   async function cargarMovimientos() {
     const res = await fetchConToken(`/api/caja?desde=${desde}&hasta=${hasta}`)
     const data = await res.json()
-    const manuales = data.manuales || []
+    const manuales = (data.manuales || []).filter(m => !m.forma_pago_id || m.forma_pago_id === EFECTIVO_ID)
     const pagosEfectivo = (data.pagos || []).filter(p => p.forma_pago_id === EFECTIVO_ID)
     const pagosComoMovimientos = pagosEfectivo.map(p => ({
       id: `pago-${p.id}`, pago_id: p.id, tipo: 'ingreso', origen: 'pago',
