@@ -6,9 +6,11 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { fetchConToken } from '../../lib/fetchConToken'
 import { formatearPesos, formatearUSD } from '../../lib/format'
+import { usePermiso } from '../../lib/usePermisos'
 
 export default function Ventas() {
   const searchParams = useSearchParams()
+  const { verificando, permitido } = usePermiso('ventas') 
 
   const [dni, setDni] = useState('')
   const [paciente, setPaciente] = useState(null)
@@ -55,6 +57,7 @@ const [modelosVenta, setModelosVenta] = useState([])
 const [modelosFiltradosVenta, setModelosFiltradosVenta] = useState([])
 const [productosFiltradosVenta, setProductosFiltradosVenta] = useState([])
 
+  
   useEffect(() => {
   obtenerSeries()
   obtenerProductos()
@@ -119,7 +122,7 @@ useEffect(() => {
     setSeriesAll(todas)
     setSeries(todas.filter(s => s.en_stock))
   }
-
+  
   async function obtenerProductos() {
   const [resProductos, resTipos, resModelos] = await Promise.all([
     fetchConToken('/api/productos'),
@@ -443,6 +446,8 @@ if (derivadorEdicionId && valorComisionEdicion) {
   const totalUSD = items.reduce((acc, i) => acc + ((Number(i.precio_usd) || 0) * (Number(i.cantidad) || 1)), 0)
   const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0)
 
+if (verificando || !permitido) return null
+  
   return (
     <div style={{ maxWidth: '750px' }}>
       <div style={{ marginBottom: '28px' }}>
