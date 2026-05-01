@@ -17,7 +17,7 @@ export async function GET(request) {
       id, monto_pesos, monto_usd, fecha_pago, forma_pago_id,
       cotizacion_usada, monto_equivalente_pesos, monto_equivalente_usd,
       formas_pago (forma_pago, es_efectivo),
-      ventas (id, total_pesos, total_dolares, pacientes (apellido_paciente, nombres_paciente, dni))
+      ventas (id, total_pesos, total_dolares, obra_social_id, pacientes (apellido_paciente, nombres_paciente, dni))
     `).order('fecha_pago', { ascending: false })
 
     if (ventaId) query = query.eq('venta_id', ventaId)
