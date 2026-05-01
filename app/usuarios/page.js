@@ -104,8 +104,9 @@ export default function Usuarios() {
             <Field label="Rol *">
               <select name="rol" value={form.rol} onChange={handleChange} style={inputStyle}>
                 <option value="vendedor">Vendedor</option>
-                <option value="director">Director</option>
-                <option value="admin">Admin</option>
+<option value="director">Director</option>
+<option value="admin">Admin</option>
+<option value="laboratorio">Laboratorio</option>
               </select>
             </Field>
           </div>
