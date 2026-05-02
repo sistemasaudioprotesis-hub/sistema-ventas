@@ -31,6 +31,8 @@ export default function Pagos() {
   const [cotizacionFecha, setCotizacionFecha] = useState('')
   const [cotizacionEstado, setCotizacionEstado] = useState('')
 
+  const [guardando, setGuardando] = useState(false)
+
   const [form, setForm] = useState({ forma_pago_id: '', monto_pesos: '', monto_usd: '' })
 
   const [altaRapida, setAltaRapida] = useState(false)
@@ -157,6 +159,9 @@ async function guardarAltaRapida() {
 }
   
   async function guardarPago() {
+  if (guardando) return
+  setGuardando(true)
+  try {
     if (!ventaSeleccionada) { alert('Seleccionar venta'); return }
     if (!form.forma_pago_id) { alert('Seleccionar forma de pago'); return }
 
@@ -204,19 +209,18 @@ async function guardarAltaRapida() {
     const data = await res.json()
     if (!res.ok) { alert('Error: ' + data.error); return }
 
-    // Guardar cotización si fue modificada manualmente
     if (cotizacionEstado === 'manual' && cotizacionManual) {
-      await fetchConToken('/api/cotizacion', {
-        method: 'POST',
-        body: JSON.stringify({ valor: Number(cotizacionManual) })
-      })
+      await fetchConToken('/api/cotizacion', { method: 'POST', body: JSON.stringify({ valor: Number(cotizacionManual) }) })
     }
 
     alert('✅ Pago registrado')
     setForm({ forma_pago_id: '', monto_pesos: '', monto_usd: '' })
     await cargarPagosVenta(ventaSeleccionada)
     if (paciente) await cargarVentasPaciente(paciente.id)
+  } finally {
+    setGuardando(false)
   }
+}
 
   const { pagadoP, pagadoU } = calcularPagado()
   const saldoPesos = totalPesos - pagadoP
@@ -464,7 +468,9 @@ if (verificando || !permitido) return null
                 </div>
               </div>
               <div style={{ marginTop: '12px' }}>
-                <button onClick={guardarPago} style={btnPrimario}>💾 Guardar pago</button>
+                <button onClick={guardarPago} disabled={guardando} style={{ ...btnPrimario, opacity: guardando ? 0.7 : 1 }}>
+  {guardando ? 'Guardando...' : '💾 Guardar pago'}
+</button>
               </div>
             </div>
           )}
