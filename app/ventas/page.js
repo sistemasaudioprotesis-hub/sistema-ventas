@@ -507,6 +507,7 @@ if (verificando || !permitido) return null
     ⚠️ DNI sin cargar —{' '}
     <a href="/pacientes?dni=0" style={{ color: '#dc2626' }}>ir a pacientes para actualizarlo</a>
   </div>
+      )}
             <button onClick={() => window.location.href = `/pacientes?dni=${paciente.dni}`} style={btnSecundario}>✏️ Editar</button>
           </div>
         )}
