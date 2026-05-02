@@ -286,6 +286,12 @@ if (verificando || !permitido) return null
     <div>
       <div style={{ fontWeight: '700', fontSize: '16px', color: '#8B1E2D' }}>{paciente.apellido_paciente} {paciente.nombres_paciente}</div>
       <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>DNI: {paciente.dni} {paciente.telefono ? `· Tel: ${paciente.telefono}` : ''}</div>
+      {paciente?.dni === '0' && (
+        <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px', fontWeight: '600' }}>
+          ⚠️ DNI sin cargar —{' '}
+          <a href="/pacientes?dni=0" style={{ color: '#dc2626' }}>ir a pacientes para actualizarlo</a>
+        </div>
+      )}
     </div>
     <button onClick={() => window.location.href = `/pacientes?dni=${paciente.dni}`} style={btnSecundario}>✏️ Editar</button>
   </div>
