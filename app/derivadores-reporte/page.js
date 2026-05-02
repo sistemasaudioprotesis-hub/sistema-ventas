@@ -18,6 +18,8 @@ export default function DerivadoresReporte() {
   const [filtroHasta, setFiltroHasta] = useState('')
   const [verReporte, setVerReporte] = useState(false)
 
+const [guardandoPago, setGuardandoPago] = useState(false)
+  
   const [modalEditar, setModalEditar] = useState(null)
   const [formEditar, setFormEditar] = useState({ tipo_comision: '', valor_comision: '', monto_calculado: '' })
 
