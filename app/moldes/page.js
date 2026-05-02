@@ -42,7 +42,6 @@ export default function Moldes() {
   const [formNuevo, setFormNuevo] = useState({ producto: '', cantidad: '1', observaciones: '', costo_pesos: '', costo_usd: '', laboratorio_id: '' })
   const [formEdicion, setFormEdicion] = useState({})
   const [guardandoEdicion, setGuardandoEdicion] = useState(false)
-
   const [guardandoNuevo, setGuardandoNuevo] = useState(false)
 
   useEffect(() => { cargarDatos() }, [])
@@ -100,31 +99,31 @@ export default function Moldes() {
   }
 
   async function guardarNuevo() {
-  if (guardandoNuevo) return
-  setGuardandoNuevo(true)
-  try {
-    if (!pacienteSeleccionado) { alert('Seleccioná un paciente'); return }
-    if (!formNuevo.producto) { alert('Ingresar producto'); return }
-    const res = await fetchConToken('/api/moldes', {
-      method: 'POST',
-      body: JSON.stringify({
-        paciente_id: pacienteSeleccionado.id,
-        marca: normalizarTexto(formNuevo.producto),
-        observaciones: formNuevo.observaciones || null,
-        costo_pesos: formNuevo.costo_pesos ? Number(formNuevo.costo_pesos) : null,
-        costo_usd: formNuevo.costo_usd ? Number(formNuevo.costo_usd) : null,
-        laboratorio_id: formNuevo.laboratorio_id ? Number(formNuevo.laboratorio_id) : null,
+    if (guardandoNuevo) return
+    setGuardandoNuevo(true)
+    try {
+      if (!pacienteSeleccionado) { alert('Seleccioná un paciente'); return }
+      if (!formNuevo.producto) { alert('Ingresar producto'); return }
+      const res = await fetchConToken('/api/moldes', {
+        method: 'POST',
+        body: JSON.stringify({
+          paciente_id: pacienteSeleccionado.id,
+          marca: normalizarTexto(formNuevo.producto),
+          observaciones: formNuevo.observaciones || null,
+          costo_pesos: formNuevo.costo_pesos ? Number(formNuevo.costo_pesos) : null,
+          costo_usd: formNuevo.costo_usd ? Number(formNuevo.costo_usd) : null,
+          laboratorio_id: formNuevo.laboratorio_id ? Number(formNuevo.laboratorio_id) : null,
+        })
       })
-    })
-    const data = await res.json()
-    if (!res.ok) { alert('Error: ' + data.error); return }
-    cerrarModalNuevo()
-    cargarMoldes()
-    alert(`✅ Orden #${data.molde.numero_orden} creada`)
-  } finally {
-    setGuardandoNuevo(false)
+      const data = await res.json()
+      if (!res.ok) { alert('Error: ' + data.error); return }
+      cerrarModalNuevo()
+      cargarMoldes()
+      alert(`✅ Orden #${data.molde.numero_orden} creada`)
+    } finally {
+      setGuardandoNuevo(false)
+    }
   }
-}
 
   function cerrarModalNuevo() {
     setModalNuevo(false)
@@ -194,13 +193,7 @@ export default function Moldes() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button onClick={() => setSoloActivas(!soloActivas)} style={{
-            padding: '8px 16px', borderRadius: '8px', cursor: 'pointer',
-            border: '1px solid #e5e7eb', fontSize: '13px', fontWeight: '600',
-            background: soloActivas ? '#1a1a1a' : 'white',
-            color: soloActivas ? 'white' : '#374151',
-            fontFamily: "'Outfit', sans-serif",
-          }}>
+          <button onClick={() => setSoloActivas(!soloActivas)} style={{ padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', border: '1px solid #e5e7eb', fontSize: '13px', fontWeight: '600', background: soloActivas ? '#1a1a1a' : 'white', color: soloActivas ? 'white' : '#374151', fontFamily: "'Outfit', sans-serif" }}>
             {soloActivas ? '👁 Ver todas' : '🔧 Solo activas'}
           </button>
           <button onClick={() => setModalNuevo(true)} style={btnPrimario}>+ Nueva orden</button>
@@ -212,43 +205,21 @@ export default function Moldes() {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
           {estadosMostrar.map(estado => (
-            <div key={estado.key} style={{
-              background: 'white', border: '1px solid #e5e7eb',
-              borderRadius: '12px', overflow: 'hidden',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-            }}>
-              <div style={{
-                padding: '10px 14px', background: estado.bg,
-                borderBottom: `1px solid ${estado.border}`,
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              }}>
+            <div key={estado.key} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <div style={{ padding: '10px 14px', background: estado.bg, borderBottom: `1px solid ${estado.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '12px', fontWeight: '700', color: estado.color }}>{estado.label.toUpperCase()}</span>
-                <span style={{
-                  fontSize: '11px', fontWeight: '700', color: estado.color,
-                  background: 'white', borderRadius: '20px',
-                  padding: '1px 8px', border: `1px solid ${estado.border}`,
-                }}>
+                <span style={{ fontSize: '11px', fontWeight: '700', color: estado.color, background: 'white', borderRadius: '20px', padding: '1px 8px', border: `1px solid ${estado.border}` }}>
                   {porEstado[estado.key]?.length || 0}
                 </span>
               </div>
               <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {(porEstado[estado.key] || []).length === 0 ? (
-                  <div style={{
-                    textAlign: 'center', color: '#d1d5db', fontSize: '12px',
-                    padding: '16px 0', border: '1px dashed #e5e7eb', borderRadius: '8px',
-                  }}>
-                    Sin órdenes
-                  </div>
+                  <div style={{ textAlign: 'center', color: '#d1d5db', fontSize: '12px', padding: '16px 0', border: '1px dashed #e5e7eb', borderRadius: '8px' }}>Sin órdenes</div>
                 ) : (
                   (porEstado[estado.key] || []).map(r => (
-                    <div key={r.id} onClick={() => abrirVer(r)} style={{
-                      padding: '10px 12px', background: 'white', borderRadius: '8px',
-                      border: '1px solid #e5e7eb', borderLeft: `3px solid ${estado.color}`,
-                      cursor: 'pointer', transition: '0.15s',
-                    }}
+                    <div key={r.id} onClick={() => abrirVer(r)} style={{ padding: '10px 12px', background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', borderLeft: `3px solid ${estado.color}`, cursor: 'pointer', transition: '0.15s' }}
                       onMouseEnter={e => { e.currentTarget.style.background = '#fafafa' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'white' }}
-                    >
+                      onMouseLeave={e => { e.currentTarget.style.background = 'white' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                         <span style={{ fontSize: '11px', fontWeight: '700', color: '#8B1E2D' }}>#{r.numero_orden}</span>
                         <span style={{ fontSize: '10px', color: '#9ca3af' }}>{fmtFecha(r.fecha)}</span>
@@ -256,13 +227,10 @@ export default function Moldes() {
                       <div style={{ fontWeight: '700', fontSize: '13px', color: '#1a1a1a', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {r.pacientes?.apellido_paciente} {r.pacientes?.nombres_paciente}
                       </div>
-                      <div style={{ fontSize: '11px', color: '#6b7280' }}>
-                        {r.marca || '-'}
-                      </div>
+                      <div style={{ fontSize: '11px', color: '#6b7280' }}>{r.marca || '-'}</div>
                       {(r.costo_pesos || r.costo_usd) && (
                         <div style={{ fontSize: '11px', fontWeight: '600', color: '#15803d', marginTop: '2px' }}>
-                          {r.costo_pesos ? fmt(r.costo_pesos) : ''}
-                          {r.costo_usd ? ` U$S ${r.costo_usd}` : ''}
+                          {r.costo_pesos ? fmt(r.costo_pesos) : ''}{r.costo_usd ? ` U$S ${r.costo_usd}` : ''}
                         </div>
                       )}
                     </div>
@@ -274,7 +242,6 @@ export default function Moldes() {
         </div>
       )}
 
-      {/* MODAL NUEVA ORDEN */}
       {modalNuevo && (
         <div style={overlay}>
           <div style={modalBox}>
@@ -282,7 +249,19 @@ export default function Moldes() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label style={labelStyle}>Paciente *</label>
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                {pacienteSeleccionado ? (
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <div style={{ ...inputStyle, background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600', fontSize: '13px', padding: '10px 14px' }}>
+                      {pacienteSeleccionado.apellido_paciente} {pacienteSeleccionado.nombres_paciente} — DNI: {pacienteSeleccionado.dni}
+                      {pacienteSeleccionado?.dni === '0' && (
+                        <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px', fontWeight: '600' }}>
+                          ⚠️ DNI sin cargar —{' '}
+                          <a href="/pacientes?dni=0" style={{ color: '#dc2626' }}>ir a pacientes para actualizarlo</a>
+                        </div>
+                      )}
+                    </div>
+                    <button onClick={() => { setPacienteSeleccionado(null); setBusquedaPaciente(''); setPacientesResultados([]); setBuscoPaciente(false) }} style={{ padding: '10px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer' }}>✕</button>
+                  </div>
                 ) : (
                   <>
                     <div style={{ display: 'flex', gap: '6px' }}>
@@ -352,15 +331,14 @@ export default function Moldes() {
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
               <button onClick={guardarNuevo} disabled={guardandoNuevo} style={{ ...btnPrimario, opacity: guardandoNuevo ? 0.7 : 1 }}>
-  {guardandoNuevo ? 'Guardando...' : '💾 Guardar orden'}
-</button>
+                {guardandoNuevo ? 'Guardando...' : '💾 Guardar orden'}
+              </button>
               <button onClick={cerrarModalNuevo} style={btnSecundario}>Cancelar</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL VER / EDITAR */}
       {modalVer && (
         <div style={overlay}>
           <div style={{ ...modalBox, maxWidth: '560px' }}>
@@ -369,11 +347,7 @@ export default function Moldes() {
                 <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a' }}>🧩 Orden #{modalVer.numero_orden}</div>
                 <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Ingresada: {fmtFecha(modalVer.fecha)}</div>
               </div>
-              <span style={{
-                padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '700',
-                background: getEstado(formEdicion.respuesta_paciente).bg,
-                color: getEstado(formEdicion.respuesta_paciente).color,
-              }}>
+              <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', background: getEstado(formEdicion.respuesta_paciente).bg, color: getEstado(formEdicion.respuesta_paciente).color }}>
                 {getEstado(formEdicion.respuesta_paciente).label}
               </span>
             </div>
@@ -385,15 +359,17 @@ export default function Moldes() {
               <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
                 DNI: {modalVer.pacientes?.dni}{modalVer.pacientes?.telefono && ` · Tel: ${modalVer.pacientes.telefono}`}
               </div>
+              {modalVer.pacientes?.dni === '0' && (
+                <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px', fontWeight: '600' }}>
+                  ⚠️ DNI sin cargar —{' '}
+                  <a href="/pacientes?dni=0" style={{ color: '#dc2626' }}>ir a pacientes para actualizarlo</a>
+                </div>
+              )}
               <div style={{ fontSize: '13px', color: '#374151', marginTop: '4px', fontWeight: '600' }}>{modalVer.marca}</div>
             </div>
 
             {ESTADOS_CERRADOS.includes(modalVer.respuesta_paciente) && (
-              <div style={{
-                padding: '8px 14px', borderRadius: '8px', marginBottom: '14px',
-                background: '#fef9c3', border: '1px solid #fde047',
-                fontSize: '12px', color: '#854d0e', fontWeight: '600',
-              }}>
+              <div style={{ padding: '8px 14px', borderRadius: '8px', marginBottom: '14px', background: '#fef9c3', border: '1px solid #fde047', fontSize: '12px', color: '#854d0e', fontWeight: '600' }}>
                 ⚠️ Esta orden está cerrada. Podés modificarla pero se te va a pedir confirmación.
               </div>
             )}
@@ -442,37 +418,21 @@ export default function Moldes() {
                 <label style={labelStyle}>Cambio rápido de estado</label>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   {ESTADOS.filter(e => e.key !== formEdicion.respuesta_paciente).map(e => (
-                    <button key={e.key} onClick={() => setFormEdicion({ ...formEdicion, respuesta_paciente: e.key })} style={{
-                      padding: '4px 10px', borderRadius: '20px', border: `1px solid ${e.color}`,
-                      background: 'white', color: e.color, fontSize: '11px', fontWeight: '600',
-                      cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
-                    }}>
+                    <button key={e.key} onClick={() => setFormEdicion({ ...formEdicion, respuesta_paciente: e.key })} style={{ padding: '4px 10px', borderRadius: '20px', border: `1px solid ${e.color}`, background: 'white', color: e.color, fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }}>
                       {e.label}
                     </button>
                   ))}
                 </div>
               </div>
-
               {historial.length > 0 && (
                 <div>
                   <label style={labelStyle}>Historial de estados</label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {historial.map((h, i) => (
-                      <div key={i} style={{
-                        display: 'flex', gap: '10px', alignItems: 'center',
-                        fontSize: '12px', padding: '6px 10px',
-                        background: '#f9fafb', borderRadius: '6px',
-                        border: '1px solid #f3f4f6',
-                      }}>
-                        <span style={{ color: getEstado(h.estado).color, fontWeight: '700', whiteSpace: 'nowrap' }}>
-                          {getEstado(h.estado).label}
-                        </span>
+                      <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'center', fontSize: '12px', padding: '6px 10px', background: '#f9fafb', borderRadius: '6px', border: '1px solid #f3f4f6' }}>
+                        <span style={{ color: getEstado(h.estado).color, fontWeight: '700', whiteSpace: 'nowrap' }}>{getEstado(h.estado).label}</span>
                         <span style={{ color: '#9ca3af', whiteSpace: 'nowrap' }}>{fmtFechaHora(h.created_at)}</span>
-                        {h.observaciones && (
-                          <span style={{ color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {h.observaciones}
-                          </span>
-                        )}
+                        {h.observaciones && <span style={{ color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.observaciones}</span>}
                       </div>
                     ))}
                   </div>
