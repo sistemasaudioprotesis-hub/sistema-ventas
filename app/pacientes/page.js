@@ -49,6 +49,8 @@ export default function Pacientes() {
   const [provinciasMap, setProvinciasMap] = useState({})
   const [visitaEditandoObs, setVisitaEditandoObs] = useState(null) // { id, texto }
 
+const [guardando, setGuardando] = useState(false)
+  
   const [form, setForm] = useState({
     apellido_paciente: '', nombres_paciente: '', dni: '', telefono: '',
     domicilio: '', localidad: '', provincia_id: '', mail: '', observaciones: '', obra_social_id: '',
@@ -195,10 +197,12 @@ export default function Pacientes() {
   }
 
   async function guardar(destino) {
+  if (guardando) return
+  setGuardando(true)
+  try {
     if (!form.apellido_paciente || !form.nombres_paciente || !form.dni || !form.telefono) { alert('Completar campos obligatorios'); return }
     if (!form.provincia_id) { alert('Seleccionar provincia'); return }
     const dataGuardar = { ...form, provincia_id: Number(form.provincia_id), obra_social_id: form.obra_social_id ? Number(form.obra_social_id) : null }
-
     if (pacienteId) {
       const resActual = await fetchConToken(`/api/pacientes/${pacienteId}`)
       const { paciente: pacienteActual } = await resActual.json()
@@ -225,12 +229,14 @@ export default function Pacientes() {
       setPacienteId(data.paciente.id)
       alert('Paciente creado')
     }
-
     setGuardado(true)
     if (destino === 'ventas') window.location.href = `/ventas?dni=${form.dni}`
     if (destino === 'pagos') window.location.href = `/pagos?dni=${form.dni}`
     if (!destino) limpiarFormulario()
+  } finally {
+    setGuardando(false)
   }
+}
 
   async function guardarVisita() {
     if (!pacienteId) { alert('Primero seleccioná un paciente'); return }
@@ -375,9 +381,15 @@ export default function Pacientes() {
             <Field label="Observaciones"><textarea name="observaciones" placeholder="Observaciones..." value={form.observaciones} onChange={handleChange} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></Field>
             <div style={{ paddingTop: '12px', borderTop: '1px solid #f3f4f6' }}>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                <button onClick={() => guardar('')} style={btnPrimario}>💾 Guardar</button>
-                <button onClick={() => guardar('ventas')} style={btnSecundario}>Guardar e ir a Ventas</button>
-                <button onClick={() => guardar('pagos')} style={btnSecundario}>Guardar e ir a Pagos</button>
+                <button onClick={() => guardar('')} disabled={guardando} style={{ ...btnPrimario, opacity: guardando ? 0.7 : 1 }}>
+  {guardando ? 'Guardando...' : '💾 Guardar'}
+</button>
+<button onClick={() => guardar('ventas')} disabled={guardando} style={{ ...btnSecundario, opacity: guardando ? 0.7 : 1 }}>
+  {guardando ? 'Guardando...' : 'Guardar e ir a Ventas'}
+</button>
+<button onClick={() => guardar('pagos')} disabled={guardando} style={{ ...btnSecundario, opacity: guardando ? 0.7 : 1 }}>
+  {guardando ? 'Guardando...' : 'Guardar e ir a Pagos'}
+</button>
               </div>
               {pacienteId && guardado && (
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
