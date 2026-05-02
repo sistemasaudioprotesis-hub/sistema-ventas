@@ -57,6 +57,8 @@ const [modelosVenta, setModelosVenta] = useState([])
 const [modelosFiltradosVenta, setModelosFiltradosVenta] = useState([])
 const [productosFiltradosVenta, setProductosFiltradosVenta] = useState([])
 
+  const [guardando, setGuardando] = useState(false)
+
   
   useEffect(() => {
   obtenerSeries()
@@ -258,14 +260,20 @@ useEffect(() => {
 }
 
   async function agregarItem() {
-    if (!paciente) return alert('Seleccionar paciente')
-    if (!form.precio_pesos && !form.precio_usd) return alert('Ingresar precio')
-    if (modoConSerie && !form.numero_serie_id) return alert('Seleccionar serie')
-    if (!modoConSerie && !form.producto_id) return alert('Seleccionar producto')
+  if (guardando) return
+  setGuardando(true)
+  try {
+    if (!paciente) { alert('Seleccionar paciente'); return }
+    if (!form.precio_pesos && !form.precio_usd) { alert('Ingresar precio'); return }
+    if (modoConSerie && !form.numero_serie_id) { alert('Seleccionar serie'); return }
+    if (!modoConSerie && !form.producto_id) { alert('Seleccionar producto'); return }
     const cantidad = Number(form.cantidad) || 1
     if (controlaStock && !modoConSerie) { const stockActual = await verificarStock(Number(form.producto_id)); if (stockActual < cantidad) { setModalSinStock({ producto_id: Number(form.producto_id), cantidad }); return } }
     await _agregarItemConfirmado(cantidad)
+  } finally {
+    setGuardando(false)
   }
+}
 
   async function _agregarItemConfirmado(cantidad) {
     let ventaActualId = ventaId
@@ -316,14 +324,20 @@ useEffect(() => {
   }
 
   async function confirmarVenta() {
-    if (!ventaId) return alert('No hay venta')
+  if (guardando) return
+  setGuardando(true)
+  try {
+    if (!ventaId) { alert('No hay venta'); return }
     const res = await fetchConToken(`/api/ventas/${ventaId}`, { method: 'PUT', body: JSON.stringify({ confirmada: true, total_pesos: totalPesos, total_dolares: totalUSD, obra_social_id: obraSocialId ? Number(obraSocialId) : null }) })
     if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
     await guardarDerivador(ventaId, totalPesos, totalUSD)
     setVentaConfirmada(true)
     alert('✅ Venta confirmada')
     if (paciente) cargarVentasPaciente(paciente.id)
+  } finally {
+    setGuardando(false)
   }
+}
 
   function irAPagos() {
     if (!ventaConfirmada) { alert('Debe confirmar la venta primero'); return }
@@ -560,7 +574,9 @@ if (verificando || !permitido) return null
     <div><label style={labelStyle}>Precio en pesos</label><input name="precio_pesos" placeholder="$0" value={form.precio_pesos} onChange={handleChange} style={inputStyle} /></div>
     <div><label style={labelStyle}>Precio en USD</label><input name="precio_usd" placeholder="USD 0" value={form.precio_usd} onChange={handleChange} style={inputStyle} /></div>
   </div>
-  <div style={{ marginTop: '14px' }}><button onClick={agregarItem} style={btnPrimario}>+ Agregar al carrito</button></div>
+  <div style={{ marginTop: '14px' }}><button onClick={agregarItem} disabled={guardando} style={{ ...btnPrimario, opacity: guardando ? 0.7 : 1 }}>
+  {guardando ? 'Procesando...' : '+ Agregar al carrito'}
+</button></div>
 </div>
 
           <div style={card}>
@@ -600,7 +616,9 @@ if (verificando || !permitido) return null
               </div>
             )}
             <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
-              <button onClick={confirmarVenta} style={btnPrimario}>✅ Confirmar venta</button>
+              <button onClick={confirmarVenta} disabled={guardando} style={{ ...btnPrimario, opacity: guardando ? 0.7 : 1 }}>
+  {guardando ? 'Procesando...' : '✅ Confirmar venta'}
+</button>
               <button onClick={irAPagos} style={btnSecundario}>💳 Ingresar pago</button>
               <button onClick={salir} style={btnSecundario}>Salir</button>
             </div>
