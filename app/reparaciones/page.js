@@ -48,6 +48,8 @@ const { verificando, permitido } = usePermiso('reparaciones')
   const [formEdicion, setFormEdicion] = useState({})
   const [guardandoEdicion, setGuardandoEdicion] = useState(false)
 
+  const [guardandoNuevo, setGuardandoNuevo] = useState(false)
+
   useEffect(() => { cargarReparaciones() }, [soloActivas])
 
   async function cargarReparaciones() {
@@ -92,12 +94,13 @@ const { verificando, permitido } = usePermiso('reparaciones')
   }
 
   async function guardarNuevaReparacion() {
+  if (guardandoNuevo) return
+  setGuardandoNuevo(true)
+  try {
     if (!pacienteSeleccionado) { alert('Seleccioná un paciente'); return }
     if (!formNueva.marca) { alert('Ingresar marca'); return }
     if (!formNueva.motivo_reparacion) { alert('Ingresar motivo'); return }
-
     const obsCompleta = `MOTIVO: ${normalizarTexto(formNueva.motivo_reparacion)}\n\nOBS TÉCNICAS: ${formNueva.observaciones ? formNueva.observaciones : '--'}`
-
     const res = await fetchConToken('/api/reparaciones', {
       method: 'POST',
       body: JSON.stringify({
@@ -113,7 +116,10 @@ const { verificando, permitido } = usePermiso('reparaciones')
     cerrarModalNueva()
     cargarReparaciones()
     alert(`✅ Reparación #${data.reparacion.numero_orden} creada`)
+  } finally {
+    setGuardandoNuevo(false)
   }
+}
 
   function cerrarModalNueva() {
     setModalNueva(false)
@@ -348,7 +354,9 @@ if (verificando || !permitido) return null
               </div>
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-              <button onClick={guardarNuevaReparacion} style={btnPrimario}>💾 Guardar reparación</button>
+              <button onClick={guardarNuevaReparacion} disabled={guardandoNuevo} style={{ ...btnPrimario, opacity: guardandoNuevo ? 0.7 : 1 }}>
+  {guardandoNuevo ? 'Guardando...' : '💾 Guardar reparación'}
+</button>
               <button onClick={cerrarModalNueva} style={btnSecundario}>Cancelar</button>
             </div>
           </div>
