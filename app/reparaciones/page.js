@@ -285,12 +285,18 @@ if (verificando || !permitido) return null
               <div>
                 <label style={labelStyle}>Paciente *</label>
                 {pacienteSeleccionado ? (
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <div style={{ ...inputStyle, background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600', fontSize: '13px', padding: '10px 14px' }}>
-                      {pacienteSeleccionado.apellido_paciente} {pacienteSeleccionado.nombres_paciente} — DNI: {pacienteSeleccionado.dni}
-                    </div>
-                    <button onClick={() => { setPacienteSeleccionado(null); setBusquedaPaciente(''); setPacientesResultados([]); setBuscoPaciente(false) }} style={{ padding: '10px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer' }}>✕</button>
-                  </div>
+  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+    <div style={{ ...inputStyle, background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600', fontSize: '13px', padding: '10px 14px' }}>
+      {pacienteSeleccionado.apellido_paciente} {pacienteSeleccionado.nombres_paciente} — DNI: {pacienteSeleccionado.dni}
+      {pacienteSeleccionado?.dni === '0' && (
+        <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px', fontWeight: '600' }}>
+          ⚠️ DNI sin cargar —{' '}
+          <a href="/pacientes?dni=0" style={{ color: '#dc2626' }}>ir a pacientes para actualizarlo</a>
+        </div>
+      )}
+    </div>
+    <button onClick={() => { setPacienteSeleccionado(null); setBusquedaPaciente(''); setPacientesResultados([]); setBuscoPaciente(false) }} style={{ padding: '10px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer' }}>✕</button>
+  </div>
                 ) : (
                   <>
                     <div style={{ display: 'flex', gap: '6px' }}>
