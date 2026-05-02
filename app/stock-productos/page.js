@@ -18,6 +18,8 @@ export default function StockProductos() {
   const [formAjuste, setFormAjuste] = useState({ tipo: 'ingreso', cantidad: '', concepto: '' })
   const [guardandoToggle, setGuardandoToggle] = useState(null)
 
+const [guardandoAjuste, setGuardandoAjuste] = useState(false)
+  
   useEffect(() => { cargarDatos() }, [])
 
   if (verificando || !permitido) return null
@@ -60,6 +62,9 @@ export default function StockProductos() {
   }
 
   async function guardarAjuste() {
+  if (guardandoAjuste) return
+  setGuardandoAjuste(true)
+  try {
     if (!formAjuste.cantidad || Number(formAjuste.cantidad) <= 0) { alert('Ingresar cantidad válida'); return }
     const res = await fetchConToken(`/api/stock/productos/${modalAjuste.id}/movimiento`, {
       method: 'POST',
@@ -71,7 +76,10 @@ export default function StockProductos() {
     await cargarDatos()
     if (productoSeleccionado?.id === modalAjuste.id) cargarMovimientos(modalAjuste.id)
     alert('✅ Stock actualizado')
+  } finally {
+    setGuardandoAjuste(false)
   }
+}
 
   const productosSinSerie = productos.filter(p => !p.tipo_producto?.requiere_serie)
   const fmtFecha = (f) => new Date(f).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
@@ -175,7 +183,9 @@ export default function StockProductos() {
               <div><label style={labelStyle}>Concepto</label><input placeholder="Ej: Compra de stock, Ajuste inventario..." value={formAjuste.concepto} onChange={(e) => setFormAjuste({ ...formAjuste, concepto: e.target.value })} style={inputStyle} /></div>
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-              <button onClick={guardarAjuste} style={btnPrimario}>💾 Guardar</button>
+              <button onClick={guardarAjuste} disabled={guardandoAjuste} style={{ ...btnPrimario, opacity: guardandoAjuste ? 0.7 : 1 }}>
+  {guardandoAjuste ? 'Guardando...' : '💾 Guardar'}
+</button>
               <button onClick={() => setModalAjuste(null)} style={btnSecundario}>Cancelar</button>
             </div>
           </div>
