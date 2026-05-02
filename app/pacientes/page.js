@@ -356,9 +356,18 @@ const [guardando, setGuardando] = useState(false)
               <Field label="Nombre *"><input name="nombres_paciente" placeholder="Nombre" value={form.nombres_paciente} onChange={handleChange} style={inputStyle} /></Field>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <Field label="DNI *"><input name="dni" placeholder="DNI" value={form.dni} onChange={handleChange} disabled={pacienteId !== null} style={{ ...inputStyle, background: pacienteId ? '#f9fafb' : 'white', color: pacienteId ? '#9ca3af' : '#1a1a1a' }} /></Field>
-              <Field label="Teléfono *"><input name="telefono" placeholder="Teléfono" value={form.telefono} onChange={handleChange} style={inputStyle} /></Field>
-            </div>
+  <Field label="DNI *">
+    <input name="dni" placeholder="DNI" value={form.dni} onChange={handleChange}
+      disabled={pacienteId !== null && form.dni !== '0'}
+      style={{ ...inputStyle, background: (pacienteId && form.dni !== '0') ? '#f9fafb' : 'white', color: (pacienteId && form.dni !== '0') ? '#9ca3af' : '#1a1a1a' }} />
+    {pacienteId && form.dni === '0' && (
+      <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px', fontWeight: '600' }}>
+        ⚠️ Este paciente no tiene DNI cargado. Podés actualizarlo ahora.
+      </div>
+    )}
+  </Field>
+  <Field label="Teléfono *"><input name="telefono" placeholder="Teléfono" value={form.telefono} onChange={handleChange} style={inputStyle} /></Field>
+</div>
             <Field label="Domicilio"><input name="domicilio" placeholder="Domicilio" value={form.domicilio} onChange={handleChange} style={inputStyle} /></Field>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <Field label="Localidad"><input name="localidad" placeholder="Localidad" value={form.localidad} onChange={handleChange} style={inputStyle} /></Field>
