@@ -74,6 +74,7 @@ export default function Agenda() {
   const [editandoObsTurno, setEditandoObsTurno] = useState(false)
 const [obsEditada, setObsEditada] = useState('')
 
+  const [guardando, setGuardando] = useState(false)
   
   useEffect(() => { cargarDatos() }, [])
   useEffect(() => { cargarTurnos() }, [semanaBase])
@@ -148,11 +149,13 @@ const [obsEditada, setObsEditada] = useState('')
   }
 
   async function guardarTurno() {
+  if (guardando) return
+  setGuardando(true)
+  try {
     if (!modalNuevo) return
     const agendaId = formTurno.agenda_id || modalNuevo.agenda_id
     if (!agendaId) { alert('Seleccioná una agenda'); return }
     if (!pacienteSeleccionado && !formTurno.nombre_libre) { alert('Seleccioná un paciente o ingresá un nombre'); return }
-
     const res = await fetchConToken('/api/turnos', {
       method: 'POST',
       body: JSON.stringify({
@@ -171,7 +174,10 @@ const [obsEditada, setObsEditada] = useState('')
     const data = await res.json()
     if (!res.ok) { alert('Error: ' + data.error); return }
     cerrarModalNuevo(); cargarTurnos(); cargarTurnosMes()
+  } finally {
+    setGuardando(false)
   }
+}
 
   async function marcarAsistencia(turnoId, asistio) {
   const turno = modalVer
@@ -559,7 +565,9 @@ if (verificando || !permitido) return null
               <div><label style={labelStyle}>Observaciones</label><textarea placeholder="Observaciones del turno..." value={formTurno.observaciones} onChange={(e) => setFormTurno({ ...formTurno, observaciones: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-              <button onClick={guardarTurno} style={btnPrimario}>💾 Guardar turno</button>
+              <button onClick={guardarTurno} disabled={guardando} style={{ ...btnPrimario, opacity: guardando ? 0.7 : 1 }}>
+  {guardando ? 'Guardando...' : '💾 Guardar turno'}
+</button>
               <button onClick={cerrarModalNuevo} style={btnSecundario}>Cancelar</button>
             </div>
           </div>
