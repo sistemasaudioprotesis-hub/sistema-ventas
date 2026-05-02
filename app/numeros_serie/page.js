@@ -25,6 +25,8 @@ export default function NumerosSerie() {
   const [guardandoMasivo, setGuardandoMasivo] = useState(false)
   const { verificando, permitido } = usePermiso('stock_series')
 
+  const [guardando, setGuardando] = useState(false)
+
   const [modalEditar, setModalEditar] = useState(null)
   const [formEditar, setFormEditar] = useState({ numero_serie: '', costo_usd: '', deposito_id: '' })
 
@@ -73,6 +75,9 @@ export default function NumerosSerie() {
   }
 
   async function guardar() {
+  if (guardando) return
+  setGuardando(true)
+  try {
     if (!form.producto_id || !form.numero_serie || !form.deposito_id) { alert('Completar campos obligatorios'); return }
     const prod = productos.find(p => p.id === Number(form.producto_id))
     if (prod?.requiere_modelo && !form.modelo_id) { alert('Seleccionar modelo'); return }
@@ -93,7 +98,10 @@ export default function NumerosSerie() {
     setModelosFiltrados([])
     setMostrarFormulario(false)
     obtenerDatos()
+  } finally {
+    setGuardando(false)
   }
+}
 
   async function guardarMasivo() {
     if (!form.producto_id || !form.deposito_id) { alert('Seleccionar producto y depósito'); return }
@@ -244,7 +252,9 @@ export default function NumerosSerie() {
 
           <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
             {!modoMasivo ? (
-              <button onClick={guardar} style={btnPrimario}>💾 Guardar</button>
+              <button onClick={guardar} disabled={guardando} style={{ ...btnPrimario, opacity: guardando ? 0.7 : 1 }}>
+  {guardando ? 'Guardando...' : '💾 Guardar'}
+</button>
             ) : (
               <button onClick={guardarMasivo} disabled={guardandoMasivo} style={{ ...btnPrimario, opacity: guardandoMasivo ? 0.7 : 1 }}>
                 {guardandoMasivo ? 'Guardando...' : `💾 Guardar ${seriesMasivas.split('\n').filter(l => l.trim()).length || 0} series`}
