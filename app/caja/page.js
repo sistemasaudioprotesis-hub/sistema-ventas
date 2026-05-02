@@ -30,6 +30,8 @@ export default function Caja() {
   const [editandoPago, setEditandoPago] = useState(null)
   const [formEditPago, setFormEditPago] = useState({ monto_pesos: '', monto_usd: '', forma_pago_id: '' })
 
+  const [guardando, setGuardando] = useState(false)
+
   useEffect(() => { cargarFormasPago() }, [])
   useEffect(() => { cargarMovimientos(); cargarPagosOtros(); cargarCotizacion() }, [desde, hasta])
 
@@ -88,6 +90,9 @@ export default function Caja() {
   }
 
   async function guardarMovimiento() {
+  if (guardando) return
+  setGuardando(true)
+  try {
     if (!form.concepto) { alert('Ingresar concepto'); return }
     if (!form.monto_pesos && !form.monto_usd) { alert('Ingresar monto'); return }
     const res = await fetchConToken('/api/caja', {
@@ -97,9 +102,14 @@ export default function Caja() {
     if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
     setForm({ tipo: 'ingreso', concepto: '', monto_pesos: '', monto_usd: '' })
     cargarMovimientos()
+  } finally {
+    setGuardando(false)
   }
-
+}
   async function guardarMovimientoOtros() {
+  if (guardando) return
+  setGuardando(true)
+  try {
     if (!formOtros.concepto) { alert('Ingresar concepto'); return }
     if (!formOtros.monto_pesos && !formOtros.monto_usd) { alert('Ingresar monto'); return }
     if (!formOtros.forma_pago_id) { alert('Seleccionar forma de pago'); return }
@@ -110,7 +120,10 @@ export default function Caja() {
     if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
     setFormOtros({ tipo: 'ingreso', concepto: '', monto_pesos: '', monto_usd: '', forma_pago_id: '' })
     cargarPagosOtros()
+  } finally {
+    setGuardando(false)
   }
+}
 
   async function eliminarMovimiento(id) {
     if (!confirm('¿Eliminar este movimiento?')) return
@@ -291,7 +304,9 @@ export default function Caja() {
               <Field label="Monto en USD"><input type="number" placeholder="U$S 0" value={form.monto_usd} onChange={(e) => setForm({ ...form, monto_usd: e.target.value })} style={inputStyle} /></Field>
             </div>
             <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
-              <button onClick={guardarMovimiento} style={btnPrimario}>💾 Guardar</button>
+              <button onClick={guardarMovimiento} disabled={guardando} style={{ ...btnPrimario, opacity: guardando ? 0.7 : 1 }}>
+  {guardando ? 'Guardando...' : '💾 Guardar'}
+</button>
             </div>
           </div>
           <div style={card}>
@@ -401,7 +416,9 @@ export default function Caja() {
               <Field label="Monto en USD"><input type="number" placeholder="U$S 0" value={formOtros.monto_usd} onChange={(e) => setFormOtros({ ...formOtros, monto_usd: e.target.value })} style={inputStyle} /></Field>
             </div>
             <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
-              <button onClick={guardarMovimientoOtros} style={btnPrimario}>💾 Guardar</button>
+              <button onClick={guardarMovimientoOtros} disabled={guardando} style={{ ...btnPrimario, opacity: guardando ? 0.7 : 1 }}>
+  {guardando ? 'Guardando...' : '💾 Guardar'}
+</button>
             </div>
           </div>
         </>
