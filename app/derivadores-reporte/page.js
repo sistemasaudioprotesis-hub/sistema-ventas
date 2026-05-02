@@ -70,11 +70,16 @@ const [guardandoPago, setGuardandoPago] = useState(false)
   }
 
   async function registrarPago(comision) {
+  if (guardandoPago) return
+  setGuardandoPago(true)
+  try {
     const res = await fetchConToken('/api/derivadores/comisiones/' + comision.id, { method: 'PUT', body: JSON.stringify({ pagado: true, fecha_pago: fechaPago }) })
     if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
     setModalPagar(null); cargarComisiones(seleccionado.id); cargarResumen(); alert('Pago registrado')
+  } finally {
+    setGuardandoPago(false)
   }
-
+}
   async function desmarcarPago(comision) {
     if (!confirm('Desmarcar este pago como pendiente?')) return
     await fetchConToken('/api/derivadores/comisiones/' + comision.id, { method: 'PUT', body: JSON.stringify({ pagado: false, fecha_pago: null }) })
@@ -285,7 +290,9 @@ const [guardandoPago, setGuardandoPago] = useState(false)
               <div style={{ fontSize: '24px', fontWeight: '700', color: '#8B1E2D' }}>{fmt(modalPagar.monto_calculado)}</div>
             </div>
             <div><label style={labelStyle}>Fecha de pago</label><input type="date" value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} style={inputStyle} /></div>
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}><button onClick={() => registrarPago(modalPagar)} style={{ ...btnPrimario, background: '#16a34a' }}>✅ Confirmar pago</button><button onClick={() => setModalPagar(null)} style={btnSecundario}>Cancelar</button></div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}><button onClick={() => registrarPago(modalPagar)} disabled={guardandoPago} style={{ ...btnPrimario, background: '#16a34a', opacity: guardandoPago ? 0.7 : 1 }}>
+  {guardandoPago ? 'Guardando...' : '✅ Confirmar pago'}
+</button></div>
           </div>
         </div>
       )}
