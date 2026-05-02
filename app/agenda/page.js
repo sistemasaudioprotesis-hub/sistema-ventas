@@ -57,7 +57,7 @@ export default function Agenda() {
   const [verCancelados, setVerCancelados] = useState(false)
   const [verBloqueos, setVerBloqueos] = useState(false)
   const [calAbierto, setCalAbierto] = useState(false)
-  const { verificando, permitido } = usePermiso('agenda') 
+  const { verificando, permitido } = usePermiso('agenda')
 
   const [modalNuevo, setModalNuevo] = useState(null)
   const [formTurno, setFormTurno] = useState({ agenda_id: '', nombre_libre: '', telefono: '', motivo_id: '', obra_social_id: '', observaciones: '' })
@@ -72,10 +72,9 @@ export default function Agenda() {
   const [bloqueoEditando, setBloqueoEditando] = useState(null)
   const [formBloqueo, setFormBloqueo] = useState({ fecha_inicio: '', fecha_fin: '', hora_inicio: '', hora_fin: '', profesional_id: '', motivo: '', todo_el_dia: true, todas_las_agendas: false })
   const [editandoObsTurno, setEditandoObsTurno] = useState(false)
-const [obsEditada, setObsEditada] = useState('')
-
+  const [obsEditada, setObsEditada] = useState('')
   const [guardando, setGuardando] = useState(false)
-  
+
   useEffect(() => { cargarDatos() }, [])
   useEffect(() => { cargarTurnos() }, [semanaBase])
   useEffect(() => { cargarTurnosMes() }, [mesCalendario])
@@ -149,65 +148,61 @@ const [obsEditada, setObsEditada] = useState('')
   }
 
   async function guardarTurno() {
-  if (guardando) return
-  setGuardando(true)
-  try {
-    if (!modalNuevo) return
-    const agendaId = formTurno.agenda_id || modalNuevo.agenda_id
-    if (!agendaId) { alert('Seleccioná una agenda'); return }
-    if (!pacienteSeleccionado && !formTurno.nombre_libre) { alert('Seleccioná un paciente o ingresá un nombre'); return }
-    const res = await fetchConToken('/api/turnos', {
-      method: 'POST',
-      body: JSON.stringify({
-        fecha: modalNuevo.fecha,
-        hora: modalNuevo.hora + ':00',
-        profesional_id: Number(agendaId),
-        paciente_id: pacienteSeleccionado?.id || null,
-        nombre_libre: !pacienteSeleccionado ? normalizarTexto(formTurno.nombre_libre) : null,
-        telefono: formTurno.telefono || pacienteSeleccionado?.telefono || null,
-        motivo_id: formTurno.motivo_id ? Number(formTurno.motivo_id) : null,
-        obra_social_id: formTurno.obra_social_id ? Number(formTurno.obra_social_id) : null,
-        observaciones: formTurno.observaciones || null,
-        estado: 'pendiente',
+    if (guardando) return
+    setGuardando(true)
+    try {
+      if (!modalNuevo) return
+      const agendaId = formTurno.agenda_id || modalNuevo.agenda_id
+      if (!agendaId) { alert('Seleccioná una agenda'); return }
+      if (!pacienteSeleccionado && !formTurno.nombre_libre) { alert('Seleccioná un paciente o ingresá un nombre'); return }
+      const res = await fetchConToken('/api/turnos', {
+        method: 'POST',
+        body: JSON.stringify({
+          fecha: modalNuevo.fecha,
+          hora: modalNuevo.hora + ':00',
+          profesional_id: Number(agendaId),
+          paciente_id: pacienteSeleccionado?.id || null,
+          nombre_libre: !pacienteSeleccionado ? normalizarTexto(formTurno.nombre_libre) : null,
+          telefono: formTurno.telefono || pacienteSeleccionado?.telefono || null,
+          motivo_id: formTurno.motivo_id ? Number(formTurno.motivo_id) : null,
+          obra_social_id: formTurno.obra_social_id ? Number(formTurno.obra_social_id) : null,
+          observaciones: formTurno.observaciones || null,
+          estado: 'pendiente',
+        })
       })
-    })
-    const data = await res.json()
-    if (!res.ok) { alert('Error: ' + data.error); return }
-    cerrarModalNuevo(); cargarTurnos(); cargarTurnosMes()
-  } finally {
-    setGuardando(false)
-  }
-}
-
-  async function marcarAsistencia(turnoId, asistio) {
-  const turno = modalVer
-
-  await fetchConToken(`/api/turnos/${turnoId}`, {
-    method: 'PUT',
-    body: JSON.stringify({ asistio, estado: asistio ? 'realizado' : 'no_asistio' })
-  })
-
-  // Crear visita automática solo si asistió y tiene paciente cargado
-  if (asistio && turno?.pacientes?.id) {
-    const resVisita = await fetchConToken('/api/visitas', {
-      method: 'POST',
-      body: JSON.stringify({
-        paciente_id: turno.pacientes.id,
-        fecha: turno.fecha + 'T12:00:00',
-        motivo_id: turno.visita_motivos?.id || null,
-        observaciones: turno.observaciones || null,
-        venta_id: null,
-        es_reparacion: false,
-      })
-    })
-    if (!resVisita.ok) {
-      const d = await resVisita.json()
-      console.warn('No se pudo crear visita automática:', d.error)
+      const data = await res.json()
+      if (!res.ok) { alert('Error: ' + data.error); return }
+      cerrarModalNuevo(); cargarTurnos(); cargarTurnosMes()
+    } finally {
+      setGuardando(false)
     }
   }
 
-  setModalVer(null); cargarTurnos()
-}
+  async function marcarAsistencia(turnoId, asistio) {
+    const turno = modalVer
+    await fetchConToken(`/api/turnos/${turnoId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ asistio, estado: asistio ? 'realizado' : 'no_asistio' })
+    })
+    if (asistio && turno?.pacientes?.id) {
+      const resVisita = await fetchConToken('/api/visitas', {
+        method: 'POST',
+        body: JSON.stringify({
+          paciente_id: turno.pacientes.id,
+          fecha: turno.fecha + 'T12:00:00',
+          motivo_id: turno.visita_motivos?.id || null,
+          observaciones: turno.observaciones || null,
+          venta_id: null,
+          es_reparacion: false,
+        })
+      })
+      if (!resVisita.ok) {
+        const d = await resVisita.json()
+        console.warn('No se pudo crear visita automática:', d.error)
+      }
+    }
+    setModalVer(null); cargarTurnos()
+  }
 
   async function cancelarTurno(turnoId) {
     if (!confirm('¿Cancelar este turno?')) return
@@ -226,7 +221,6 @@ const [obsEditada, setObsEditada] = useState('')
     if (!formBloqueo.fecha_inicio || !formBloqueo.fecha_fin) { alert('Ingresar fechas'); return }
     if (!formBloqueo.todas_las_agendas && !formBloqueo.profesional_id) { alert('Seleccionar agenda o marcar todas'); return }
     if (!formBloqueo.todo_el_dia && (!formBloqueo.hora_inicio || !formBloqueo.hora_fin)) { alert('Ingresar horarios'); return }
-
     const body = {
       fecha_inicio: formBloqueo.fecha_inicio, fecha_fin: formBloqueo.fecha_fin,
       hora_inicio: formBloqueo.todo_el_dia ? null : formBloqueo.hora_inicio,
@@ -236,12 +230,10 @@ const [obsEditada, setObsEditada] = useState('')
       todo_el_dia: formBloqueo.todo_el_dia,
       todas_las_agendas: formBloqueo.todas_las_agendas,
     }
-
     if (bloqueoEditando) {
       await fetchConToken(`/api/agenda/bloqueos/${bloqueoEditando.id}`, { method: 'DELETE' })
     }
     await fetchConToken('/api/agenda/bloqueos', { method: 'POST', body: JSON.stringify(body) })
-
     setModalBloqueo(false); setBloqueoEditando(null)
     setFormBloqueo({ fecha_inicio: '', fecha_fin: '', hora_inicio: '', hora_fin: '', profesional_id: '', motivo: '', todo_el_dia: true, todas_las_agendas: false })
     cargarBloqueosSemana()
@@ -324,12 +316,10 @@ const [obsEditada, setObsEditada] = useState('')
   const hoyStr = formatFecha(hoy)
   const semanaActualStr = formatFecha(semanaBase)
 
-if (verificando || !permitido) return null
-  
+  if (verificando || !permitido) return null
+
   return (
     <div style={{ maxWidth: '100%' }}>
-
-      {/* Header */}
       <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ position: 'relative' }}>
           <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>Turnos</h1>
@@ -338,7 +328,6 @@ if (verificando || !permitido) return null
             <span style={{ textDecoration: 'underline dotted' }}>Semana del {dias[0] && formatFechaMostrar(dias[0])} al {dias[5] && formatFechaMostrar(dias[5])}</span>
             <span style={{ fontSize: '10px', color: '#9ca3af' }}>{calAbierto ? '▲' : '▼'}</span>
           </button>
-
           {calAbierto && (
             <div style={{ position: 'absolute', zIndex: 100, marginTop: '4px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '14px 16px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '260px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -369,7 +358,6 @@ if (verificando || !permitido) return null
             </div>
           )}
         </div>
-
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => setVerBloqueos(!verBloqueos)} style={{ padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', border: `1px solid ${verBloqueos ? '#8B1E2D' : '#e5e7eb'}`, background: verBloqueos ? '#fdf2f4' : 'white', color: verBloqueos ? '#8B1E2D' : '#374151', fontFamily: "'Outfit', sans-serif" }}>🔒 Bloqueos {bloqueos.length > 0 && `(${bloqueos.length})`}</button>
           <button onClick={() => { setBloqueoEditando(null); setFormBloqueo({ fecha_inicio: hoyStr, fecha_fin: hoyStr, hora_inicio: '', hora_fin: '', profesional_id: '', motivo: '', todo_el_dia: true, todas_las_agendas: false }); setModalBloqueo(true) }} style={btnSecundario}>+ Bloquear</button>
@@ -516,7 +504,15 @@ if (verificando || !permitido) return null
                 <label style={labelStyle}>Paciente</label>
                 {pacienteSeleccionado ? (
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <div style={{ ...inputStyle, background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600', fontSize: '13px', padding: '10px 14px' }}>{pacienteSeleccionado.apellido_paciente} {pacienteSeleccionado.nombres_paciente} — DNI: {pacienteSeleccionado.dni}</div>
+                    <div style={{ ...inputStyle, background: '#fdf2f4', color: '#8B1E2D', fontWeight: '600', fontSize: '13px', padding: '10px 14px' }}>
+                      {pacienteSeleccionado.apellido_paciente} {pacienteSeleccionado.nombres_paciente} — DNI: {pacienteSeleccionado.dni}
+                      {pacienteSeleccionado?.dni === '0' && (
+                        <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px', fontWeight: '600' }}>
+                          ⚠️ DNI sin cargar —{' '}
+                          <a href="/pacientes?dni=0" style={{ color: '#dc2626' }}>ir a pacientes para actualizarlo</a>
+                        </div>
+                      )}
+                    </div>
                     <button onClick={() => { setPacienteSeleccionado(null); setBusquedaPaciente(''); setPacientesResultados([]); setBuscoPaciente(false) }} style={{ padding: '10px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer' }}>✕</button>
                   </div>
                 ) : (
@@ -566,95 +562,86 @@ if (verificando || !permitido) return null
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
               <button onClick={guardarTurno} disabled={guardando} style={{ ...btnPrimario, opacity: guardando ? 0.7 : 1 }}>
-  {guardando ? 'Guardando...' : '💾 Guardar turno'}
-</button>
+                {guardando ? 'Guardando...' : '💾 Guardar turno'}
+              </button>
               <button onClick={cerrarModalNuevo} style={btnSecundario}>Cancelar</button>
             </div>
           </div>
         </div>
       )}
-{modalVer && (
-  <div style={overlay}>
-    <div style={modalBox}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-        <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a' }}>📋 Turno #{modalVer.id}</div>
-        <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', background: coloresEstado[modalVer.estado]?.bg, color: coloresEstado[modalVer.estado]?.text, border: `1px solid ${coloresEstado[modalVer.estado]?.border}` }}>{modalVer.estado.replace('_', ' ')}</span>
-      </div>
-      <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>{new Date(modalVer.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {modalVer.hora.slice(0, 5)} hs</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-        <Row label="Agenda">{modalVer.profesionales?.nombre}</Row>
-        <Row label="Paciente">{modalVer.pacientes ? `${modalVer.pacientes.apellido_paciente} ${modalVer.pacientes.nombres_paciente} (DNI: ${modalVer.pacientes.dni})` : modalVer.nombre_libre || '-'}</Row>
-        {(modalVer.telefono || modalVer.pacientes?.telefono) && <Row label="Teléfono">{modalVer.telefono || modalVer.pacientes?.telefono}</Row>}
-        {modalVer.visita_motivos && <Row label="Motivo">{modalVer.visita_motivos.motivo}</Row>}
-        {modalVer.obras_sociales && <Row label="Obra social">{modalVer.obras_sociales.obra_social}</Row>}
 
-        {/* Observaciones editables */}
-        <div style={{ display: 'flex', gap: '8px', fontSize: '14px', alignItems: 'flex-start' }}>
-          <span style={{ fontWeight: '600', color: '#6b7280', minWidth: '100px', flexShrink: 0 }}>Observaciones:</span>
-          {editandoObsTurno ? (
-            <div style={{ flex: 1 }}>
-              <textarea
-                value={obsEditada}
-                onChange={(e) => setObsEditada(e.target.value)}
-                rows={3}
-                style={{ ...inputStyle, fontSize: '13px', resize: 'vertical' }}
-              />
-              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                <button onClick={async () => {
-                  await fetchConToken(`/api/turnos/${modalVer.id}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({ observaciones: obsEditada || null })
-                  })
-                  setEditandoObsTurno(false)
-                  setModalVer({ ...modalVer, observaciones: obsEditada })
-                  cargarTurnos()
-                }} style={{ ...btnPrimario, fontSize: '12px', padding: '6px 12px' }}>💾 Guardar</button>
-                <button onClick={() => setEditandoObsTurno(false)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px' }}>Cancelar</button>
+      {modalVer && (
+        <div style={overlay}>
+          <div style={modalBox}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+              <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a' }}>📋 Turno #{modalVer.id}</div>
+              <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', background: coloresEstado[modalVer.estado]?.bg, color: coloresEstado[modalVer.estado]?.text, border: `1px solid ${coloresEstado[modalVer.estado]?.border}` }}>{modalVer.estado.replace('_', ' ')}</span>
+            </div>
+            <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>{new Date(modalVer.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {modalVer.hora.slice(0, 5)} hs</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+              <Row label="Agenda">{modalVer.profesionales?.nombre}</Row>
+              <div style={{ display: 'flex', gap: '8px', fontSize: '14px' }}>
+                <span style={{ fontWeight: '600', color: '#6b7280', minWidth: '100px', flexShrink: 0 }}>Paciente:</span>
+                <div>
+                  <span style={{ color: '#1a1a1a' }}>{modalVer.pacientes ? `${modalVer.pacientes.apellido_paciente} ${modalVer.pacientes.nombres_paciente} (DNI: ${modalVer.pacientes.dni})` : modalVer.nombre_libre || '-'}</span>
+                  {modalVer.pacientes?.dni === '0' && (
+                    <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px', fontWeight: '600' }}>
+                      ⚠️ DNI sin cargar —{' '}
+                      <a href="/pacientes?dni=0" style={{ color: '#dc2626' }}>ir a pacientes para actualizarlo</a>
+                    </div>
+                  )}
+                </div>
+              </div>
+              {(modalVer.telefono || modalVer.pacientes?.telefono) && <Row label="Teléfono">{modalVer.telefono || modalVer.pacientes?.telefono}</Row>}
+              {modalVer.visita_motivos && <Row label="Motivo">{modalVer.visita_motivos.motivo}</Row>}
+              {modalVer.obras_sociales && <Row label="Obra social">{modalVer.obras_sociales.obra_social}</Row>}
+              <div style={{ display: 'flex', gap: '8px', fontSize: '14px', alignItems: 'flex-start' }}>
+                <span style={{ fontWeight: '600', color: '#6b7280', minWidth: '100px', flexShrink: 0 }}>Observaciones:</span>
+                {editandoObsTurno ? (
+                  <div style={{ flex: 1 }}>
+                    <textarea value={obsEditada} onChange={(e) => setObsEditada(e.target.value)} rows={3} style={{ ...inputStyle, fontSize: '13px', resize: 'vertical' }} />
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                      <button onClick={async () => {
+                        await fetchConToken(`/api/turnos/${modalVer.id}`, { method: 'PUT', body: JSON.stringify({ observaciones: obsEditada || null }) })
+                        setEditandoObsTurno(false)
+                        setModalVer({ ...modalVer, observaciones: obsEditada })
+                        cargarTurnos()
+                      }} style={{ ...btnPrimario, fontSize: '12px', padding: '6px 12px' }}>💾 Guardar</button>
+                      <button onClick={() => setEditandoObsTurno(false)} style={{ ...btnSecundario, fontSize: '12px', padding: '6px 12px' }}>Cancelar</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '8px', flex: 1, alignItems: 'flex-start' }}>
+                    <span style={{ color: '#1a1a1a', flex: 1 }}>{modalVer.observaciones || <span style={{ color: '#d1d5db', fontStyle: 'italic' }}>Sin observaciones</span>}</span>
+                    <button onClick={() => { setObsEditada(modalVer.observaciones || ''); setEditandoObsTurno(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#9ca3af' }}>✏️</button>
+                  </div>
+                )}
               </div>
             </div>
-          ) : (
-            <div style={{ display: 'flex', gap: '8px', flex: 1, alignItems: 'flex-start' }}>
-              <span style={{ color: '#1a1a1a', flex: 1 }}>
-                {modalVer.observaciones || <span style={{ color: '#d1d5db', fontStyle: 'italic' }}>Sin observaciones</span>}
-              </span>
-              <button onClick={() => { setObsEditada(modalVer.observaciones || ''); setEditandoObsTurno(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#9ca3af' }}>✏️</button>
+            {modalVer.estado !== 'pendiente' && (
+              <div style={{ padding: '8px 14px', borderRadius: '8px', marginBottom: '12px', background: '#fef9c3', border: '1px solid #fde047', fontSize: '12px', color: '#854d0e', fontWeight: '600' }}>
+                ⚠️ Este turno está cerrado. Podés modificarlo de todas formas.
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '14px', borderTop: '1px solid #f3f4f6', marginBottom: '10px' }}>
+              {modalVer.estado !== 'realizado' && (
+                <button onClick={() => marcarAsistencia(modalVer.id, true)} style={{ ...btnPrimario, background: '#16a34a', fontSize: '13px', padding: '8px 14px' }}>✅ Asistió</button>
+              )}
+              {modalVer.estado !== 'no_asistio' && (
+                <button onClick={() => marcarAsistencia(modalVer.id, false)} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px', color: '#dc2626', borderColor: '#fecaca' }}>❌ No asistió</button>
+              )}
+              {modalVer.estado !== 'cancelado' && (
+                <button onClick={() => cancelarTurno(modalVer.id)} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px' }}>🗑️ Cancelar</button>
+              )}
+              {modalVer.estado !== 'pendiente' && (
+                <button onClick={async () => {
+                  if (!confirm('¿Volver a poner este turno como pendiente?')) return
+                  await fetchConToken(`/api/turnos/${modalVer.id}`, { method: 'PUT', body: JSON.stringify({ estado: 'pendiente', asistio: null }) })
+                  setModalVer(null); cargarTurnos()
+                }} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px', color: '#6b7280' }}>↩️ Volver a pendiente</button>
+              )}
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Cartel estado cerrado */}
-      {modalVer.estado !== 'pendiente' && (
-        <div style={{
-          padding: '8px 14px', borderRadius: '8px', marginBottom: '12px',
-          background: '#fef9c3', border: '1px solid #fde047',
-          fontSize: '12px', color: '#854d0e', fontWeight: '600',
-        }}>
-          ⚠️ Este turno está cerrado. Podés modificarlo de todas formas.
-        </div>
-      )}
-
-{/* Botones siempre visibles */}
-<div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '14px', borderTop: '1px solid #f3f4f6', marginBottom: '10px' }}>
-  {modalVer.estado !== 'realizado' && (
-    <button onClick={() => marcarAsistencia(modalVer.id, true)} style={{ ...btnPrimario, background: '#16a34a', fontSize: '13px', padding: '8px 14px' }}>✅ Asistió</button>
-  )}
-  {modalVer.estado !== 'no_asistio' && (
-    <button onClick={() => marcarAsistencia(modalVer.id, false)} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px', color: '#dc2626', borderColor: '#fecaca' }}>❌ No asistió</button>
-  )}
-  {modalVer.estado !== 'cancelado' && (
-    <button onClick={() => cancelarTurno(modalVer.id)} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px' }}>🗑️ Cancelar</button>
-  )}
-  {modalVer.estado !== 'pendiente' && (
-    <button onClick={async () => {
-      if (!confirm('¿Volver a poner este turno como pendiente?')) return
-      await fetchConToken(`/api/turnos/${modalVer.id}`, { method: 'PUT', body: JSON.stringify({ estado: 'pendiente', asistio: null }) })
-      setModalVer(null); cargarTurnos()
-    }} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px', color: '#6b7280' }}>↩️ Volver a pendiente</button>
-  )}
-</div>
-
-<button onClick={() => setModalVer(null)} style={{ ...btnSecundario, fontSize: '13px' }}>Cerrar</button>
+            <button onClick={() => setModalVer(null)} style={{ ...btnSecundario, fontSize: '13px' }}>Cerrar</button>
           </div>
         </div>
       )}
@@ -696,7 +683,6 @@ if (verificando || !permitido) return null
           </div>
         </div>
       )}
-
     </div>
   )
 }
