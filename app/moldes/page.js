@@ -43,6 +43,8 @@ export default function Moldes() {
   const [formEdicion, setFormEdicion] = useState({})
   const [guardandoEdicion, setGuardandoEdicion] = useState(false)
 
+  const [guardandoNuevo, setGuardandoNuevo] = useState(false)
+
   useEffect(() => { cargarDatos() }, [])
   useEffect(() => { cargarMoldes() }, [soloActivas])
 
@@ -98,6 +100,9 @@ export default function Moldes() {
   }
 
   async function guardarNuevo() {
+  if (guardandoNuevo) return
+  setGuardandoNuevo(true)
+  try {
     if (!pacienteSeleccionado) { alert('Seleccioná un paciente'); return }
     if (!formNuevo.producto) { alert('Ingresar producto'); return }
     const res = await fetchConToken('/api/moldes', {
@@ -116,7 +121,10 @@ export default function Moldes() {
     cerrarModalNuevo()
     cargarMoldes()
     alert(`✅ Orden #${data.molde.numero_orden} creada`)
+  } finally {
+    setGuardandoNuevo(false)
   }
+}
 
   function cerrarModalNuevo() {
     setModalNuevo(false)
@@ -349,7 +357,9 @@ export default function Moldes() {
               )}
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-              <button onClick={guardarNuevo} style={btnPrimario}>💾 Guardar orden</button>
+              <button onClick={guardarNuevo} disabled={guardandoNuevo} style={{ ...btnPrimario, opacity: guardandoNuevo ? 0.7 : 1 }}>
+  {guardandoNuevo ? 'Guardando...' : '💾 Guardar orden'}
+</button>
               <button onClick={cerrarModalNuevo} style={btnSecundario}>Cancelar</button>
             </div>
           </div>
