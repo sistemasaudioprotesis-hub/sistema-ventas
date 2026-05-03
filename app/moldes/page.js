@@ -82,6 +82,7 @@ export default function Moldes() {
     if (!formAltaRapida.apellido || !formAltaRapida.nombre || !formAltaRapida.dni) {
       alert('Apellido, nombre y DNI son obligatorios'); return
     }
+    if (!formAltaRapida.dni || formAltaRapida.dni === '0') { alert('El DNI es obligatorio'); return }
     const res = await fetchConToken('/api/pacientes', {
       method: 'POST',
       body: JSON.stringify({
