@@ -1,0 +1,38 @@
+[
+  {
+    "id": 3,
+    "forma_pago": "MERCADO PAGO",
+    "observaciones": null,
+    "created_at": "2026-04-15T07:28:05.108421-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 4,
+    "forma_pago": "TRANSFERENCIA",
+    "observaciones": null,
+    "created_at": "2026-04-15T07:28:14.609852-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 1,
+    "forma_pago": "EFECTIVO",
+    "observaciones": null,
+    "created_at": "2026-04-15T07:27:26.903215-03:00",
+    "creado_por": 1,
+    "es_efectivo": true,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 2,
+    "forma_pago": "TARJETA DE CREDITO VISA",
+    "observaciones": null,
+    "created_at": "2026-04-15T07:27:54.125753-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 0.7
+  }
+]
