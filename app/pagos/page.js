@@ -140,6 +140,7 @@ async function guardarAltaRapida() {
   if (!formAltaRapida.apellido || !formAltaRapida.nombre || !formAltaRapida.dni || !formAltaRapida.telefono) {
     alert('Apellido, nombre, DNI y teléfono son obligatorios'); return
   }
+  if (!formAltaRapida.dni || formAltaRapida.dni === '0') { alert('El DNI es obligatorio'); return }
   const res = await fetchConToken('/api/pacientes', {
     method: 'POST',
     body: JSON.stringify({
