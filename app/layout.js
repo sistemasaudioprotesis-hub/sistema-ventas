@@ -47,6 +47,10 @@ export default function RootLayout({ children }) {
       setVerificando(false)
     }
     cargar()
+
+    if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js')
+}
   }, [pathname])
 
   function puedeVer(seccion) {
@@ -75,10 +79,17 @@ async function cerrarSesion() {
   return (
     <html lang="es">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#8B1E2D" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="AudioProtesis" />
+  <link rel="apple-touch-icon" href="/logo.jpeg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+</head>
       <body style={{ margin: 0, background: '#f9fafb', minHeight: '100vh', fontFamily: "'Outfit', sans-serif" }}>
         <div style={{ display: 'flex', minHeight: '100vh' }}>
 
