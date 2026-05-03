@@ -201,6 +201,7 @@ const [guardando, setGuardando] = useState(false)
   setGuardando(true)
   try {
     if (!form.apellido_paciente || !form.nombres_paciente || !form.dni || !form.telefono) { alert('Completar campos obligatorios'); return }
+    if (!form.dni || form.dni === '0') { alert('El DNI es obligatorio'); return }
     if (!form.provincia_id) { alert('Seleccionar provincia'); return }
     const dataGuardar = { ...form, provincia_id: Number(form.provincia_id), obra_social_id: form.obra_social_id ? Number(form.obra_social_id) : null }
     if (pacienteId) {
