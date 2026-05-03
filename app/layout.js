@@ -142,13 +142,18 @@ async function cerrarSesion() {
   )}
 </NavSection>
 
-  {(puedeVer('reportes') || puedeVer('derivadores_reporte') || puedeVer('rentabilidad')) && (
+  {(puedeVer('reportes') || puedeVer('derivadores_reporte') || puedeVer('rentabilidad') || puedeVer('saldos_impagos')) && (
   <NavSection label="Información">
     {puedeVer('reportes') && (
       <NavItem href="/reportes" label="Reportes" icon={
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       }/>
     )}
+{puedeVer('saldos_impagos') && (
+  <NavItem href="/saldos-impagos" label="Saldos Impagos" icon={
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  }/>
+)}
     {puedeVer('derivadores_reporte') && (
       <NavItem href="/derivadores-reporte" label="Derivadores" icon={
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
