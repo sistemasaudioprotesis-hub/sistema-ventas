@@ -18,6 +18,8 @@ export default function StockProductos() {
   const [formAjuste, setFormAjuste] = useState({ tipo: 'ingreso', cantidad: '', concepto: '' })
   const [guardandoToggle, setGuardandoToggle] = useState(null)
 
+const [busqueda, setBusqueda] = useState('')
+  
 const [guardandoAjuste, setGuardandoAjuste] = useState(false)
   
   useEffect(() => { cargarDatos() }, [])
@@ -81,7 +83,9 @@ const [guardandoAjuste, setGuardandoAjuste] = useState(false)
   }
 }
 
-  const productosSinSerie = productos.filter(p => !p.tipo_producto?.requiere_serie)
+  const productosSinSerie = productos
+  .filter(p => !p.tipo_producto?.requiere_serie && p.controla_stock)
+  .filter(p => !busqueda || p.producto.toLowerCase().includes(busqueda.toLowerCase()))
   const fmtFecha = (f) => new Date(f).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
   const fmtHora = (f) => new Date(f).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
 
@@ -92,7 +96,14 @@ const [guardandoAjuste, setGuardandoAjuste] = useState(false)
         <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>Stock de Productos</h1>
         <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '14px' }}>Control de stock para productos sin número de serie</p>
       </div>
-
+<div style={{ marginBottom: '20px' }}>
+  <input
+    placeholder="Buscar producto..."
+    value={busqueda}
+    onChange={e => setBusqueda(e.target.value)}
+    style={{ ...inputStyle, maxWidth: '360px' }}
+  />
+</div>
       {cargando ? <div style={{ color: '#9ca3af', textAlign: 'center', padding: '40px' }}>Cargando...</div> : (
         <div style={{ display: 'grid', gridTemplateColumns: productoSeleccionado ? '1fr 1fr' : '1fr', gap: '20px' }}>
           <div>
