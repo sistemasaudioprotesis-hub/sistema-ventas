@@ -27,6 +27,8 @@ export default function ConfiguracionProductos() {
   const [formModelo, setFormModelo] = useState({ modelo: '', producto_id: '' })
   const [filtroProductoModelo, setFiltroProductoModelo] = useState('')
 
+  const [filtroTipoProducto, setFiltroTipoProducto] = useState('')
+
   useEffect(() => { obtenerDatos() }, [])
 
   if (verificando || !permitido) return null
@@ -99,6 +101,10 @@ export default function ConfiguracionProductos() {
   const productosConModelo = productos.filter(p => p.requiere_modelo)
   const modelosFiltrados = filtroProductoModelo ? modelos.filter(m => m.producto_id == filtroProductoModelo) : modelos
 
+const productosFiltrados = filtroTipoProducto 
+  ? productos.filter(p => String(p.tipo_id) === filtroTipoProducto)
+  : productos
+  
   return (
     <div style={{ maxWidth: '720px' }}>
       <div style={{ marginBottom: '28px' }}>
@@ -196,10 +202,16 @@ export default function ConfiguracionProductos() {
             </div>
           )}
           <div style={card}>
-            <div style={{ ...cardTitle, marginBottom: '16px' }}>Productos registrados <span style={{ fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({productos.length})</span></div>
+           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+  <div style={cardTitle}>Productos registrados <span style={{ fontSize: '12px', fontWeight: '400', color: '#9ca3af' }}>({productosFiltrados.length})</span></div>
+  <select value={filtroTipoProducto} onChange={e => setFiltroTipoProducto(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '180px' }}>
+    <option value="">Todos los tipos</option>
+    {tipos.map(t => <option key={t.id} value={t.id}>{t.tipo}</option>)}
+  </select>
+</div>
             {productos.length === 0 ? <div style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>No hay productos registrados</div> : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {productos.map(p => (
+                {productosFiltrados.map (p => (
                   <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: p.activo ? '#f9fafb' : '#fafafa', borderRadius: '8px', border: '1px solid #e5e7eb', opacity: p.activo ? 1 : 0.6 }}>
                     <div>
                       <div style={{ fontWeight: '600', fontSize: '15px', color: '#1a1a1a' }}>{p.producto}</div>
