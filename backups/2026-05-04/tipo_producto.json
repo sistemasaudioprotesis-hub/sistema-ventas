@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "tipo": "VENTA AUDIFONOS",
+    "observaciones": "Venta de todo tipo de audífonos",
+    "created_at": "2026-04-14T20:32:38.56718-03:00",
+    "creado_por": 1,
+    "requiere_serie": true
+  },
+  {
+    "id": 6,
+    "tipo": "LABORATORIO",
+    "observaciones": null,
+    "created_at": "2026-04-30T19:29:19.950425-03:00",
+    "creado_por": 1,
+    "requiere_serie": false
+  },
+  {
+    "id": 3,
+    "tipo": "ACCESORIOS",
+    "observaciones": "Otras ventas",
+    "created_at": "2026-04-14T20:33:44.185328-03:00",
+    "creado_por": 1,
+    "requiere_serie": false
+  },
+  {
+    "id": 7,
+    "tipo": "SERVICIOS",
+    "observaciones": null,
+    "created_at": "2026-05-03T20:17:34.82348-03:00",
+    "creado_por": 1,
+    "requiere_serie": false
+  },
+  {
+    "id": 8,
+    "tipo": "ESTUDIOS AUDIOLOGICOS",
+    "observaciones": null,
+    "created_at": "2026-05-03T20:22:35.333549-03:00",
+    "creado_por": 1,
+    "requiere_serie": false
+  }
+]

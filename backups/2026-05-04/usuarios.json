@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "usuario": "admin",
+    "password": "admin123",
+    "rol": "admin",
+    "activo": true,
+    "nombre": "Administrador"
+  },
+  {
+    "id": 4,
+    "usuario": "juli",
+    "password": "juli1234",
+    "rol": "vendedor",
+    "activo": false,
+    "nombre": "Juli G"
+  },
+  {
+    "id": 7,
+    "usuario": "franco",
+    "password": "franco123",
+    "rol": "director",
+    "activo": false,
+    "nombre": "Franco"
+  },
+  {
+    "id": 6,
+    "usuario": "luciano",
+    "password": "luciano123",
+    "rol": "director",
+    "activo": false,
+    "nombre": "Luciano"
+  },
+  {
+    "id": 9,
+    "usuario": "laboratorio",
+    "password": "123456",
+    "rol": "laboratorio",
+    "activo": false,
+    "nombre": "Laboratorio Bernal"
+  },
+  {
+    "id": 5,
+    "usuario": "hernan",
+    "password": "hernan123",
+    "rol": "director",
+    "activo": true,
+    "nombre": "Hernan"
+  }
+]

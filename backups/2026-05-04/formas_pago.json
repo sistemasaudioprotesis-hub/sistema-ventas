@@ -1,0 +1,65 @@
+[
+  {
+    "id": 1,
+    "forma_pago": "EFECTIVO",
+    "observaciones": null,
+    "created_at": "2026-04-15T07:27:26.903215-03:00",
+    "creado_por": 1,
+    "es_efectivo": true,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 3,
+    "forma_pago": "MERCADO PAGO JULI",
+    "observaciones": null,
+    "created_at": "2026-04-15T07:28:05.108421-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 4,
+    "forma_pago": "MERCADO PAGO FRANCO",
+    "observaciones": null,
+    "created_at": "2026-04-15T07:28:14.609852-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 5,
+    "forma_pago": "MERCADO PAGO HERNAN",
+    "observaciones": null,
+    "created_at": "2026-05-03T11:57:40.825987-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 7,
+    "forma_pago": "TRANSFERENCIA",
+    "observaciones": null,
+    "created_at": "2026-05-03T11:59:39.308587-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 2,
+    "forma_pago": "MERCADO PAGO LUCIANO",
+    "observaciones": null,
+    "created_at": "2026-04-15T07:27:54.125753-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 6,
+    "forma_pago": "TARJETA DE CREDITO VISA 1 PAGO",
+    "observaciones": null,
+    "created_at": "2026-05-03T11:58:09.630524-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 0.7
+  }
+]
