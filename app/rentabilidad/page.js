@@ -301,7 +301,7 @@ const rankingModelos = Object.entries(porModelo)
 
       {ventasConAudifonos.length > 0 && (
         <div style={{ fontSize: '12px', color: '#9ca3af', padding: '0 4px' }}>
-          * Fórmula: Ganancia bruta = Precio − Costo − Comisión derivador (en U$S). Ganancia neta = Ganancia bruta × factor de cobro (💵 efectivo = 100%, 💳 otro medio = 70%).
+          * Fórmula: Ganancia bruta = Precio − Costo − Comisión derivador (en U$S). Ganancia neta = Ganancia bruta × factor de cobro (💵 = 100%, 💳 VER = otros medios de pago).
         </div>
       )}
 
