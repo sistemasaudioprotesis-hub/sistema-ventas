@@ -12,7 +12,8 @@ export async function GET(request) {
     const fechaDesde = desde || fecha
     const fechaHasta = hasta || fecha
     const supabase = createServerClient()
-    const [{ data: manuales }, { data: pagos }] = await Promise.all([
+
+    const [{ data: manuales }, { data: pagos }, { data: manualesAnteriores }, { data: pagosAnteriores }] = await Promise.all([
       supabase.from('caja_movimientos')
         .select('*')
         .gte('fecha', fechaDesde)
@@ -25,8 +26,45 @@ export async function GET(request) {
         .gte('fecha_pago', `${fechaDesde}T00:00:00`)
         .lte('fecha_pago', `${fechaHasta}T23:59:59`)
         .order('fecha_pago'),
+      supabase.from('caja_movimientos')
+        .select('tipo, monto_pesos, monto_usd, forma_pago_id')
+        .lt('fecha', fechaDesde),
+      supabase.from('pagos')
+        .select('monto_pesos, monto_usd, forma_pago_id')
+        .lt('fecha_pago', `${fechaDesde}T00:00:00`),
     ])
-    return Response.json({ manuales: manuales || [], pagos: pagos || [] })
+
+    const saldoAnteriorEfectivoPesos =
+      (manualesAnteriores || []).filter(m => !m.forma_pago_id || m.forma_pago_id === 1)
+        .reduce((acc, m) => acc + (m.tipo === 'ingreso' ? 1 : -1) * (Number(m.monto_pesos) || 0), 0) +
+      (pagosAnteriores || []).filter(p => p.forma_pago_id === 1)
+        .reduce((acc, p) => acc + (Number(p.monto_pesos) || 0), 0)
+
+    const saldoAnteriorEfectivoUSD =
+      (manualesAnteriores || []).filter(m => !m.forma_pago_id || m.forma_pago_id === 1)
+        .reduce((acc, m) => acc + (m.tipo === 'ingreso' ? 1 : -1) * (Number(m.monto_usd) || 0), 0) +
+      (pagosAnteriores || []).filter(p => p.forma_pago_id === 1)
+        .reduce((acc, p) => acc + (Number(p.monto_usd) || 0), 0)
+
+    const saldosAnterioresOtros = {}
+    ;[...(manualesAnteriores || []), ...(pagosAnteriores || [])].forEach(m => {
+      const fpId = m.forma_pago_id
+      if (!fpId || fpId === 1) return
+      if (!saldosAnterioresOtros[fpId]) saldosAnterioresOtros[fpId] = { pesos: 0, usd: 0 }
+      const factor = m.tipo === 'egreso' ? -1 : 1
+      saldosAnterioresOtros[fpId].pesos += factor * (Number(m.monto_pesos) || 0)
+      saldosAnterioresOtros[fpId].usd += factor * (Number(m.monto_usd) || 0)
+    })
+
+    return Response.json({
+      manuales: manuales || [],
+      pagos: pagos || [],
+      saldoAnterior: {
+        efectivoPesos: saldoAnteriorEfectivoPesos,
+        efectivoUSD: saldoAnteriorEfectivoUSD,
+        otros: saldosAnterioresOtros,
+      }
+    })
   } catch (e) {
     return Response.json({ error: 'Error interno' }, { status: 500 })
   }
