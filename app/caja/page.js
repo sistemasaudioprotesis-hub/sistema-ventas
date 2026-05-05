@@ -20,6 +20,7 @@ export default function Caja() {
   const [dolarManual, setDolarManual] = useState('')
   const [formasPago, setFormasPago] = useState([])
   const [filtroFormaPago, setFiltroFormaPago] = useState('')
+  const [saldoAnterior, setSaldoAnterior] = useState({ efectivoPesos: 0, efectivoUSD: 0, otros: {} })
   const { verificando, permitido } = usePermiso('caja')
 
   const [form, setForm] = useState({ tipo: 'ingreso', concepto: '', monto_pesos: '', monto_usd: '' })
@@ -33,7 +34,7 @@ export default function Caja() {
   const [guardando, setGuardando] = useState(false)
 
   useEffect(() => { cargarFormasPago() }, [])
-  useEffect(() => { cargarMovimientos(); cargarPagosOtros(); cargarCotizacion() }, [desde, hasta])
+  useEffect(() => { cargarTodo(); cargarCotizacion() }, [desde, hasta])
 
   async function cargarFormasPago() {
     const res = await fetchConToken('/api/configuracion/formas-pago')
@@ -41,9 +42,13 @@ export default function Caja() {
     setFormasPago(data.formas_pago || [])
   }
 
-  async function cargarMovimientos() {
+  async function cargarTodo() {
     const res = await fetchConToken(`/api/caja?desde=${desde}&hasta=${hasta}`)
     const data = await res.json()
+
+    setSaldoAnterior(data.saldoAnterior || { efectivoPesos: 0, efectivoUSD: 0, otros: {} })
+
+    // Efectivo
     const manuales = (data.manuales || []).filter(m => !m.forma_pago_id || m.forma_pago_id === EFECTIVO_ID)
     const pagosEfectivo = (data.pagos || []).filter(p => p.forma_pago_id === EFECTIVO_ID)
     const pagosComoMovimientos = pagosEfectivo.map(p => ({
@@ -54,11 +59,8 @@ export default function Caja() {
     }))
     const todos = [...pagosComoMovimientos, ...manuales].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
     setMovimientos(todos)
-  }
 
-  async function cargarPagosOtros() {
-    const res = await fetchConToken(`/api/caja?desde=${desde}&hasta=${hasta}`)
-    const data = await res.json()
+    // Otros medios
     const otrosPagos = (data.pagos || []).filter(p => p.forma_pago_id !== EFECTIVO_ID)
     const manualesOtros = (data.manuales || []).filter(m => m.forma_pago_id && m.forma_pago_id !== EFECTIVO_ID)
     setPagosOtros([...otrosPagos.map(p => ({ ...p, origen: 'pago' })), ...manualesOtros.map(m => ({ ...m, origen: 'manual' }))]
@@ -90,45 +92,46 @@ export default function Caja() {
   }
 
   async function guardarMovimiento() {
-  if (guardando) return
-  setGuardando(true)
-  try {
-    if (!form.concepto) { alert('Ingresar concepto'); return }
-    if (!form.monto_pesos && !form.monto_usd) { alert('Ingresar monto'); return }
-    const res = await fetchConToken('/api/caja', {
-      method: 'POST',
-      body: JSON.stringify({ fecha: hasta, tipo: form.tipo, concepto: form.concepto, monto_pesos: form.monto_pesos ? Number(form.monto_pesos) : null, monto_usd: form.monto_usd ? Number(form.monto_usd) : null })
-    })
-    if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
-    setForm({ tipo: 'ingreso', concepto: '', monto_pesos: '', monto_usd: '' })
-    cargarMovimientos()
-  } finally {
-    setGuardando(false)
+    if (guardando) return
+    setGuardando(true)
+    try {
+      if (!form.concepto) { alert('Ingresar concepto'); return }
+      if (!form.monto_pesos && !form.monto_usd) { alert('Ingresar monto'); return }
+      const res = await fetchConToken('/api/caja', {
+        method: 'POST',
+        body: JSON.stringify({ fecha: hasta, tipo: form.tipo, concepto: form.concepto, monto_pesos: form.monto_pesos ? Number(form.monto_pesos) : null, monto_usd: form.monto_usd ? Number(form.monto_usd) : null })
+      })
+      if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
+      setForm({ tipo: 'ingreso', concepto: '', monto_pesos: '', monto_usd: '' })
+      cargarTodo()
+    } finally {
+      setGuardando(false)
+    }
   }
-}
+
   async function guardarMovimientoOtros() {
-  if (guardando) return
-  setGuardando(true)
-  try {
-    if (!formOtros.concepto) { alert('Ingresar concepto'); return }
-    if (!formOtros.monto_pesos && !formOtros.monto_usd) { alert('Ingresar monto'); return }
-    if (!formOtros.forma_pago_id) { alert('Seleccionar forma de pago'); return }
-    const res = await fetchConToken('/api/caja', {
-      method: 'POST',
-      body: JSON.stringify({ fecha: hasta, tipo: formOtros.tipo, concepto: formOtros.concepto, monto_pesos: formOtros.monto_pesos ? Number(formOtros.monto_pesos) : null, monto_usd: formOtros.monto_usd ? Number(formOtros.monto_usd) : null, forma_pago_id: Number(formOtros.forma_pago_id) })
-    })
-    if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
-    setFormOtros({ tipo: 'ingreso', concepto: '', monto_pesos: '', monto_usd: '', forma_pago_id: '' })
-    cargarPagosOtros()
-  } finally {
-    setGuardando(false)
+    if (guardando) return
+    setGuardando(true)
+    try {
+      if (!formOtros.concepto) { alert('Ingresar concepto'); return }
+      if (!formOtros.monto_pesos && !formOtros.monto_usd) { alert('Ingresar monto'); return }
+      if (!formOtros.forma_pago_id) { alert('Seleccionar forma de pago'); return }
+      const res = await fetchConToken('/api/caja', {
+        method: 'POST',
+        body: JSON.stringify({ fecha: hasta, tipo: formOtros.tipo, concepto: formOtros.concepto, monto_pesos: formOtros.monto_pesos ? Number(formOtros.monto_pesos) : null, monto_usd: formOtros.monto_usd ? Number(formOtros.monto_usd) : null, forma_pago_id: Number(formOtros.forma_pago_id) })
+      })
+      if (!res.ok) { const d = await res.json(); alert('Error: ' + d.error); return }
+      setFormOtros({ tipo: 'ingreso', concepto: '', monto_pesos: '', monto_usd: '', forma_pago_id: '' })
+      cargarTodo()
+    } finally {
+      setGuardando(false)
+    }
   }
-}
 
   async function eliminarMovimiento(id) {
     if (!confirm('¿Eliminar este movimiento?')) return
     await fetchConToken(`/api/caja/${id}`, { method: 'DELETE' })
-    cargarMovimientos(); cargarPagosOtros()
+    cargarTodo()
   }
 
   function abrirEditarMovimiento(m) {
@@ -143,7 +146,7 @@ export default function Caja() {
       method: 'PUT',
       body: JSON.stringify({ tipo: formEditMovimiento.tipo, concepto: formEditMovimiento.concepto, monto_pesos: formEditMovimiento.monto_pesos ? Number(formEditMovimiento.monto_pesos) : null, monto_usd: formEditMovimiento.monto_usd ? Number(formEditMovimiento.monto_usd) : null })
     })
-    setEditandoMovimiento(null); cargarMovimientos(); cargarPagosOtros()
+    setEditandoMovimiento(null); cargarTodo()
   }
 
   function abrirEditarPago(p) {
@@ -158,22 +161,22 @@ export default function Caja() {
       method: 'PUT',
       body: JSON.stringify({ monto_pesos: formEditPago.monto_pesos ? Number(formEditPago.monto_pesos) : null, monto_usd: formEditPago.monto_usd ? Number(formEditPago.monto_usd) : null, forma_pago_id: Number(formEditPago.forma_pago_id) })
     })
-    setEditandoPago(null); cargarMovimientos(); cargarPagosOtros()
+    setEditandoPago(null); cargarTodo()
   }
 
   async function eliminarPago(p) {
     if (!confirm('¿Eliminar este pago?')) return
     const pagoId = p.pago_id || p.id
     await fetchConToken(`/api/pagos/${pagoId}`, { method: 'DELETE' })
-    cargarMovimientos(); cargarPagosOtros()
+    cargarTodo()
   }
 
   const ingresosPesos = movimientos.filter(m => m.tipo === 'ingreso').reduce((acc, m) => acc + (Number(m.monto_pesos) || 0), 0)
   const egresosPesos = movimientos.filter(m => m.tipo === 'egreso').reduce((acc, m) => acc + (Number(m.monto_pesos) || 0), 0)
-  const saldoPesos = ingresosPesos - egresosPesos
+  const saldoPesos = ingresosPesos - egresosPesos + saldoAnterior.efectivoPesos
   const ingresosUSD = movimientos.filter(m => m.tipo === 'ingreso').reduce((acc, m) => acc + (Number(m.monto_usd) || 0), 0)
   const egresosUSD = movimientos.filter(m => m.tipo === 'egreso').reduce((acc, m) => acc + (Number(m.monto_usd) || 0), 0)
-  const saldoUSD = ingresosUSD - egresosUSD
+  const saldoUSD = ingresosUSD - egresosUSD + saldoAnterior.efectivoUSD
   const saldoUnificado = cotizacion ? saldoPesos + (saldoUSD * cotizacion) : null
 
   const pagosOtrosFiltrados = filtroFormaPago ? pagosOtros.filter(p => p.forma_pago_id == filtroFormaPago) : pagosOtros
@@ -279,9 +282,18 @@ export default function Caja() {
       {tab === 'efectivo' && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '20px' }}>
-            {[{ label: 'Caja en Pesos', ingresos: ingresosPesos, egresos: egresosPesos, saldo: saldoPesos, fmt: fmt }, { label: 'Caja en USD', ingresos: ingresosUSD, egresos: egresosUSD, saldo: saldoUSD, fmt: fmtUSD }].map(({ label, ingresos, egresos, saldo, fmt: f }) => (
+            {[
+              { label: 'Caja en Pesos', ingresos: ingresosPesos, egresos: egresosPesos, saldo: saldoPesos, fmt: fmt, saldoInicial: saldoAnterior.efectivoPesos },
+              { label: 'Caja en USD', ingresos: ingresosUSD, egresos: egresosUSD, saldo: saldoUSD, fmt: fmtUSD, saldoInicial: saldoAnterior.efectivoUSD }
+            ].map(({ label, ingresos, egresos, saldo, fmt: f, saldoInicial }) => (
               <div key={label} style={card}>
                 <div style={{ fontSize: '11px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>{label}</div>
+                {saldoInicial !== 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '6px' }}>
+                    <span style={{ color: '#6b7280' }}>Saldo inicial</span>
+                    <span style={{ color: '#1d4ed8', fontWeight: '600' }}>{f(saldoInicial)}</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '6px' }}><span style={{ color: '#6b7280' }}>Ingresos</span><span style={{ color: '#16a34a', fontWeight: '600' }}>{f(ingresos)}</span></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '12px' }}><span style={{ color: '#6b7280' }}>Egresos</span><span style={{ color: '#dc2626', fontWeight: '600' }}>{f(egresos)}</span></div>
                 <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '10px', display: 'flex', justifyContent: 'space-between' }}><span style={{ fontWeight: '700', fontSize: '15px' }}>Saldo</span><span style={{ fontWeight: '700', fontSize: '18px', color: saldo >= 0 ? '#16a34a' : '#dc2626' }}>{f(saldo)}</span></div>
@@ -304,9 +316,7 @@ export default function Caja() {
               <Field label="Monto en USD"><input type="number" placeholder="U$S 0" value={form.monto_usd} onChange={(e) => setForm({ ...form, monto_usd: e.target.value })} style={inputStyle} /></Field>
             </div>
             <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
-              <button onClick={guardarMovimiento} disabled={guardando} style={{ ...btnPrimario, opacity: guardando ? 0.7 : 1 }}>
-  {guardando ? 'Guardando...' : '💾 Guardar'}
-</button>
+              <button onClick={guardarMovimiento} disabled={guardando} style={{ ...btnPrimario, opacity: guardando ? 0.7 : 1 }}>{guardando ? 'Guardando...' : '💾 Guardar'}</button>
             </div>
           </div>
           <div style={card}>
@@ -416,9 +426,7 @@ export default function Caja() {
               <Field label="Monto en USD"><input type="number" placeholder="U$S 0" value={formOtros.monto_usd} onChange={(e) => setFormOtros({ ...formOtros, monto_usd: e.target.value })} style={inputStyle} /></Field>
             </div>
             <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
-              <button onClick={guardarMovimientoOtros} disabled={guardando} style={{ ...btnPrimario, opacity: guardando ? 0.7 : 1 }}>
-  {guardando ? 'Guardando...' : '💾 Guardar'}
-</button>
+              <button onClick={guardarMovimientoOtros} disabled={guardando} style={{ ...btnPrimario, opacity: guardando ? 0.7 : 1 }}>{guardando ? 'Guardando...' : '💾 Guardar'}</button>
             </div>
           </div>
         </>
