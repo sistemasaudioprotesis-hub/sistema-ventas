@@ -107,6 +107,7 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
   }
 
   async function reprogramarTurno() {
+    console.log('reprogramando:', formReprogramar)
   if (guardandoReprogramar) return
   if (!formReprogramar.fecha || !formReprogramar.hora) { alert('Seleccioná fecha y hora'); return }
   setGuardandoReprogramar(true)
