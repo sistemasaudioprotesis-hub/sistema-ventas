@@ -474,8 +474,7 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
                   const turnosFiltrados = agendaFiltro === 'todas' ? turnosSlot : turnosSlot.filter(t => String(t.profesionales?.id) === agendaFiltro)
                   return (
                     <td key={di} style={{ padding: '2px 4px', borderLeft: '1px solid #e5e7eb', verticalAlign: 'top', background: esHoy ? '#fffbfb' : 'white', cursor: 'pointer', minWidth: '130px' }}
-                      onClick={() => { if (turnosFiltrados.length === 0) { setModalNuevo({ fecha: fechaStr, hora, agenda_id: agendaFiltro !== 'todas' ? agendaFiltro : '' }); setFormTurno(f => ({ ...f, agenda_id: agendaFiltro !== 'todas' ? agendaFiltro : '' })) } }}>
-                      {turnosFiltrados.length > 0 ? (
+                      onClick={() => { setModalNuevo({ fecha: fechaStr, hora, agenda_id: agendaFiltro !== 'todas' ? agendaFiltro : '' }); setFormTurno(f => ({ ...f, agenda_id: agendaFiltro !== 'todas' ? agendaFiltro : '' })) }}>                      {turnosFiltrados.length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                           {turnosFiltrados.map(t => {
                             const color = getColorAgenda(t.profesionales?.id)
