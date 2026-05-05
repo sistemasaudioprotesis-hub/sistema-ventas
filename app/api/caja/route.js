@@ -15,23 +15,25 @@ export async function GET(request) {
 
     const [{ data: manuales }, { data: pagos }, { data: manualesAnteriores }, { data: pagosAnteriores }] = await Promise.all([
       supabase.from('caja_movimientos')
-        .select('*')
-        .gte('fecha', fechaDesde)
-        .lte('fecha', fechaHasta)
-        .order('created_at'),
-      supabase.from('pagos')
-        .select(`id, monto_pesos, monto_usd, fecha_pago, forma_pago_id,
-          formas_pago (forma_pago),
-          ventas (pacientes (apellido_paciente, nombres_paciente))`)
-        .gte('fecha_pago', `${fechaDesde}T00:00:00`)
-        .lte('fecha_pago', `${fechaHasta}T23:59:59`)
-        .order('fecha_pago'),
-      supabase.from('caja_movimientos')
-        .select('tipo, monto_pesos, monto_usd, forma_pago_id')
-        .lt('fecha', fechaDesde),
-      supabase.from('pagos')
-        .select('monto_pesos, monto_usd, forma_pago_id')
-        .lt('fecha_pago', `${fechaDesde}T00:00:00`),
+  .select('*')
+  .gte('fecha', fechaDesde)
+  .lte('fecha', fechaHasta)
+  .order('created_at'),
+supabase.from('pagos')
+  .select(`id, monto_pesos, monto_usd, fecha_pago, forma_pago_id,
+    formas_pago (forma_pago),
+    ventas (pacientes (apellido_paciente, nombres_paciente))`)
+  .gte('fecha_pago', `${fechaDesde}T00:00:00`)
+  .lte('fecha_pago', `${fechaHasta}T23:59:59`)
+  .order('fecha_pago'),
+supabase.from('caja_movimientos')
+  .select('tipo, monto_pesos, monto_usd, forma_pago_id')
+  .gte('fecha', '2026-05-01')
+  .lt('fecha', fechaDesde),
+supabase.from('pagos')
+  .select('monto_pesos, monto_usd, forma_pago_id')
+  .gte('fecha_pago', '2026-05-01T00:00:00')
+  .lt('fecha_pago', `${fechaDesde}T00:00:00`),
     ])
 
     const saldoAnteriorEfectivoPesos =
