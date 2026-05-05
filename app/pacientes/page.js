@@ -362,9 +362,9 @@ const [guardando, setGuardando] = useState(false)
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
   <Field label="DNI *">
-    <input name="dni" placeholder="DNI" value={form.dni} onChange={handleChange}
-      disabled={pacienteId !== null && !dniOriginalEraCero}
-      style={{ ...inputStyle, background: (pacienteId && form.dni !== '0') ? '#f9fafb' : 'white', color: (pacienteId && form.dni !== '0') ? '#9ca3af' : '#1a1a1a' }} />
+  <input name="dni" placeholder="DNI" value={form.dni} onChange={handleChange}
+    disabled={pacienteId !== null && !dniOriginalEraCero}
+    style={{ ...inputStyle, background: (pacienteId && !dniOriginalEraCero) ? '#f9fafb' : 'white', color: (pacienteId && !dniOriginalEraCero) ? '#9ca3af' : '#1a1a1a' }} />        
     {pacienteId && form.dni === '0' && (
       <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px', fontWeight: '600' }}>
         ⚠️ Este paciente no tiene DNI cargado. Podés actualizarlo ahora.
