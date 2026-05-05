@@ -154,12 +154,17 @@ const rankingModelos = Object.entries(porModelo)
                     <td style={tdStyle}>{v.id}</td>
                     <td style={tdStyle}>{new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</td>
                     <td style={{ ...tdStyle, maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: '600' }}>{v.pacientes?.apellido_paciente} {v.pacientes?.nombres_paciente}</td>
-                    <td style={{ ...tdStyle, maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '12px', color: '#6b7280' }}>
-  {v.itemsConSerie.map(d => {
+                    <td style={{ ...tdStyle, maxWidth: '130px', fontSize: '12px', color: '#6b7280' }}>
+  {v.itemsConSerie.map((d, i) => {
     const prod = d.numeros_serie?.productos?.producto || ''
     const modelo = d.numeros_serie?.modelos?.modelo || ''
-    return modelo ? `${prod} ${modelo}` : prod
-  }).filter(Boolean).join(', ')}
+    return (
+      <div key={i}>
+        <div style={{ fontWeight: '600', color: '#1a1a1a' }}>{prod}</div>
+        {modelo && <div style={{ fontSize: '11px', color: '#9ca3af' }}>{modelo}</div>}
+      </div>
+    )
+  })}
 </td>
                     <td style={{ ...tdStyle, textAlign: 'right' }}>{fmtUSD(v.precioVentaUSD)}</td>
                     <td style={{ ...tdStyle, textAlign: 'right', color: '#dc2626' }}>{fmtUSD(v.costoUSD)}</td>
