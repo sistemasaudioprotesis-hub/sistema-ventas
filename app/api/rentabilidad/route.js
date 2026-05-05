@@ -63,7 +63,11 @@ const todosEfectivo = factorPago === 1
       console.log('venta', v.id, 'pagosData:', JSON.stringify(pagosData.map(p => ({ factor: p.formas_pago?.factor_rentabilidad, monto_pesos: p.monto_pesos, monto_usd: p.monto_usd }))), 'factorFinal:', factorPago)
 
       const itemsConSerie = (v.venta_detalle || []).filter(d => d.numeros_serie?.costo_usd)
-      const precioVentaUSD = itemsConSerie.reduce((acc, d) => acc + (Number(d.precio_venta_usd) || 0), 0)
+      const precioVentaUSD = itemsConSerie.reduce((acc, d) => {
+  if (Number(d.precio_venta_usd) > 0) return acc + Number(d.precio_venta_usd)
+  if (Number(d.precio_venta_pesos) > 0 && cotiz) return acc + Number(d.precio_venta_pesos) / cotiz
+  return acc
+}, 0)
       const costoUSD = itemsConSerie.reduce((acc, d) => acc + (Number(d.numeros_serie?.costo_usd) || 0), 0)
 
       let comisionUSD = 0
