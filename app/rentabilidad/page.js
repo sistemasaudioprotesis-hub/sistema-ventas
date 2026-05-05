@@ -138,7 +138,7 @@ const rankingModelos = Object.entries(porModelo)
                   <th style={thStyle}>#</th>
                   <th style={thStyle}>Fecha</th>
                   <th style={{ ...thStyle, maxWidth: '110px' }}>Paciente</th>
-                  <th style={{ ...thStyle, maxWidth: '130px' }}>Producto</th>
+                  <th style={{ ...thStyle, maxWidth: '130px' }}>Producto / Modelo</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>Precio</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>Costo</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>Comisión</th>
@@ -154,7 +154,13 @@ const rankingModelos = Object.entries(porModelo)
                     <td style={tdStyle}>{v.id}</td>
                     <td style={tdStyle}>{new Date(v.fecha).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</td>
                     <td style={{ ...tdStyle, maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: '600' }}>{v.pacientes?.apellido_paciente} {v.pacientes?.nombres_paciente}</td>
-                    <td style={{ ...tdStyle, maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '12px', color: '#6b7280' }}>{v.itemsConSerie.map(d => d.numeros_serie?.productos?.producto).filter(Boolean).join(', ')}</td>
+                    <td style={{ ...tdStyle, maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '12px', color: '#6b7280' }}>
+  {v.itemsConSerie.map(d => {
+    const prod = d.numeros_serie?.productos?.producto || ''
+    const modelo = d.numeros_serie?.modelos?.modelo || ''
+    return modelo ? `${prod} ${modelo}` : prod
+  }).filter(Boolean).join(', ')}
+</td>
                     <td style={{ ...tdStyle, textAlign: 'right' }}>{fmtUSD(v.precioVentaUSD)}</td>
                     <td style={{ ...tdStyle, textAlign: 'right', color: '#dc2626' }}>{fmtUSD(v.costoUSD)}</td>
                     <td style={{ ...tdStyle, textAlign: 'right', color: v.comisionUSD > 0 ? '#f59e0b' : '#9ca3af', fontSize: '12px' }}>{v.comisionUSD > 0 ? fmtUSD(v.comisionUSD) : '-'}</td>
