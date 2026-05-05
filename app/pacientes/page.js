@@ -49,6 +49,8 @@ export default function Pacientes() {
   const [provinciasMap, setProvinciasMap] = useState({})
   const [visitaEditandoObs, setVisitaEditandoObs] = useState(null) // { id, texto }
 
+  const [dniOriginalEraCero, setDniOriginalEraCero] = useState(false)
+
 const [guardando, setGuardando] = useState(false)
   
   const [form, setForm] = useState({
@@ -97,6 +99,7 @@ const [guardando, setGuardando] = useState(false)
     setVisitas([]); setVentasPaciente([]); setTurnos([]); setHistorial([])
     setVentasConPagos([]); setReparaciones([])
     setForm({ apellido_paciente: '', nombres_paciente: '', dni: '', telefono: '', domicilio: '', localidad: '', provincia_id: '', mail: '', observaciones: '', obra_social_id: '' })
+  setDniOriginalEraCero(false)
   }
 
   async function guardarObsVisita(id, texto) {
@@ -144,6 +147,7 @@ const [guardando, setGuardando] = useState(false)
     cargarHistorial(p.id)
     cargarVentasConPagos(p.id)
     cargarReparaciones(p.id)
+    setDniOriginalEraCero(p.dni === '0') 
   }
 
   async function cargarPacientePorDni(dni) {
@@ -359,7 +363,7 @@ const [guardando, setGuardando] = useState(false)
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
   <Field label="DNI *">
     <input name="dni" placeholder="DNI" value={form.dni} onChange={handleChange}
-      disabled={pacienteId !== null && form.dni !== '0'}
+      disabled={pacienteId !== null && !dniOriginalEraCero}
       style={{ ...inputStyle, background: (pacienteId && form.dni !== '0') ? '#f9fafb' : 'white', color: (pacienteId && form.dni !== '0') ? '#9ca3af' : '#1a1a1a' }} />
     {pacienteId && form.dni === '0' && (
       <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px', fontWeight: '600' }}>
