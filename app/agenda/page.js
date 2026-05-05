@@ -691,29 +691,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
           </div>
         </div>
       )}
-  <div style={{ marginTop: '12px', padding: '14px', background: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
-    <div style={{ fontSize: '13px', fontWeight: '600', color: '#1d4ed8', marginBottom: '10px' }}>📅 Reprogramar turno</div>
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-      <div>
-        <label style={labelStyle}>Nueva fecha *</label>
-        <input type="date" value={formReprogramar.fecha} onChange={e => setFormReprogramar({ ...formReprogramar, fecha: e.target.value })} style={inputStyle} />
-      </div>
-      <div>
-        <label style={labelStyle}>Nueva hora *</label>
-        <select value={formReprogramar.hora} onChange={e => setFormReprogramar({ ...formReprogramar, hora: e.target.value })} style={inputStyle}>
-          <option value="">Seleccionar hora</option>
-          {generarHorarios().map(h => <option key={h} value={h}>{h}</option>)}
-        </select>
-      </div>
-    </div>
-    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-      <button onClick={reprogramarTurno} disabled={guardandoReprogramar} style={{ ...btnPrimario, fontSize: '13px', padding: '8px 14px', background: '#1d4ed8', opacity: guardandoReprogramar ? 0.7 : 1 }}>
-        {guardandoReprogramar ? 'Guardando...' : '💾 Confirmar'}
-      </button>
-      <button onClick={() => setReprogramando(false)} style={{ ...btnSecundario, fontSize: '13px', padding: '8px 14px' }}>Cancelar</button>
-    </div>
-  </div>
-)}
 
       {modalBloqueo && (
         <div style={overlay}>
