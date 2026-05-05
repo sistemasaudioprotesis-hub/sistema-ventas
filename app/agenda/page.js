@@ -107,7 +107,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
   }
 
   async function reprogramarTurno() {
-    console.log('reprogramando:', formReprogramar)
   if (guardandoReprogramar) return
   if (!formReprogramar.fecha || !formReprogramar.hora) { alert('Seleccioná fecha y hora'); return }
   setGuardandoReprogramar(true)
@@ -668,10 +667,26 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
               <div style={{ marginTop: '12px', padding: '14px', background: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
                 <div style={{ fontSize: '13px', fontWeight: '600', color: '#1d4ed8', marginBottom: '10px' }}>📅 Reprogramar turno</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={labelStyle}>Nueva fecha *</label>
-                    <input type="date" value={formReprogramar.fecha} onChange={e => setFormReprogramar({ ...formReprogramar, fecha: e.target.value })} style={inputStyle} />
-                  </div>
+                 <div>
+  <label style={labelStyle}>Nueva fecha *</label>
+  <div style={{ display: 'flex', gap: '6px' }}>
+    <select value={formReprogramar.fecha ? formReprogramar.fecha.split('-')[2] : ''}
+      onChange={e => { const f = formReprogramar.fecha || `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}-01`; const parts = f.split('-'); setFormReprogramar({ ...formReprogramar, fecha: `${parts[0]}-${parts[1]}-${e.target.value}` }) }} style={{ ...inputStyle, width: '70px', padding: '10px 6px' }}>
+      <option value="">Día</option>
+      {Array.from({length:31},(_,i)=>String(i+1).padStart(2,'0')).map(d=><option key={d} value={d}>{d}</option>)}
+    </select>
+    <select value={formReprogramar.fecha ? formReprogramar.fecha.split('-')[1] : ''}
+      onChange={e => { const f = formReprogramar.fecha || `${new Date().getFullYear()}-01-01`; const parts = f.split('-'); setFormReprogramar({ ...formReprogramar, fecha: `${parts[0]}-${e.target.value}-${parts[2]}` }) }} style={{ ...inputStyle, width: '100px', padding: '10px 6px' }}>
+      <option value="">Mes</option>
+      {['01','02','03','04','05','06','07','08','09','10','11','12'].map((m,i)=><option key={m} value={m}>{['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][i]}</option>)}
+    </select>
+    <select value={formReprogramar.fecha ? formReprogramar.fecha.split('-')[0] : ''}
+      onChange={e => { const f = formReprogramar.fecha || `2026-01-01`; const parts = f.split('-'); setFormReprogramar({ ...formReprogramar, fecha: `${e.target.value}-${parts[1]}-${parts[2]}` }) }} style={{ ...inputStyle, width: '85px', padding: '10px 6px' }}>
+      <option value="">Año</option>
+      {['2026','2027'].map(y=><option key={y} value={y}>{y}</option>)}
+    </select>
+  </div>
+</div>
                   <div>
                     <label style={labelStyle}>Nueva hora *</label>
                     <select value={formReprogramar.hora} onChange={e => setFormReprogramar({ ...formReprogramar, hora: e.target.value })} style={inputStyle}>
