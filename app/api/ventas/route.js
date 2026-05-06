@@ -21,7 +21,7 @@ export async function GET(request) {
   venta_detalle (
     id, precio_venta_pesos, precio_venta_usd, cantidad,
     numero_serie_id, producto_id,
-    numeros_serie (id, numero_serie, modelo_id, productos (id, producto)),
+    numeros_serie (id, numero_serie, modelo_id, productos (id, producto), modelos (modelo)),
     productos (id, producto)
   )
 `).order('fecha', { ascending: false })
