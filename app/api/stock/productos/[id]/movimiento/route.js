@@ -9,14 +9,21 @@ export async function POST(request, { params }) {
     const { tipo, cantidad, concepto } = await request.json()
     const supabase = createServerClient()
 
-    const { data: stockRow } = await supabase
-      .from('stock_general')
-      .select('id, cantidad')
-      .eq('producto_id', params.id)
-      .maybeSingle()
+    let { data: stockRow } = await supabase
+  .from('stock_general')
+  .select('id, cantidad')
+  .eq('producto_id', params.id)
+  .maybeSingle()
 
-    if (!stockRow) return Response.json({ error: 'Stock no encontrado' }, { status: 404 })
-
+if (!stockRow) {
+  const { data: nuevoStock } = await supabase
+    .from('stock_general')
+    .insert([{ producto_id: Number(params.id), cantidad: 0 }])
+    .select()
+    .single()
+  stockRow = nuevoStock
+}
+if (!stockRow) return Response.json({ error: 'Error al crear stock' }, { status: 500 })
     const nuevaCantidad = tipo === 'ingreso'
       ? stockRow.cantidad + cantidad
       : Math.max(0, stockRow.cantidad - cantidad)
