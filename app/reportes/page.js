@@ -516,7 +516,7 @@ if (verificando || !permitido) return null
                       <td style={tdStyle}>{v.id}</td><td style={tdStyle}>{fmtFecha(v.fecha)}</td>
                       <td style={{ ...tdStyle, fontWeight: '600' }}>{v.pacientes?.apellido_paciente} {v.pacientes?.nombres_paciente}</td>
                       <td style={tdStyle}>{v.pacientes?.dni}</td>
-                      <td style={tdStyle}>{v.venta_detalle?.map(d => <div key={d.id} style={{ fontSize: '12px', color: '#6b7280' }}>{d.numeros_serie?.productos?.producto || d.productos?.producto || '-'}{d.numeros_serie?.numero_serie ? ` (${d.numeros_serie.numero_serie})` : ''}</div>)}</td>
+                      <td style={tdStyle}>{v.venta_detalle?.map(d => <div key={d.id} style={{ fontSize: '12px', color: '#6b7280' }}>{d.numeros_serie?.productos?.producto || d.productos?.producto || '-'}{d.numeros_serie?.modelos?.modelo ? ` ${d.numeros_serie.modelos.modelo}` : ''}{d.numeros_serie?.numero_serie ? ` (${d.numeros_serie.numero_serie})` : ''}</div>)}</td>
         <td style={{ ...tdStyle, textAlign: 'right', color: '#16a34a', fontWeight: '600' }}>
   {hayFiltroProducto
     ? (() => { const t = (v.venta_detalle || []).reduce((a, d) => a + ((Number(d.precio_venta_pesos) || 0) * (Number(d.cantidad) || 1)), 0); return t > 0 ? fmt(t) : '-' })()
