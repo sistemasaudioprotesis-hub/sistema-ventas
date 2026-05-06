@@ -590,13 +590,14 @@ const [guardando, setGuardando] = useState(false)
                     </div>
                     <div style={{ marginBottom: '10px' }}>
                       {v.venta_detalle?.map(d => (
-                        <div key={d.id} style={{ fontSize: '13px', color: '#6b7280', marginBottom: '2px' }}>
-                          · {d.numeros_serie?.productos?.producto || d.productos?.producto || '-'}
-                          {d.numeros_serie?.numero_serie ? ` (${d.numeros_serie.numero_serie})` : ''}
-                          {d.precio_venta_pesos ? ` — ${fmt(d.precio_venta_pesos)}` : ''}
-                          {d.precio_venta_usd ? ` — ${fmtUSD(d.precio_venta_usd)}` : ''}
-                        </div>
-                      ))}
+  <div key={d.id} style={{ fontSize: '13px', color: '#6b7280', marginBottom: '2px' }}>
+    · {d.numeros_serie?.productos?.producto || d.productos?.producto || '-'}
+    {d.numeros_serie?.modelos?.modelo ? ` ${d.numeros_serie.modelos.modelo}` : ''}
+    {d.numeros_serie?.numero_serie ? ` (${d.numeros_serie.numero_serie})` : ''}
+    {d.precio_venta_pesos ? ` — ${fmt(d.precio_venta_pesos)}` : ''}
+    {d.precio_venta_usd ? ` — ${fmtUSD(d.precio_venta_usd)}` : ''}
+  </div>
+))}
                     </div>
                     {v.pagos.length > 0 && (
                       <div style={{ paddingTop: '10px', borderTop: '1px solid #e5e7eb' }}>
