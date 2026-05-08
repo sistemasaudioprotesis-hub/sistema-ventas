@@ -20,8 +20,8 @@ const ESTADOS = [
   { key: 'cancelada', label: 'Cancelada', color: '#6b7280', bg: '#f3f4f6', border: '#e5e7eb' },
 ]
 
-const ESTADOS_ACTIVOS = ['ingresada', 'en_evaluacion', 'esperando_respuesta', 'aprobada', 'en_reparacion', 'lista_entregar']
-const ESTADOS_CERRADOS = ['entregada', 'no_aprobada', 'no_aprobada_devuelta', 'cancelada']
+const ESTADOS_ACTIVOS = ['ingresada', 'en_evaluacion', 'esperando_respuesta', 'aprobada', 'en_reparacion', 'lista_entregar', 'no_aprobada']
+const ESTADOS_CERRADOS = ['entregada', 'no_aprobada_devuelta', 'cancelada']
 
 function getEstado(key) {
   return ESTADOS.find(e => e.key === key) || ESTADOS[0]
