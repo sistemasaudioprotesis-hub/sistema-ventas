@@ -19,7 +19,7 @@ export async function GET(request) {
         pacientes (apellido_paciente, nombres_paciente),
         venta_detalle (
           id, precio_venta_pesos, precio_venta_usd,
-          numeros_serie (id, costo_usd, modelo_id, modelos (modelo), productos (id, producto)),
+          numeros_serie (id, costo_usd, modelo_id, modelos (modelo), productos (id, producto, tipo_producto (tipo))),
           productos (id, producto)
         )
       `)
