@@ -39,13 +39,18 @@ export default function Rentabilidad() {
 
 const porTipo = {}
 ventasConAudifonos.forEach(v => {
+  const totalItems = v.itemsConSerie.length
   v.itemsConSerie.forEach(d => {
     const tipo = d.numeros_serie?.productos?.tipo_producto?.tipo || 'Sin tipo'
-    if (!porTipo[tipo]) porTipo[tipo] = { ventas: 0, precioUSD: 0, costoUSD: 0, gananciaNeta: 0 }
-    const ganItem = ((Number(d.precio_venta_usd) || 0) - (Number(d.numeros_serie?.costo_usd) || 0)) * v.factorPago
+    if (!porTipo[tipo]) porTipo[tipo] = { ventas: 0, precioUSD: 0, costoUSD: 0, comisionUSD: 0, gananciaNeta: 0 }
+    const precioItem = v.precioVentaUSD / totalItems
+    const costoItem = Number(d.numeros_serie?.costo_usd) || 0
+    const comisionItem = v.comisionUSD / totalItems
+    const ganItem = (precioItem - costoItem - comisionItem) * v.factorPago
     porTipo[tipo].ventas++
-    porTipo[tipo].precioUSD += Number(d.precio_venta_usd) || 0
-    porTipo[tipo].costoUSD += Number(d.numeros_serie?.costo_usd) || 0
+    porTipo[tipo].precioUSD += precioItem
+    porTipo[tipo].costoUSD += costoItem
+    porTipo[tipo].comisionUSD += comisionItem
     porTipo[tipo].gananciaNeta += ganItem
   })
 })
@@ -53,32 +58,41 @@ const rankingTipos = Object.entries(porTipo)
   .map(([nombre, data]) => ({ nombre, ...data, margen: data.precioUSD > 0 ? ((data.gananciaNeta / data.precioUSD) * 100).toFixed(1) : 0 }))
   .sort((a, b) => b.gananciaNeta - a.gananciaNeta)
 
-  
-  const porProducto = {}
-  ventasConAudifonos.forEach(v => {
-    v.itemsConSerie.forEach(d => {
-      const nombre = d.numeros_serie?.productos?.producto || 'Sin nombre'
-      if (!porProducto[nombre]) porProducto[nombre] = { ventas: 0, precioUSD: 0, costoUSD: 0, gananciaNeta: 0 }
-      const ganItem = ((Number(d.precio_venta_usd) || 0) - (Number(d.numeros_serie?.costo_usd) || 0)) * v.factorPago
-      porProducto[nombre].ventas++
-      porProducto[nombre].precioUSD += Number(d.precio_venta_usd) || 0
-      porProducto[nombre].costoUSD += Number(d.numeros_serie?.costo_usd) || 0
-      porProducto[nombre].gananciaNeta += ganItem
-    })
+const porProducto = {}
+ventasConAudifonos.forEach(v => {
+  const totalItems = v.itemsConSerie.length
+  v.itemsConSerie.forEach(d => {
+    const nombre = d.numeros_serie?.productos?.producto || 'Sin nombre'
+    if (!porProducto[nombre]) porProducto[nombre] = { ventas: 0, precioUSD: 0, costoUSD: 0, comisionUSD: 0, gananciaNeta: 0 }
+    const precioItem = v.precioVentaUSD / totalItems
+    const costoItem = Number(d.numeros_serie?.costo_usd) || 0
+    const comisionItem = v.comisionUSD / totalItems
+    const ganItem = (precioItem - costoItem - comisionItem) * v.factorPago
+    porProducto[nombre].ventas++
+    porProducto[nombre].precioUSD += precioItem
+    porProducto[nombre].costoUSD += costoItem
+    porProducto[nombre].comisionUSD += comisionItem
+    porProducto[nombre].gananciaNeta += ganItem
   })
-  const rankingProductos = Object.entries(porProducto)
-    .map(([nombre, data]) => ({ nombre, ...data, margen: data.precioUSD > 0 ? ((data.gananciaNeta / data.precioUSD) * 100).toFixed(1) : 0 }))
-    .sort((a, b) => b.gananciaNeta - a.gananciaNeta)
+})
+const rankingProductos = Object.entries(porProducto)
+  .map(([nombre, data]) => ({ nombre, ...data, margen: data.precioUSD > 0 ? ((data.gananciaNeta / data.precioUSD) * 100).toFixed(1) : 0 }))
+  .sort((a, b) => b.gananciaNeta - a.gananciaNeta)
 
 const porModelo = {}
 ventasConAudifonos.forEach(v => {
+  const totalItems = v.itemsConSerie.length
   v.itemsConSerie.forEach(d => {
     const modelo = d.numeros_serie?.modelos?.modelo || 'Sin modelo'
-    if (!porModelo[modelo]) porModelo[modelo] = { ventas: 0, precioUSD: 0, costoUSD: 0, gananciaNeta: 0 }
-    const ganItem = ((Number(d.precio_venta_usd) || 0) - (Number(d.numeros_serie?.costo_usd) || 0)) * v.factorPago
+    if (!porModelo[modelo]) porModelo[modelo] = { ventas: 0, precioUSD: 0, costoUSD: 0, comisionUSD: 0, gananciaNeta: 0 }
+    const precioItem = v.precioVentaUSD / totalItems
+    const costoItem = Number(d.numeros_serie?.costo_usd) || 0
+    const comisionItem = v.comisionUSD / totalItems
+    const ganItem = (precioItem - costoItem - comisionItem) * v.factorPago
     porModelo[modelo].ventas++
-    porModelo[modelo].precioUSD += Number(d.precio_venta_usd) || 0
-    porModelo[modelo].costoUSD += Number(d.numeros_serie?.costo_usd) || 0
+    porModelo[modelo].precioUSD += precioItem
+    porModelo[modelo].costoUSD += costoItem
+    porModelo[modelo].comisionUSD += comisionItem
     porModelo[modelo].gananciaNeta += ganItem
   })
 })
