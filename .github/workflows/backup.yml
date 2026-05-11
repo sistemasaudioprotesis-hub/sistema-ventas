@@ -46,11 +46,13 @@ jobs:
             'ventas_historial',
             'venta_detalle_historial',
             'pagos',
+            'pagos_historial',
             'turnos',
             'visitas',
             'visita_motivos',
             'productos',
             'tipo_producto',
+            'modelos',
             'numeros_serie',
             'stock_general',
             'stock_general_movimientos',
@@ -58,10 +60,16 @@ jobs:
             'obras_sociales',
             'formas_pago',
             'usuarios',
+            'permisos',
             'caja_movimientos',
+            'caja_movimientos_historial',
             'valor_dolar_bna',
             'provincias',
             'profesionales',
+            'derivadores',
+            'venta_derivadores',
+            'agenda_bloqueos',
+            'reparaciones_historial',
           ]
 
           const fecha = new Date().toISOString().split('T')[0]
@@ -90,7 +98,6 @@ jobs:
               }
             }
 
-            // Guardar resumen
             fs.writeFileSync(
               path.join(carpeta, '_resumen.json'),
               JSON.stringify({ fecha, tablas: resumen }, null, 2)
