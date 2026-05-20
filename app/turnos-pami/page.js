@@ -66,6 +66,8 @@ export default function TurnosPami() {
   const [formReprogramar, setFormReprogramar] = useState({ fecha: '', hora: '' })
   const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
 
+  const [turnosReporte, setTurnosReporte] = useState([])
+
   useEffect(() => { cargarMotivos() }, [])
   useEffect(() => { cargarTurnos() }, [semanaBase])
   useEffect(() => { cargarTurnosMes() }, [mesCalendario])
@@ -97,7 +99,7 @@ export default function TurnosPami() {
     setTurnosMes((data.turnos || []).filter(t => t.estado !== 'cancelado'))
   }
 
-  const [turnosReporte, setTurnosReporte] = useState([])
+  
   async function cargarReporte() {
     const res = await fetchConToken(`/api/turnos-pami?desde=${fechaReporte}&hasta=${fechaReporte}`)
     const data = await res.json()
