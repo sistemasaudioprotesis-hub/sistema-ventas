@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1,
+    "producto_id": 27,
+    "cantidad": 12,
+    "deposito_id": null,
+    "created_at": "2026-05-06T14:51:11.576373-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 4,
+    "producto_id": 24,
+    "cantidad": 0,
+    "deposito_id": null,
+    "created_at": "2026-05-08T16:13:47.142122-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 2,
+    "producto_id": 26,
+    "cantidad": 27,
+    "deposito_id": null,
+    "created_at": "2026-05-06T15:21:04.266573-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 3,
+    "producto_id": 25,
+    "cantidad": 109,
+    "deposito_id": null,
+    "created_at": "2026-05-06T16:26:02.687072-03:00",
+    "creado_por": null
+  }
+]
