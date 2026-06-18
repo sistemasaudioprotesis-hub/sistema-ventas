@@ -1,0 +1,1899 @@
+[
+  {
+    "id": 1,
+    "fecha": "2025-04-01T00:00:00-03:00",
+    "dolar_vendedor": 1315,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 2,
+    "fecha": "2025-04-03T00:00:00-03:00",
+    "dolar_vendedor": 1310,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 3,
+    "fecha": "2025-04-04T00:00:00-03:00",
+    "dolar_vendedor": 1310,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 4,
+    "fecha": "2025-04-07T00:00:00-03:00",
+    "dolar_vendedor": 1345,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 5,
+    "fecha": "2025-04-08T00:00:00-03:00",
+    "dolar_vendedor": 1360,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 6,
+    "fecha": "2025-04-09T00:00:00-03:00",
+    "dolar_vendedor": 1355,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 7,
+    "fecha": "2025-04-10T00:00:00-03:00",
+    "dolar_vendedor": 1365,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 8,
+    "fecha": "2025-04-11T00:00:00-03:00",
+    "dolar_vendedor": 1375,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 9,
+    "fecha": "2025-04-14T00:00:00-03:00",
+    "dolar_vendedor": 1285,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 10,
+    "fecha": "2025-04-15T00:00:00-03:00",
+    "dolar_vendedor": 1285,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 11,
+    "fecha": "2025-04-16T00:00:00-03:00",
+    "dolar_vendedor": 1250,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 12,
+    "fecha": "2025-04-21T00:00:00-03:00",
+    "dolar_vendedor": 1150,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 13,
+    "fecha": "2025-04-22T00:00:00-03:00",
+    "dolar_vendedor": 1185,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 14,
+    "fecha": "2025-04-23T00:00:00-03:00",
+    "dolar_vendedor": 1210,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 15,
+    "fecha": "2025-04-24T00:00:00-03:00",
+    "dolar_vendedor": 1225,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 16,
+    "fecha": "2025-04-28T00:00:00-03:00",
+    "dolar_vendedor": 1210,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 17,
+    "fecha": "2025-04-29T00:00:00-03:00",
+    "dolar_vendedor": 1205,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 18,
+    "fecha": "2025-04-30T00:00:00-03:00",
+    "dolar_vendedor": 1200,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 19,
+    "fecha": "2025-05-05T00:00:00-03:00",
+    "dolar_vendedor": 1185,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 20,
+    "fecha": "2025-05-06T00:00:00-03:00",
+    "dolar_vendedor": 1205,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 21,
+    "fecha": "2025-05-07T00:00:00-03:00",
+    "dolar_vendedor": 1190,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 22,
+    "fecha": "2025-05-08T00:00:00-03:00",
+    "dolar_vendedor": 1170,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 23,
+    "fecha": "2025-05-09T00:00:00-03:00",
+    "dolar_vendedor": 1165,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 24,
+    "fecha": "2025-05-12T00:00:00-03:00",
+    "dolar_vendedor": 1175,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 25,
+    "fecha": "2025-05-14T00:00:00-03:00",
+    "dolar_vendedor": 1160,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 26,
+    "fecha": "2025-05-15T00:00:00-03:00",
+    "dolar_vendedor": 1165,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 27,
+    "fecha": "2025-05-16T00:00:00-03:00",
+    "dolar_vendedor": 1165,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 28,
+    "fecha": "2025-05-19T00:00:00-03:00",
+    "dolar_vendedor": 1165,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 29,
+    "fecha": "2025-05-20T00:00:00-03:00",
+    "dolar_vendedor": 1165,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 30,
+    "fecha": "2025-05-21T00:00:00-03:00",
+    "dolar_vendedor": 1170,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 31,
+    "fecha": "2025-05-22T00:00:00-03:00",
+    "dolar_vendedor": 1175,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 32,
+    "fecha": "2025-05-23T00:00:00-03:00",
+    "dolar_vendedor": 1165,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 33,
+    "fecha": "2025-05-26T00:00:00-03:00",
+    "dolar_vendedor": 1170,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 34,
+    "fecha": "2025-05-27T00:00:00-03:00",
+    "dolar_vendedor": 1170,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 35,
+    "fecha": "2025-05-29T00:00:00-03:00",
+    "dolar_vendedor": 1170,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 36,
+    "fecha": "2025-05-30T00:00:00-03:00",
+    "dolar_vendedor": 1170,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 37,
+    "fecha": "2025-06-02T00:00:00-03:00",
+    "dolar_vendedor": 1165,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 38,
+    "fecha": "2025-06-03T00:00:00-03:00",
+    "dolar_vendedor": 1160,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 39,
+    "fecha": "2025-06-04T00:00:00-03:00",
+    "dolar_vendedor": 1180,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 40,
+    "fecha": "2025-06-05T00:00:00-03:00",
+    "dolar_vendedor": 1175,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 41,
+    "fecha": "2025-06-06T00:00:00-03:00",
+    "dolar_vendedor": 1165,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 42,
+    "fecha": "2025-06-09T00:00:00-03:00",
+    "dolar_vendedor": 1195,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 43,
+    "fecha": "2025-06-10T00:00:00-03:00",
+    "dolar_vendedor": 1190,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 44,
+    "fecha": "2025-06-11T00:00:00-03:00",
+    "dolar_vendedor": 1180,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 45,
+    "fecha": "2025-06-12T00:00:00-03:00",
+    "dolar_vendedor": 1185,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 46,
+    "fecha": "2025-06-13T00:00:00-03:00",
+    "dolar_vendedor": 1190,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 47,
+    "fecha": "2025-06-17T00:00:00-03:00",
+    "dolar_vendedor": 1200,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 48,
+    "fecha": "2025-06-18T00:00:00-03:00",
+    "dolar_vendedor": 1190,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 49,
+    "fecha": "2025-06-19T00:00:00-03:00",
+    "dolar_vendedor": 1200,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 50,
+    "fecha": "2025-06-23T00:00:00-03:00",
+    "dolar_vendedor": 1210,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 51,
+    "fecha": "2025-06-24T00:00:00-03:00",
+    "dolar_vendedor": 1215,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 52,
+    "fecha": "2025-06-25T00:00:00-03:00",
+    "dolar_vendedor": 1210,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 53,
+    "fecha": "2025-06-26T00:00:00-03:00",
+    "dolar_vendedor": 1210,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 54,
+    "fecha": "2025-06-27T00:00:00-03:00",
+    "dolar_vendedor": 1210,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 55,
+    "fecha": "2025-06-30T00:00:00-03:00",
+    "dolar_vendedor": 1215,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 56,
+    "fecha": "2025-07-01T00:00:00-03:00",
+    "dolar_vendedor": 1225,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 57,
+    "fecha": "2025-07-02T00:00:00-03:00",
+    "dolar_vendedor": 1240,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 58,
+    "fecha": "2025-07-03T00:00:00-03:00",
+    "dolar_vendedor": 1225,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 59,
+    "fecha": "2025-07-04T00:00:00-03:00",
+    "dolar_vendedor": 1230,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 60,
+    "fecha": "2025-07-07T00:00:00-03:00",
+    "dolar_vendedor": 1270,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 61,
+    "fecha": "2025-07-08T00:00:00-03:00",
+    "dolar_vendedor": 1280,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 62,
+    "fecha": "2025-07-10T00:00:00-03:00",
+    "dolar_vendedor": 1295,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 63,
+    "fecha": "2025-07-11T00:00:00-03:00",
+    "dolar_vendedor": 1300,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 64,
+    "fecha": "2025-07-14T00:00:00-03:00",
+    "dolar_vendedor": 1340,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 65,
+    "fecha": "2025-07-15T00:00:00-03:00",
+    "dolar_vendedor": 1330,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 66,
+    "fecha": "2025-07-16T00:00:00-03:00",
+    "dolar_vendedor": 1295,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 67,
+    "fecha": "2025-07-17T00:00:00-03:00",
+    "dolar_vendedor": 1295,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 68,
+    "fecha": "2025-07-18T00:00:00-03:00",
+    "dolar_vendedor": 1305,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 69,
+    "fecha": "2025-07-21T00:00:00-03:00",
+    "dolar_vendedor": 1325,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 70,
+    "fecha": "2025-07-22T00:00:00-03:00",
+    "dolar_vendedor": 1310,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 71,
+    "fecha": "2025-07-23T00:00:00-03:00",
+    "dolar_vendedor": 1310,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 72,
+    "fecha": "2025-07-25T00:00:00-03:00",
+    "dolar_vendedor": 1320,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 73,
+    "fecha": "2025-07-28T00:00:00-03:00",
+    "dolar_vendedor": 1315,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 74,
+    "fecha": "2025-07-29T00:00:00-03:00",
+    "dolar_vendedor": 1320,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 75,
+    "fecha": "2025-07-30T00:00:00-03:00",
+    "dolar_vendedor": 1320,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 76,
+    "fecha": "2025-07-31T00:00:00-03:00",
+    "dolar_vendedor": 1320,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 77,
+    "fecha": "2025-08-01T00:00:00-03:00",
+    "dolar_vendedor": 1335,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 78,
+    "fecha": "2025-08-04T00:00:00-03:00",
+    "dolar_vendedor": 1335,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 79,
+    "fecha": "2025-08-05T00:00:00-03:00",
+    "dolar_vendedor": 1330,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 80,
+    "fecha": "2025-08-06T00:00:00-03:00",
+    "dolar_vendedor": 1325,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 81,
+    "fecha": "2025-08-07T00:00:00-03:00",
+    "dolar_vendedor": 1320,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 82,
+    "fecha": "2025-08-08T00:00:00-03:00",
+    "dolar_vendedor": 1325,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 83,
+    "fecha": "2025-08-11T00:00:00-03:00",
+    "dolar_vendedor": 1325,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 84,
+    "fecha": "2025-08-12T00:00:00-03:00",
+    "dolar_vendedor": 1335,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 85,
+    "fecha": "2025-08-13T00:00:00-03:00",
+    "dolar_vendedor": 1330,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 86,
+    "fecha": "2025-08-14T00:00:00-03:00",
+    "dolar_vendedor": 1340,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 87,
+    "fecha": "2025-08-18T00:00:00-03:00",
+    "dolar_vendedor": 1340,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 88,
+    "fecha": "2025-08-19T00:00:00-03:00",
+    "dolar_vendedor": 1340,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 89,
+    "fecha": "2025-08-21T00:00:00-03:00",
+    "dolar_vendedor": 1340,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 90,
+    "fecha": "2025-08-22T00:00:00-03:00",
+    "dolar_vendedor": 1340,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 91,
+    "fecha": "2025-08-25T00:00:00-03:00",
+    "dolar_vendedor": 1345,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 92,
+    "fecha": "2025-08-26T00:00:00-03:00",
+    "dolar_vendedor": 1365,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 93,
+    "fecha": "2025-08-27T00:00:00-03:00",
+    "dolar_vendedor": 1365,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 94,
+    "fecha": "2025-08-29T00:00:00-03:00",
+    "dolar_vendedor": 1350,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 95,
+    "fecha": "2025-08-30T00:00:00-03:00",
+    "dolar_vendedor": 1320,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 96,
+    "fecha": "2025-09-01T00:00:00-03:00",
+    "dolar_vendedor": 1345,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 97,
+    "fecha": "2025-09-03T00:00:00-03:00",
+    "dolar_vendedor": 1360,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 98,
+    "fecha": "2025-09-05T00:00:00-03:00",
+    "dolar_vendedor": 1365,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 99,
+    "fecha": "2025-09-08T00:00:00-03:00",
+    "dolar_vendedor": 1370,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 100,
+    "fecha": "2025-09-09T00:00:00-03:00",
+    "dolar_vendedor": 1385,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 101,
+    "fecha": "2025-09-10T00:00:00-03:00",
+    "dolar_vendedor": 1385,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 102,
+    "fecha": "2025-09-11T00:00:00-03:00",
+    "dolar_vendedor": 1395,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 103,
+    "fecha": "2025-09-12T00:00:00-03:00",
+    "dolar_vendedor": 1410,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 104,
+    "fecha": "2025-09-15T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 105,
+    "fecha": "2025-09-16T00:00:00-03:00",
+    "dolar_vendedor": 1455,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 106,
+    "fecha": "2025-09-17T00:00:00-03:00",
+    "dolar_vendedor": 1455,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 107,
+    "fecha": "2025-09-18T00:00:00-03:00",
+    "dolar_vendedor": 1490,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 108,
+    "fecha": "2025-09-19T00:00:00-03:00",
+    "dolar_vendedor": 1510,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 109,
+    "fecha": "2025-09-22T00:00:00-03:00",
+    "dolar_vendedor": 1520,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 110,
+    "fecha": "2025-09-23T00:00:00-03:00",
+    "dolar_vendedor": 1475,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 111,
+    "fecha": "2025-09-24T00:00:00-03:00",
+    "dolar_vendedor": 1410,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 112,
+    "fecha": "2025-09-25T00:00:00-03:00",
+    "dolar_vendedor": 1405,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 113,
+    "fecha": "2025-09-26T00:00:00-03:00",
+    "dolar_vendedor": 1405,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 114,
+    "fecha": "2025-09-29T00:00:00-03:00",
+    "dolar_vendedor": 1440,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 115,
+    "fecha": "2025-09-30T00:00:00-03:00",
+    "dolar_vendedor": 1445,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 116,
+    "fecha": "2025-10-02T00:00:00-03:00",
+    "dolar_vendedor": 1475,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 117,
+    "fecha": "2025-10-03T00:00:00-03:00",
+    "dolar_vendedor": 1450,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 118,
+    "fecha": "2025-10-06T00:00:00-03:00",
+    "dolar_vendedor": 1450,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 119,
+    "fecha": "2025-10-08T00:00:00-03:00",
+    "dolar_vendedor": 1460,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 120,
+    "fecha": "2025-10-13T00:00:00-03:00",
+    "dolar_vendedor": 1475,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 121,
+    "fecha": "2025-10-14T00:00:00-03:00",
+    "dolar_vendedor": 1405,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 122,
+    "fecha": "2025-10-15T00:00:00-03:00",
+    "dolar_vendedor": 1420,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 123,
+    "fecha": "2025-10-16T00:00:00-03:00",
+    "dolar_vendedor": 1450,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 124,
+    "fecha": "2025-10-20T00:00:00-03:00",
+    "dolar_vendedor": 1485,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 125,
+    "fecha": "2025-10-21T00:00:00-03:00",
+    "dolar_vendedor": 1505,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 126,
+    "fecha": "2025-10-22T00:00:00-03:00",
+    "dolar_vendedor": 1545,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 127,
+    "fecha": "2025-10-23T00:00:00-03:00",
+    "dolar_vendedor": 1550,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 128,
+    "fecha": "2025-10-24T00:00:00-03:00",
+    "dolar_vendedor": 1525,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 129,
+    "fecha": "2025-10-27T00:00:00-03:00",
+    "dolar_vendedor": 1510,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 130,
+    "fecha": "2025-10-28T00:00:00-03:00",
+    "dolar_vendedor": 1465,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 131,
+    "fecha": "2025-10-29T00:00:00-03:00",
+    "dolar_vendedor": 1470,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 132,
+    "fecha": "2025-10-30T00:00:00-03:00",
+    "dolar_vendedor": 1460,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 133,
+    "fecha": "2025-10-31T00:00:00-03:00",
+    "dolar_vendedor": 1445,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 134,
+    "fecha": "2025-11-03T00:00:00-03:00",
+    "dolar_vendedor": 1445,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 135,
+    "fecha": "2025-11-04T00:00:00-03:00",
+    "dolar_vendedor": 1445,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 136,
+    "fecha": "2025-11-05T00:00:00-03:00",
+    "dolar_vendedor": 1460,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 137,
+    "fecha": "2025-11-06T00:00:00-03:00",
+    "dolar_vendedor": 1440,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 138,
+    "fecha": "2025-11-07T00:00:00-03:00",
+    "dolar_vendedor": 1435,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 139,
+    "fecha": "2025-11-10T00:00:00-03:00",
+    "dolar_vendedor": 1415,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 140,
+    "fecha": "2025-11-11T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 141,
+    "fecha": "2025-11-12T00:00:00-03:00",
+    "dolar_vendedor": 1440,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 142,
+    "fecha": "2025-11-13T00:00:00-03:00",
+    "dolar_vendedor": 1435,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 143,
+    "fecha": "2025-11-14T00:00:00-03:00",
+    "dolar_vendedor": 1435,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 144,
+    "fecha": "2025-11-17T00:00:00-03:00",
+    "dolar_vendedor": 1435,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 145,
+    "fecha": "2025-11-18T00:00:00-03:00",
+    "dolar_vendedor": 1430,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 146,
+    "fecha": "2025-11-19T00:00:00-03:00",
+    "dolar_vendedor": 1430,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 147,
+    "fecha": "2025-11-24T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 148,
+    "fecha": "2025-11-25T00:00:00-03:00",
+    "dolar_vendedor": 1460,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 149,
+    "fecha": "2025-11-27T00:00:00-03:00",
+    "dolar_vendedor": 1450,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 150,
+    "fecha": "2025-11-28T00:00:00-03:00",
+    "dolar_vendedor": 1440,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 151,
+    "fecha": "2025-12-01T00:00:00-03:00",
+    "dolar_vendedor": 1435,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 152,
+    "fecha": "2025-12-02T00:00:00-03:00",
+    "dolar_vendedor": 1445,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 153,
+    "fecha": "2025-12-03T00:00:00-03:00",
+    "dolar_vendedor": 1440,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 154,
+    "fecha": "2025-12-04T00:00:00-03:00",
+    "dolar_vendedor": 1430,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 155,
+    "fecha": "2025-12-08T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 156,
+    "fecha": "2025-12-09T00:00:00-03:00",
+    "dolar_vendedor": 1445,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 157,
+    "fecha": "2025-12-10T00:00:00-03:00",
+    "dolar_vendedor": 1450,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 158,
+    "fecha": "2025-12-12T00:00:00-03:00",
+    "dolar_vendedor": 1450,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 159,
+    "fecha": "2025-12-15T00:00:00-03:00",
+    "dolar_vendedor": 1445,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 160,
+    "fecha": "2025-12-16T00:00:00-03:00",
+    "dolar_vendedor": 1480,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 161,
+    "fecha": "2025-12-17T00:00:00-03:00",
+    "dolar_vendedor": 1500,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 162,
+    "fecha": "2025-12-18T00:00:00-03:00",
+    "dolar_vendedor": 1490,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 163,
+    "fecha": "2025-12-19T00:00:00-03:00",
+    "dolar_vendedor": 1485,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 164,
+    "fecha": "2025-12-22T00:00:00-03:00",
+    "dolar_vendedor": 1505,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 165,
+    "fecha": "2025-12-26T00:00:00-03:00",
+    "dolar_vendedor": 1505,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 166,
+    "fecha": "2025-12-29T00:00:00-03:00",
+    "dolar_vendedor": 1530,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 167,
+    "fecha": "2025-12-30T00:00:00-03:00",
+    "dolar_vendedor": 1540,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 168,
+    "fecha": "2025-12-31T00:00:00-03:00",
+    "dolar_vendedor": 1530,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 169,
+    "fecha": "2026-01-01T00:00:00-03:00",
+    "dolar_vendedor": 1530,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 170,
+    "fecha": "2026-01-02T00:00:00-03:00",
+    "dolar_vendedor": 1530,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 171,
+    "fecha": "2026-01-06T00:00:00-03:00",
+    "dolar_vendedor": 1515,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 172,
+    "fecha": "2026-01-07T00:00:00-03:00",
+    "dolar_vendedor": 1515,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 173,
+    "fecha": "2026-01-09T00:00:00-03:00",
+    "dolar_vendedor": 1505,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 174,
+    "fecha": "2026-01-12T00:00:00-03:00",
+    "dolar_vendedor": 1505,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 175,
+    "fecha": "2026-01-13T00:00:00-03:00",
+    "dolar_vendedor": 1505,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 176,
+    "fecha": "2026-01-15T00:00:00-03:00",
+    "dolar_vendedor": 1515,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 177,
+    "fecha": "2026-01-19T00:00:00-03:00",
+    "dolar_vendedor": 1505,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 178,
+    "fecha": "2026-01-20T00:00:00-03:00",
+    "dolar_vendedor": 1505,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 179,
+    "fecha": "2026-01-22T00:00:00-03:00",
+    "dolar_vendedor": 1500,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 180,
+    "fecha": "2026-01-23T00:00:00-03:00",
+    "dolar_vendedor": 1495,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 181,
+    "fecha": "2026-01-26T00:00:00-03:00",
+    "dolar_vendedor": 1485,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 182,
+    "fecha": "2026-01-28T00:00:00-03:00",
+    "dolar_vendedor": 1490,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 183,
+    "fecha": "2026-01-29T00:00:00-03:00",
+    "dolar_vendedor": 1485,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 184,
+    "fecha": "2026-01-30T00:00:00-03:00",
+    "dolar_vendedor": 1475,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 185,
+    "fecha": "2026-02-02T00:00:00-03:00",
+    "dolar_vendedor": 1470,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 186,
+    "fecha": "2026-02-04T00:00:00-03:00",
+    "dolar_vendedor": 1450,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 187,
+    "fecha": "2026-02-05T00:00:00-03:00",
+    "dolar_vendedor": 1455,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 188,
+    "fecha": "2026-02-06T00:00:00-03:00",
+    "dolar_vendedor": 1440,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 189,
+    "fecha": "2026-02-10T00:00:00-03:00",
+    "dolar_vendedor": 1430,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 190,
+    "fecha": "2026-02-12T00:00:00-03:00",
+    "dolar_vendedor": 1435,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 191,
+    "fecha": "2026-02-13T00:00:00-03:00",
+    "dolar_vendedor": 1440,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 192,
+    "fecha": "2026-02-17T00:00:00-03:00",
+    "dolar_vendedor": 1440,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 193,
+    "fecha": "2026-02-19T00:00:00-03:00",
+    "dolar_vendedor": 1435,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 194,
+    "fecha": "2026-02-20T00:00:00-03:00",
+    "dolar_vendedor": 1430,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 195,
+    "fecha": "2026-02-23T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 196,
+    "fecha": "2026-02-25T00:00:00-03:00",
+    "dolar_vendedor": 1430,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 197,
+    "fecha": "2026-02-26T00:00:00-03:00",
+    "dolar_vendedor": 1445,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 198,
+    "fecha": "2026-02-27T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 199,
+    "fecha": "2026-03-03T00:00:00-03:00",
+    "dolar_vendedor": 1420,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 200,
+    "fecha": "2026-03-04T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 201,
+    "fecha": "2026-03-05T00:00:00-03:00",
+    "dolar_vendedor": 1400,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 202,
+    "fecha": "2026-03-06T00:00:00-03:00",
+    "dolar_vendedor": 1415,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 203,
+    "fecha": "2026-03-10T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 204,
+    "fecha": "2026-03-11T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 205,
+    "fecha": "2026-03-12T00:00:00-03:00",
+    "dolar_vendedor": 1420,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 206,
+    "fecha": "2026-03-16T00:00:00-03:00",
+    "dolar_vendedor": 1415,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 207,
+    "fecha": "2026-03-17T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 208,
+    "fecha": "2026-03-18T00:00:00-03:00",
+    "dolar_vendedor": 1435,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 209,
+    "fecha": "2026-03-19T00:00:00-03:00",
+    "dolar_vendedor": 1430,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 210,
+    "fecha": "2026-03-24T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 211,
+    "fecha": "2026-03-25T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 212,
+    "fecha": "2026-03-27T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 213,
+    "fecha": "2026-03-30T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 214,
+    "fecha": "2026-03-31T00:00:00-03:00",
+    "dolar_vendedor": 1410,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 215,
+    "fecha": "2026-04-03T00:00:00-03:00",
+    "dolar_vendedor": 1405,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 216,
+    "fecha": "2026-04-06T00:00:00-03:00",
+    "dolar_vendedor": 1400,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 217,
+    "fecha": "2026-04-07T00:00:00-03:00",
+    "dolar_vendedor": 1395,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 218,
+    "fecha": "2026-04-09T00:00:00-03:00",
+    "dolar_vendedor": 1390,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 219,
+    "fecha": "2026-04-10T00:00:00-03:00",
+    "dolar_vendedor": 1390,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 220,
+    "fecha": "2026-04-13T00:00:00-03:00",
+    "dolar_vendedor": 1400,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 221,
+    "fecha": "2026-04-15T00:00:00-03:00",
+    "dolar_vendedor": 1410,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 222,
+    "fecha": "2026-04-16T00:00:00-03:00",
+    "dolar_vendedor": 1415,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 223,
+    "fecha": "2026-04-20T00:00:00-03:00",
+    "dolar_vendedor": 1410,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 224,
+    "fecha": "2026-04-21T00:00:00-03:00",
+    "dolar_vendedor": 1410,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 225,
+    "fecha": "2026-04-22T00:00:00-03:00",
+    "dolar_vendedor": 1410,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 226,
+    "fecha": "2026-04-23T00:00:00-03:00",
+    "dolar_vendedor": 1415,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 227,
+    "fecha": "2026-04-24T00:00:00-03:00",
+    "dolar_vendedor": 1420,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 228,
+    "fecha": "2026-04-27T00:00:00-03:00",
+    "dolar_vendedor": 1420,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 229,
+    "fecha": "2026-04-28T00:00:00-03:00",
+    "dolar_vendedor": 1430,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 230,
+    "fecha": "2026-04-29T00:00:00-03:00",
+    "dolar_vendedor": 1430,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 231,
+    "fecha": "2026-05-01T00:00:00-03:00",
+    "dolar_vendedor": 1400,
+    "created_at": "2026-05-02T22:55:53.450016-03:00",
+    "creado_por": null
+  },
+  {
+    "id": 232,
+    "fecha": "2026-05-03T00:00:00-03:00",
+    "dolar_vendedor": 1400,
+    "created_at": "2026-05-02T22:56:55.246277-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 233,
+    "fecha": "2026-05-04T00:00:00-03:00",
+    "dolar_vendedor": 1400,
+    "created_at": "2026-05-04T09:13:40.893958-03:00",
+    "creado_por": 5
+  },
+  {
+    "id": 234,
+    "fecha": "2026-05-05T00:00:00-03:00",
+    "dolar_vendedor": 1405,
+    "created_at": "2026-05-04T22:22:22.702616-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 235,
+    "fecha": "2026-05-06T00:00:00-03:00",
+    "dolar_vendedor": 1410,
+    "created_at": "2026-05-06T08:40:58.461704-03:00",
+    "creado_por": 5
+  },
+  {
+    "id": 236,
+    "fecha": "2026-05-07T00:00:00-03:00",
+    "dolar_vendedor": 1400,
+    "created_at": "2026-05-07T10:26:15.41837-03:00",
+    "creado_por": 4
+  },
+  {
+    "id": 237,
+    "fecha": "2026-05-08T00:00:00-03:00",
+    "dolar_vendedor": 1400,
+    "created_at": "2026-05-07T22:13:21.957928-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 238,
+    "fecha": "2026-05-09T00:00:00-03:00",
+    "dolar_vendedor": 1400,
+    "created_at": "2026-05-09T11:29:59.970914-03:00",
+    "creado_por": 5
+  },
+  {
+    "id": 239,
+    "fecha": "2026-05-10T00:00:00-03:00",
+    "dolar_vendedor": 1400,
+    "created_at": "2026-05-10T10:52:52.164234-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 240,
+    "fecha": "2026-05-11T00:00:00-03:00",
+    "dolar_vendedor": 1400,
+    "created_at": "2026-05-11T09:34:20.862948-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 241,
+    "fecha": "2026-05-12T00:00:00-03:00",
+    "dolar_vendedor": 1405,
+    "created_at": "2026-05-12T09:14:03.505428-03:00",
+    "creado_por": 4
+  },
+  {
+    "id": 242,
+    "fecha": "2026-05-13T00:00:00-03:00",
+    "dolar_vendedor": 1415,
+    "created_at": "2026-05-13T08:14:46.868505-03:00",
+    "creado_por": 5
+  },
+  {
+    "id": 243,
+    "fecha": "2026-05-14T00:00:00-03:00",
+    "dolar_vendedor": 1420,
+    "created_at": "2026-05-14T10:47:49.997415-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 244,
+    "fecha": "2026-05-15T00:00:00-03:00",
+    "dolar_vendedor": 1420,
+    "created_at": "2026-05-15T08:15:23.881208-03:00",
+    "creado_por": 6
+  },
+  {
+    "id": 245,
+    "fecha": "2026-05-16T00:00:00-03:00",
+    "dolar_vendedor": 1415,
+    "created_at": "2026-05-16T12:42:47.679552-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 246,
+    "fecha": "2026-05-18T00:00:00-03:00",
+    "dolar_vendedor": 1410,
+    "created_at": "2026-05-18T12:17:31.265953-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 247,
+    "fecha": "2026-05-19T00:00:00-03:00",
+    "dolar_vendedor": 1420,
+    "created_at": "2026-05-19T09:11:48.976014-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 248,
+    "fecha": "2026-05-20T00:00:00-03:00",
+    "dolar_vendedor": 1430,
+    "created_at": "2026-05-20T15:19:56.554497-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 249,
+    "fecha": "2026-05-21T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-21T15:35:39.824902-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 250,
+    "fecha": "2026-05-22T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-22T15:10:53.146193-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 251,
+    "fecha": "2026-05-23T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-23T12:05:17.386446-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 252,
+    "fecha": "2026-05-25T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-25T16:29:41.7535-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 253,
+    "fecha": "2026-05-26T00:00:00-03:00",
+    "dolar_vendedor": 1425,
+    "created_at": "2026-05-26T09:47:29.874343-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 254,
+    "fecha": "2026-05-27T00:00:00-03:00",
+    "dolar_vendedor": 1440,
+    "created_at": "2026-05-27T08:40:32.404621-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 255,
+    "fecha": "2026-05-28T00:00:00-03:00",
+    "dolar_vendedor": 1440,
+    "created_at": "2026-05-28T09:20:26.472081-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 256,
+    "fecha": "2026-05-29T00:00:00-03:00",
+    "dolar_vendedor": 1430,
+    "created_at": "2026-05-29T10:17:13.819645-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 257,
+    "fecha": "2026-05-30T00:00:00-03:00",
+    "dolar_vendedor": 1430,
+    "created_at": "2026-05-30T11:50:58.396569-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 258,
+    "fecha": "2026-05-31T00:00:00-03:00",
+    "dolar_vendedor": 1430,
+    "created_at": "2026-05-31T18:19:29.302182-03:00",
+    "creado_por": 5
+  },
+  {
+    "id": 259,
+    "fecha": "2026-06-01T00:00:00-03:00",
+    "dolar_vendedor": 1435,
+    "created_at": "2026-06-01T16:12:41.388432-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 260,
+    "fecha": "2026-06-02T00:00:00-03:00",
+    "dolar_vendedor": 1435,
+    "created_at": "2026-06-02T11:00:01.485045-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 261,
+    "fecha": "2026-06-03T00:00:00-03:00",
+    "dolar_vendedor": 1435,
+    "created_at": "2026-06-03T12:49:11.629026-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 262,
+    "fecha": "2026-06-04T00:00:00-03:00",
+    "dolar_vendedor": 1430,
+    "created_at": "2026-06-04T10:16:12.540133-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 263,
+    "fecha": "2026-06-05T00:00:00-03:00",
+    "dolar_vendedor": 1430,
+    "created_at": "2026-06-05T14:02:11.107368-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 264,
+    "fecha": "2026-06-06T00:00:00-03:00",
+    "dolar_vendedor": 1435,
+    "created_at": "2026-06-06T10:50:57.277579-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 265,
+    "fecha": "2026-06-08T00:00:00-03:00",
+    "dolar_vendedor": 1435,
+    "created_at": "2026-06-08T14:06:57.255532-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 266,
+    "fecha": "2026-06-09T00:00:00-03:00",
+    "dolar_vendedor": 1445,
+    "created_at": "2026-06-09T09:09:12.862012-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 267,
+    "fecha": "2026-06-10T00:00:00-03:00",
+    "dolar_vendedor": 1460,
+    "created_at": "2026-06-09T21:23:31.697495-03:00",
+    "creado_por": 5
+  },
+  {
+    "id": 268,
+    "fecha": "2026-06-11T00:00:00-03:00",
+    "dolar_vendedor": 1450,
+    "created_at": "2026-06-11T17:23:14.277995-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 269,
+    "fecha": "2026-06-12T00:00:00-03:00",
+    "dolar_vendedor": 1450,
+    "created_at": "2026-06-12T09:35:42.495401-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 270,
+    "fecha": "2026-06-16T00:00:00-03:00",
+    "dolar_vendedor": 1460,
+    "created_at": "2026-06-16T09:32:10.130075-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 271,
+    "fecha": "2026-06-17T00:00:00-03:00",
+    "dolar_vendedor": 1470,
+    "created_at": "2026-06-17T08:19:54.923452-03:00",
+    "creado_por": 5
+  }
+]
