@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "nombre": "LUCIANO ALVAREZ",
+    "especialidad": "AUDIOLOGÍA",
+    "activo": true,
+    "created_at": "2026-04-22T11:47:38.057731-03:00",
+    "creado_por": 1,
+    "tipo": "personal"
+  },
+  {
+    "id": 2,
+    "nombre": "HERNAN PIEROBON",
+    "especialidad": "AUDIOLOGÍA",
+    "activo": true,
+    "created_at": "2026-04-22T11:47:38.057731-03:00",
+    "creado_por": 1,
+    "tipo": "personal"
+  },
+  {
+    "id": 3,
+    "nombre": "IOMA MARCELA FERNANDEZ",
+    "especialidad": "OBRA SOCIAL",
+    "activo": true,
+    "created_at": "2026-04-22T11:56:30.234472-03:00",
+    "creado_por": 1,
+    "tipo": "agenda_os"
+  },
+  {
+    "id": 4,
+    "nombre": "OSDE MARINA AGUIRRE",
+    "especialidad": "OBRA SOCIAL",
+    "activo": true,
+    "created_at": "2026-05-03T17:06:36.02417-03:00",
+    "creado_por": 1,
+    "tipo": "agenda_os"
+  }
+]
