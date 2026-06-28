@@ -1,0 +1,818 @@
+[
+  {
+    "id": 1,
+    "visita_id": 23,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-05-06T12:15:31.859698-03:00"
+  },
+  {
+    "id": 2,
+    "visita_id": 3,
+    "estado": "esperando_respuesta",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-05-06T12:19:56.060751-03:00"
+  },
+  {
+    "id": 3,
+    "visita_id": 22,
+    "estado": "esperando_respuesta",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-05-06T12:22:59.318775-03:00"
+  },
+  {
+    "id": 4,
+    "visita_id": 21,
+    "estado": "esperando_respuesta",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-05-06T12:23:11.447468-03:00"
+  },
+  {
+    "id": 5,
+    "visita_id": 22,
+    "estado": "aprobada",
+    "observaciones": "Cambio desde: esperando_respuesta",
+    "creado_por": 4,
+    "created_at": "2026-05-06T14:14:21.538666-03:00"
+  },
+  {
+    "id": 6,
+    "visita_id": 21,
+    "estado": "aprobada",
+    "observaciones": "Cambio desde: esperando_respuesta",
+    "creado_por": 4,
+    "created_at": "2026-05-06T14:14:26.635919-03:00"
+  },
+  {
+    "id": 7,
+    "visita_id": 24,
+    "estado": "cancelada",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 4,
+    "created_at": "2026-05-06T15:37:14.902607-03:00"
+  },
+  {
+    "id": 8,
+    "visita_id": 3,
+    "estado": "no_aprobada",
+    "observaciones": "Cambio desde: esperando_respuesta",
+    "creado_por": 4,
+    "created_at": "2026-05-07T12:48:00.369167-03:00"
+  },
+  {
+    "id": 9,
+    "visita_id": 31,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 7,
+    "created_at": "2026-05-11T11:35:12.938683-03:00"
+  },
+  {
+    "id": 10,
+    "visita_id": 3,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: no_aprobada",
+    "creado_por": 7,
+    "created_at": "2026-05-11T11:35:23.182661-03:00"
+  },
+  {
+    "id": 11,
+    "visita_id": 15,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-05-13T07:17:11.93631-03:00"
+  },
+  {
+    "id": 12,
+    "visita_id": 21,
+    "estado": "en_reparacion",
+    "observaciones": "Cambio desde: aprobada",
+    "creado_por": 5,
+    "created_at": "2026-05-13T07:17:38.572224-03:00"
+  },
+  {
+    "id": 13,
+    "visita_id": 22,
+    "estado": "en_reparacion",
+    "observaciones": "Cambio desde: aprobada",
+    "creado_por": 5,
+    "created_at": "2026-05-13T07:17:52.404194-03:00"
+  },
+  {
+    "id": 14,
+    "visita_id": 34,
+    "estado": "esperando_respuesta",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-05-13T16:52:42.730111-03:00"
+  },
+  {
+    "id": 15,
+    "visita_id": 41,
+    "estado": "esperando_respuesta",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-05-13T16:56:20.044684-03:00"
+  },
+  {
+    "id": 16,
+    "visita_id": 35,
+    "estado": "esperando_respuesta",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-05-13T16:58:25.28922-03:00"
+  },
+  {
+    "id": 17,
+    "visita_id": 40,
+    "estado": "en_proceso",
+    "observaciones": "Cambio desde: ingresado",
+    "creado_por": 5,
+    "created_at": "2026-05-13T22:54:19.226121-03:00"
+  },
+  {
+    "id": 18,
+    "visita_id": 34,
+    "estado": "aprobada",
+    "observaciones": "Cambio desde: esperando_respuesta",
+    "creado_por": 7,
+    "created_at": "2026-05-15T10:05:48.009928-03:00"
+  },
+  {
+    "id": 19,
+    "visita_id": 8,
+    "estado": "cancelado",
+    "observaciones": "Cambio desde: ingresado",
+    "creado_por": 7,
+    "created_at": "2026-05-16T10:22:24.531426-03:00"
+  },
+  {
+    "id": 20,
+    "visita_id": 40,
+    "estado": "entregado",
+    "observaciones": "Cambio desde: en_proceso",
+    "creado_por": 7,
+    "created_at": "2026-05-16T10:22:38.1176-03:00"
+  },
+  {
+    "id": 21,
+    "visita_id": 41,
+    "estado": "no_aprobada",
+    "observaciones": "Cambio desde: esperando_respuesta",
+    "creado_por": 7,
+    "created_at": "2026-05-18T09:39:44.777351-03:00"
+  },
+  {
+    "id": 22,
+    "visita_id": 35,
+    "estado": "aprobada",
+    "observaciones": "Cambio desde: esperando_respuesta",
+    "creado_por": 7,
+    "created_at": "2026-05-18T09:51:19.652388-03:00"
+  },
+  {
+    "id": 23,
+    "visita_id": 15,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-05-19T13:53:24.953433-03:00"
+  },
+  {
+    "id": 24,
+    "visita_id": 22,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: en_reparacion",
+    "creado_por": 5,
+    "created_at": "2026-05-20T15:35:02.845771-03:00"
+  },
+  {
+    "id": 25,
+    "visita_id": 21,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: en_reparacion",
+    "creado_por": 5,
+    "created_at": "2026-05-20T15:35:12.314481-03:00"
+  },
+  {
+    "id": 26,
+    "visita_id": 34,
+    "estado": "en_reparacion",
+    "observaciones": "Cambio desde: aprobada",
+    "creado_por": 5,
+    "created_at": "2026-05-20T15:35:28.189739-03:00"
+  },
+  {
+    "id": 27,
+    "visita_id": 35,
+    "estado": "en_reparacion",
+    "observaciones": "Cambio desde: aprobada",
+    "creado_por": 5,
+    "created_at": "2026-05-20T15:35:35.117325-03:00"
+  },
+  {
+    "id": 28,
+    "visita_id": 41,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: no_aprobada",
+    "creado_por": 5,
+    "created_at": "2026-05-20T15:36:21.492704-03:00"
+  },
+  {
+    "id": 29,
+    "visita_id": 35,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: en_reparacion",
+    "creado_por": 5,
+    "created_at": "2026-05-21T10:22:35.476503-03:00"
+  },
+  {
+    "id": 30,
+    "visita_id": 34,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: en_reparacion",
+    "creado_por": 5,
+    "created_at": "2026-05-21T10:28:22.952429-03:00"
+  },
+  {
+    "id": 31,
+    "visita_id": 21,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-05-21T16:04:16.399313-03:00"
+  },
+  {
+    "id": 32,
+    "visita_id": 22,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-05-21T16:04:24.740588-03:00"
+  },
+  {
+    "id": 33,
+    "visita_id": 75,
+    "estado": "listo_entregar",
+    "observaciones": "Cambio desde: ingresado",
+    "creado_por": 9,
+    "created_at": "2026-05-21T16:07:08.595517-03:00"
+  },
+  {
+    "id": 34,
+    "visita_id": 74,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-05-22T13:14:28.582492-03:00"
+  },
+  {
+    "id": 35,
+    "visita_id": 35,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-05-22T15:10:14.147277-03:00"
+  },
+  {
+    "id": 36,
+    "visita_id": 74,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-05-26T16:47:34.287692-03:00"
+  },
+  {
+    "id": 37,
+    "visita_id": 75,
+    "estado": "entregado",
+    "observaciones": "Cambio desde: listo_entregar",
+    "creado_por": 7,
+    "created_at": "2026-05-26T16:47:44.051306-03:00"
+  },
+  {
+    "id": 38,
+    "visita_id": 99,
+    "estado": "en_evaluacion",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-05-27T07:58:04.728185-03:00"
+  },
+  {
+    "id": 39,
+    "visita_id": 99,
+    "estado": "esperando_respuesta",
+    "observaciones": "Cambio desde: en_evaluacion",
+    "creado_por": 5,
+    "created_at": "2026-05-27T07:58:11.443557-03:00"
+  },
+  {
+    "id": 40,
+    "visita_id": 99,
+    "estado": "aprobada",
+    "observaciones": "Cambio desde: esperando_respuesta",
+    "creado_por": 7,
+    "created_at": "2026-05-27T11:25:36.565657-03:00"
+  },
+  {
+    "id": 41,
+    "visita_id": 104,
+    "estado": "listo_entregar",
+    "observaciones": "Cambio desde: ingresado",
+    "creado_por": 9,
+    "created_at": "2026-05-28T15:05:38.063695-03:00"
+  },
+  {
+    "id": 42,
+    "visita_id": 97,
+    "estado": "listo_entregar",
+    "observaciones": "Cambio desde: ingresado",
+    "creado_por": 9,
+    "created_at": "2026-05-28T15:05:44.878112-03:00"
+  },
+  {
+    "id": 43,
+    "visita_id": 99,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: aprobada",
+    "creado_por": 5,
+    "created_at": "2026-05-30T12:11:54.913122-03:00"
+  },
+  {
+    "id": 44,
+    "visita_id": 128,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-03T14:45:34.47586-03:00"
+  },
+  {
+    "id": 45,
+    "visita_id": 122,
+    "estado": "esperando_respuesta",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-03T14:47:14.13607-03:00"
+  },
+  {
+    "id": 46,
+    "visita_id": 129,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-03T14:49:30.166009-03:00"
+  },
+  {
+    "id": 47,
+    "visita_id": 122,
+    "estado": "aprobada",
+    "observaciones": "Cambio desde: esperando_respuesta",
+    "creado_por": 7,
+    "created_at": "2026-06-03T14:59:23.006157-03:00"
+  },
+  {
+    "id": 48,
+    "visita_id": 41,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-04T10:50:35.358346-03:00"
+  },
+  {
+    "id": 49,
+    "visita_id": 141,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-04T14:39:50.778881-03:00"
+  },
+  {
+    "id": 50,
+    "visita_id": 122,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: aprobada",
+    "creado_por": 5,
+    "created_at": "2026-06-04T14:41:56.781347-03:00"
+  },
+  {
+    "id": 51,
+    "visita_id": 123,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-04T14:48:47.843741-03:00"
+  },
+  {
+    "id": 52,
+    "visita_id": 141,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-04T16:58:22.201423-03:00"
+  },
+  {
+    "id": 53,
+    "visita_id": 133,
+    "estado": "listo_entregar",
+    "observaciones": "Cambio desde: ingresado",
+    "creado_por": 9,
+    "created_at": "2026-06-05T08:18:57.319878-03:00"
+  },
+  {
+    "id": 54,
+    "visita_id": 123,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-05T09:36:29.523367-03:00"
+  },
+  {
+    "id": 55,
+    "visita_id": 149,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 7,
+    "created_at": "2026-06-05T11:20:57.34444-03:00"
+  },
+  {
+    "id": 56,
+    "visita_id": 149,
+    "estado": "aprobada",
+    "observaciones": "Cambio desde: entregada",
+    "creado_por": 7,
+    "created_at": "2026-06-05T11:21:54.221189-03:00"
+  },
+  {
+    "id": 57,
+    "visita_id": 34,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-06T12:11:35.377519-03:00"
+  },
+  {
+    "id": 58,
+    "visita_id": 3,
+    "estado": "cancelada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-06T12:18:11.321276-03:00"
+  },
+  {
+    "id": 59,
+    "visita_id": 23,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-06T12:18:17.620487-03:00"
+  },
+  {
+    "id": 60,
+    "visita_id": 97,
+    "estado": "entregado",
+    "observaciones": "Cambio desde: listo_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-09T09:23:40.699819-03:00"
+  },
+  {
+    "id": 61,
+    "visita_id": 104,
+    "estado": "entregado",
+    "observaciones": "Cambio desde: listo_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-09T09:24:06.422572-03:00"
+  },
+  {
+    "id": 62,
+    "visita_id": 154,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-11T12:28:45.69658-03:00"
+  },
+  {
+    "id": 63,
+    "visita_id": 148,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-11T12:29:38.104033-03:00"
+  },
+  {
+    "id": 64,
+    "visita_id": 149,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: aprobada",
+    "creado_por": 5,
+    "created_at": "2026-06-11T12:30:02.204132-03:00"
+  },
+  {
+    "id": 65,
+    "visita_id": 142,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-11T12:30:45.875458-03:00"
+  },
+  {
+    "id": 66,
+    "visita_id": 149,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-12T10:40:05.885282-03:00"
+  },
+  {
+    "id": 67,
+    "visita_id": 128,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-12T10:40:15.380521-03:00"
+  },
+  {
+    "id": 68,
+    "visita_id": 148,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-12T10:47:19.906613-03:00"
+  },
+  {
+    "id": 69,
+    "visita_id": 169,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-13T10:27:25.362668-03:00"
+  },
+  {
+    "id": 70,
+    "visita_id": 180,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-13T10:38:56.696864-03:00"
+  },
+  {
+    "id": 71,
+    "visita_id": 166,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-13T10:47:02.483324-03:00"
+  },
+  {
+    "id": 72,
+    "visita_id": 194,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-13T10:50:55.249084-03:00"
+  },
+  {
+    "id": 73,
+    "visita_id": 154,
+    "estado": "no_aprobada_devuelta",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-13T12:30:39.250237-03:00"
+  },
+  {
+    "id": 74,
+    "visita_id": 169,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-13T12:31:21.607892-03:00"
+  },
+  {
+    "id": 75,
+    "visita_id": 142,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-16T16:10:14.326734-03:00"
+  },
+  {
+    "id": 76,
+    "visita_id": 204,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-17T07:43:10.661898-03:00"
+  },
+  {
+    "id": 77,
+    "visita_id": 205,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-17T07:49:37.997545-03:00"
+  },
+  {
+    "id": 78,
+    "visita_id": 184,
+    "estado": "esperando_respuesta",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-17T07:53:28.325228-03:00"
+  },
+  {
+    "id": 79,
+    "visita_id": 185,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-17T08:06:44.010064-03:00"
+  },
+  {
+    "id": 80,
+    "visita_id": 206,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-17T08:14:05.81603-03:00"
+  },
+  {
+    "id": 81,
+    "visita_id": 194,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-17T10:01:05.088353-03:00"
+  },
+  {
+    "id": 82,
+    "visita_id": 99,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-17T11:04:18.255108-03:00"
+  },
+  {
+    "id": 83,
+    "visita_id": 167,
+    "estado": "esperando_respuesta",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-18T07:25:31.815248-03:00"
+  },
+  {
+    "id": 84,
+    "visita_id": 133,
+    "estado": "entregado",
+    "observaciones": "Cambio desde: listo_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-19T16:24:16.138038-03:00"
+  },
+  {
+    "id": 85,
+    "visita_id": 167,
+    "estado": "aprobada",
+    "observaciones": "Cambio desde: esperando_respuesta",
+    "creado_por": 7,
+    "created_at": "2026-06-20T10:45:25.653081-03:00"
+  },
+  {
+    "id": 86,
+    "visita_id": 184,
+    "estado": "aprobada",
+    "observaciones": "Cambio desde: esperando_respuesta",
+    "creado_por": 7,
+    "created_at": "2026-06-22T08:53:18.07221-03:00"
+  },
+  {
+    "id": 87,
+    "visita_id": 123,
+    "estado": "aprobada",
+    "observaciones": "Cambio desde: entregada",
+    "creado_por": 7,
+    "created_at": "2026-06-22T09:10:10.641143-03:00"
+  },
+  {
+    "id": 88,
+    "visita_id": 205,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-23T16:43:43.522021-03:00"
+  },
+  {
+    "id": 89,
+    "visita_id": 180,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-24T09:00:32.527151-03:00"
+  },
+  {
+    "id": 90,
+    "visita_id": 204,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-24T09:00:44.131794-03:00"
+  },
+  {
+    "id": 91,
+    "visita_id": 123,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: aprobada",
+    "creado_por": 7,
+    "created_at": "2026-06-24T09:06:18.72932-03:00"
+  },
+  {
+    "id": 92,
+    "visita_id": 238,
+    "estado": "esperando_respuesta",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-24T09:27:53.014872-03:00"
+  },
+  {
+    "id": 93,
+    "visita_id": 238,
+    "estado": "aprobada",
+    "observaciones": "Cambio desde: esperando_respuesta",
+    "creado_por": 7,
+    "created_at": "2026-06-24T09:30:48.117615-03:00"
+  },
+  {
+    "id": 94,
+    "visita_id": 184,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: aprobada",
+    "creado_por": 5,
+    "created_at": "2026-06-25T11:10:59.246828-03:00"
+  },
+  {
+    "id": 95,
+    "visita_id": 238,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: aprobada",
+    "creado_por": 5,
+    "created_at": "2026-06-25T11:12:01.382398-03:00"
+  },
+  {
+    "id": 96,
+    "visita_id": 171,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-25T11:12:21.520906-03:00"
+  },
+  {
+    "id": 97,
+    "visita_id": 222,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-25T11:21:56.689427-03:00"
+  },
+  {
+    "id": 98,
+    "visita_id": 228,
+    "estado": "lista_entregar",
+    "observaciones": "Cambio desde: ingresada",
+    "creado_por": 5,
+    "created_at": "2026-06-25T11:24:57.760069-03:00"
+  },
+  {
+    "id": 99,
+    "visita_id": 238,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-25T16:19:22.879143-03:00"
+  },
+  {
+    "id": 100,
+    "visita_id": 228,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-26T09:30:30.589742-03:00"
+  },
+  {
+    "id": 101,
+    "visita_id": 184,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-26T09:38:22.421766-03:00"
+  },
+  {
+    "id": 102,
+    "visita_id": 185,
+    "estado": "entregada",
+    "observaciones": "Cambio desde: lista_entregar",
+    "creado_por": 7,
+    "created_at": "2026-06-26T09:43:19.955763-03:00"
+  }
+]
