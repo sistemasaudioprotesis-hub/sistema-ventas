@@ -5,13 +5,22 @@ export async function DELETE(request, { params }) {
   try {
     const usuario = await verificarSesion(request)
     if (!usuario) return Response.json({ error: 'No autorizado' }, { status: 401 })
-
     const supabase = createServerClient()
-    const { error } = await supabase.from('pagos').delete().eq('id', params.id)
 
+    const { data: actual } = await supabase.from('pagos').select('*').eq('id', params.id).single()
+    if (actual) {
+      await supabase.from('pagos_historial').insert([{
+        pago_id: actual.id,
+        monto_pesos: actual.monto_pesos,
+        monto_usd: actual.monto_usd,
+        forma_pago_id: actual.forma_pago_id,
+        modificado_por: usuario.id,
+      }])
+    }
+
+    const { error } = await supabase.from('pagos').delete().eq('id', params.id)
     if (error) return Response.json({ error: error.message }, { status: 500 })
     return Response.json({ ok: true })
-
   } catch (e) {
     return Response.json({ error: 'Error interno' }, { status: 500 })
   }
