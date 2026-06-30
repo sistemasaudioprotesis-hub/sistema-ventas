@@ -403,13 +403,16 @@ useEffect(() => {
     obtenerSeries()
   }
 
-  async function eliminarItemEdicion(item) {
-    if (!confirm('¿Eliminar este producto de la venta?')) return
-    await fetchConToken(`/api/ventas/${ventaEditando.id}/detalle/${item.id}/historial`, { method: 'POST', body: JSON.stringify({ numero_serie_id: item.numero_serie_id, producto_id: item.producto_id, precio_venta_pesos: item.precio_venta_pesos, precio_venta_usd: item.precio_venta_usd }) }).catch(() => {})
-    await fetchConToken(`/api/ventas/${ventaEditando.id}/detalle/${item.id}`, { method: 'DELETE' })
-    if (item.numero_serie_id) await fetchConToken(`/api/stock/series/${item.numero_serie_id}`, { method: 'PUT', body: JSON.stringify({ en_stock: true, fecha_salida: null }) })
-    setItemsEdicion(itemsEdicion.filter(i => i.id !== item.id)); obtenerSeries()
-  }
+ async function eliminarItemEdicion(item) {
+  if (!confirm('¿Eliminar este producto de la venta?')) return
+  await fetchConToken(`/api/ventas/${ventaEditando.id}/detalle/${item.id}`, { method: 'DELETE' })
+  setItemsEdicion(itemsEdicion.filter(i => i.id !== item.id))
+  obtenerSeries()
+  // Recargar la venta para reflejar el total recalculado y el estado de confirmada
+  const resVenta = await fetchConToken(`/api/ventas/${ventaEditando.id}`)
+  const dataVenta = await resVenta.json()
+  setVentaEditando(dataVenta.venta)
+}
 
   async function agregarItemEdicion() {
     if (!formEdicion.precio_pesos && !formEdicion.precio_usd) return alert('Ingresar precio')
