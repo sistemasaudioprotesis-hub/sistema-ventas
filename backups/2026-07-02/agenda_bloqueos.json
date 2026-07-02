@@ -1,0 +1,54 @@
+[
+  {
+    "id": 1,
+    "fecha_inicio": "2026-05-25",
+    "fecha_fin": "2026-05-25",
+    "hora_inicio": null,
+    "hora_fin": null,
+    "profesional_id": null,
+    "motivo": "FERIADO",
+    "todo_el_dia": true,
+    "todas_las_agendas": true,
+    "created_at": "2026-05-13T09:07:15.949128-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 2,
+    "fecha_inicio": "2026-06-15",
+    "fecha_fin": "2026-06-15",
+    "hora_inicio": null,
+    "hora_fin": null,
+    "profesional_id": null,
+    "motivo": "FERIADO",
+    "todo_el_dia": true,
+    "todas_las_agendas": true,
+    "created_at": "2026-06-02T10:33:18.743956-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 3,
+    "fecha_inicio": "2026-07-10",
+    "fecha_fin": "2026-07-10",
+    "hora_inicio": null,
+    "hora_fin": null,
+    "profesional_id": null,
+    "motivo": null,
+    "todo_el_dia": true,
+    "todas_las_agendas": true,
+    "created_at": "2026-06-24T14:18:29.265934-03:00",
+    "creado_por": 7
+  },
+  {
+    "id": 4,
+    "fecha_inicio": "2026-07-09",
+    "fecha_fin": "2026-07-09",
+    "hora_inicio": null,
+    "hora_fin": null,
+    "profesional_id": null,
+    "motivo": null,
+    "todo_el_dia": true,
+    "todas_las_agendas": true,
+    "created_at": "2026-06-30T11:54:05.120475-03:00",
+    "creado_por": 7
+  }
+]
