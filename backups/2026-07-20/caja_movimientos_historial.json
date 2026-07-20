@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "caja_movimiento_id": 11,
+    "concepto": "MAXI DESCUENTO",
+    "tipo": "ingreso",
+    "monto_pesos": 18650,
+    "monto_usd": null,
+    "modificado_por": 4,
+    "created_at": "2026-05-07T10:27:09.789709-03:00"
+  }
+]
