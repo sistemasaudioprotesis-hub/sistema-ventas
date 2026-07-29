@@ -1,16 +1,12 @@
 'use client'
-
 export const dynamic = 'force-dynamic'
-
 import { useEffect, useState } from 'react'
 import { fetchConToken } from '../../lib/fetchConToken'
 import { normalizarTexto } from '../../lib/formatText'
 import { usePermiso } from '../../lib/usePermisos'
-
 const HORA_INICIO = 9
 const HORA_FIN_SEMANA = 18
 const HORA_FIN_SABADO = 13
-
 function generarHorarios() {
   const horarios = []
   for (let h = HORA_INICIO; h < HORA_FIN_SEMANA; h++) {
@@ -19,7 +15,6 @@ function generarHorarios() {
   }
   return horarios
 }
-
 function getLunesDeISemana(fecha) {
   const d = new Date(fecha)
   const dia = d.getDay()
@@ -28,21 +23,17 @@ function getLunesDeISemana(fecha) {
   d.setHours(0, 0, 0, 0)
   return d
 }
-
 function formatFecha(date) { return date.toISOString().split('T')[0] }
 function formatFechaMostrar(date) { return date.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'numeric', year: 'numeric' }) }
-
 const COLORES_AGENDA = ['#8B1E2D', '#1d4ed8', '#15803d', '#b45309', '#7c3aed', '#0e7490']
 const DIAS_SEMANA = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do']
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
-
 const coloresEstado = {
   pendiente: { bg: '#fef3c7', border: '#f59e0b', text: '#92400e' },
   realizado: { bg: '#dcfce7', border: '#16a34a', text: '#15803d' },
   no_asistio: { bg: '#fef2f2', border: '#ef4444', text: '#dc2626' },
   cancelado: { bg: '#f3f4f6', border: '#d1d5db', text: '#9ca3af' },
 }
-
 export default function Agenda() {
   const hoy = new Date()
   const [semanaBase, setSemanaBase] = useState(getLunesDeISemana(hoy))
@@ -58,7 +49,6 @@ export default function Agenda() {
   const [verBloqueos, setVerBloqueos] = useState(false)
   const [calAbierto, setCalAbierto] = useState(false)
   const { verificando, permitido } = usePermiso('agenda')
-
   const [modalNuevo, setModalNuevo] = useState(null)
   const [formTurno, setFormTurno] = useState({ agenda_id: '', nombre_libre: '', telefono: '', motivo_id: '', obra_social_id: '', observaciones: '' })
   const [busquedaPaciente, setBusquedaPaciente] = useState('')
@@ -74,16 +64,13 @@ export default function Agenda() {
   const [editandoObsTurno, setEditandoObsTurno] = useState(false)
   const [obsEditada, setObsEditada] = useState('')
   const [guardando, setGuardando] = useState(false)
-
   const [reprogramando, setReprogramando] = useState(false)
 const [formReprogramar, setFormReprogramar] = useState({ fecha: '', hora: '' })
 const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
-
   useEffect(() => { cargarDatos() }, [])
   useEffect(() => { cargarTurnos() }, [semanaBase])
   useEffect(() => { cargarTurnosMes() }, [mesCalendario])
   useEffect(() => { cargarBloqueosSemana() }, [semanaBase])
-
   async function cargarDatos() {
     const [resAgs, resMots, resOs] = await Promise.all([
       fetchConToken('/api/configuracion/profesionales'),
@@ -96,7 +83,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
     setObrasSociales(dataOs.obras_sociales || [])
     cargarTurnos()
   }
-
   async function cargarTurnos() {
     const lunes = new Date(semanaBase)
     const sabado = new Date(semanaBase)
@@ -105,7 +91,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
     const data = await res.json()
     setTurnos(data.turnos || [])
   }
-
   async function reprogramarTurno() {
   if (guardandoReprogramar) return
   if (!formReprogramar.fecha || !formReprogramar.hora) { alert('Seleccioná fecha y hora'); return }
@@ -119,7 +104,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
   setModalVer(null)
   cargarTurnos(); cargarTurnosMes()
 }
-
   async function cargarTurnosMes() {
     const { year, month } = mesCalendario
     const primerDia = new Date(year, month, 1)
@@ -128,7 +112,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
     const data = await res.json()
     setTurnosMes((data.turnos || []).filter(t => t.estado !== 'cancelado'))
   }
-
   async function cargarBloqueosSemana() {
     const lunes = new Date(semanaBase)
     const sabado = new Date(semanaBase)
@@ -137,7 +120,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
     const data = await res.json()
     setBloqueos(data.bloqueos || [])
   }
-
   async function buscarPacientes() {
     const termino = busquedaPaciente.trim()
     if (!termino) return
@@ -146,7 +128,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
     setPacientesResultados(data.pacientes || [])
     setBuscoPaciente(true)
   }
-
   async function guardarAltaRapida() {
     if (!formAltaRapida.apellido || !formAltaRapida.nombre || !formAltaRapida.dni || !formAltaRapida.telefono) { alert('Apellido, nombre, DNI y teléfono son obligatorios'); return }
     if (!formAltaRapida.dni || formAltaRapida.dni === '0') { alert('El DNI es obligatorio'); return }
@@ -165,7 +146,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
     setAltaRapida(false); setFormAltaRapida({ apellido: '', nombre: '', dni: '', telefono: '' })
     setBusquedaPaciente(''); setPacientesResultados([]); setBuscoPaciente(false)
   }
-
   async function guardarTurno() {
     if (guardando) return
     setGuardando(true)
@@ -196,7 +176,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
       setGuardando(false)
     }
   }
-
   async function marcarAsistencia(turnoId, asistio) {
     const turno = modalVer
     await fetchConToken(`/api/turnos/${turnoId}`, {
@@ -222,20 +201,17 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
     }
     setModalVer(null); cargarTurnos()
   }
-
   async function cancelarTurno(turnoId) {
     if (!confirm('¿Cancelar este turno?')) return
     await fetchConToken(`/api/turnos/${turnoId}`, { method: 'PUT', body: JSON.stringify({ estado: 'cancelado' }) })
     setModalVer(null); cargarTurnos()
   }
-
   function cerrarModalNuevo() {
     setModalNuevo(null)
     setFormTurno({ agenda_id: '', nombre_libre: '', telefono: '', motivo_id: '', obra_social_id: '', observaciones: '' })
     setBusquedaPaciente(''); setPacienteSeleccionado(null); setPacientesResultados([])
     setBuscoPaciente(false); setAltaRapida(false); setFormAltaRapida({ apellido: '', nombre: '', dni: '', telefono: '' })
   }
-
   async function guardarBloqueo() {
     if (!formBloqueo.fecha_inicio || !formBloqueo.fecha_fin) { alert('Ingresar fechas'); return }
     if (!formBloqueo.todas_las_agendas && !formBloqueo.profesional_id) { alert('Seleccionar agenda o marcar todas'); return }
@@ -257,13 +233,11 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
     setFormBloqueo({ fecha_inicio: '', fecha_fin: '', hora_inicio: '', hora_fin: '', profesional_id: '', motivo: '', todo_el_dia: true, todas_las_agendas: false })
     cargarBloqueosSemana()
   }
-
   async function eliminarBloqueo(id) {
     if (!confirm('¿Eliminar este bloqueo?')) return
     await fetchConToken(`/api/agenda/bloqueos/${id}`, { method: 'DELETE' })
     cargarBloqueosSemana()
   }
-
   function abrirEditarBloqueo(b) {
     setBloqueoEditando(b)
     setFormBloqueo({
@@ -274,7 +248,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
     })
     setModalBloqueo(true)
   }
-
   function esBloqueado(fechaStr, hora, agendaId) {
     return bloqueos.some(b => {
       if (fechaStr < b.fecha_inicio || fechaStr > b.fecha_fin) return false
@@ -284,29 +257,23 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
       return hora >= b.hora_inicio.slice(0, 5) && hora < b.hora_fin.slice(0, 5)
     })
   }
-
   function slotBloqueadoTotal(fechaStr, hora) {
-    const agendasVisibles = agendaFiltro === 'todas' ? agendas : agendas.filter(a => String(a.id) === agendaFiltro)
+    const agendasVisibles = agendaFiltro === 'todas' ? agendasActivas : agendas.filter(a => String(a.id) === agendaFiltro)
     return agendasVisibles.length > 0 && agendasVisibles.every(a => esBloqueado(fechaStr, hora, a.id))
   }
-
   function getBloqueosDia(fechaStr) {
     return bloqueos.filter(b => fechaStr >= b.fecha_inicio && fechaStr <= b.fecha_fin && b.todo_el_dia)
   }
-
   function getTurnosSlot(fecha, hora) {
     const horaCorta = hora.slice(0, 5)
     return turnos.filter(t => t.fecha === fecha && t.hora.slice(0, 5) === horaCorta && (t.estado !== 'cancelado' || verCancelados))
   }
-
   function getColorAgenda(agendaId) {
     const idx = agendas.findIndex(a => a.id === agendaId)
     return COLORES_AGENDA[idx % COLORES_AGENDA.length]
   }
-
   function mesSiguiente() { setMesCalendario(m => m.month === 11 ? { year: m.year + 1, month: 0 } : { year: m.year, month: m.month + 1 }) }
   function mesAnterior() { setMesCalendario(m => m.month === 0 ? { year: m.year - 1, month: 11 } : { year: m.year, month: m.month - 1 }) }
-
   function getDiasMes() {
     const { year, month } = mesCalendario
     const primer = new Date(year, month, 1)
@@ -318,25 +285,21 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
     for (let d = 1; d <= ultimo.getDate(); d++) dias.push(new Date(year, month, d))
     return dias
   }
-
   function tieneTurnos(fecha) {
     const f = formatFecha(fecha)
     return turnosMes.some(t => t.fecha === f)
   }
-
+  const agendasActivas = agendas.filter(a => a.activo !== false)
   const dias = []
   for (let i = 0; i < 6; i++) {
     const d = new Date(semanaBase)
     d.setDate(d.getDate() + i)
     dias.push(d)
   }
-
   const horarios = generarHorarios()
   const hoyStr = formatFecha(hoy)
   const semanaActualStr = formatFecha(semanaBase)
-
   if (verificando || !permitido) return null
-
   return (
     <div style={{ maxWidth: '100%' }}>
       <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
@@ -382,7 +345,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
           <button onClick={() => { setBloqueoEditando(null); setFormBloqueo({ fecha_inicio: hoyStr, fecha_fin: hoyStr, hora_inicio: '', hora_fin: '', profesional_id: '', motivo: '', todo_el_dia: true, todas_las_agendas: false }); setModalBloqueo(true) }} style={btnSecundario}>+ Bloquear</button>
         </div>
       </div>
-
       {verBloqueos && (
         <div style={{ background: '#fdf2f4', border: '1px solid #f5c2c9', borderRadius: '10px', padding: '14px 16px', marginBottom: '16px' }}>
           <div style={{ fontSize: '13px', fontWeight: '600', color: '#8B1E2D', marginBottom: bloqueos.length > 0 ? '10px' : '0' }}>🔒 Bloqueos esta semana</div>
@@ -408,21 +370,22 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
           )}
         </div>
       )}
-
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
         <button onClick={() => { const d = new Date(semanaBase); d.setDate(d.getDate() - 7); setSemanaBase(d) }} style={btnSecundario}>← Anterior</button>
         <button onClick={() => { setSemanaBase(getLunesDeISemana(hoy)); setMesCalendario({ year: hoy.getFullYear(), month: hoy.getMonth() }) }} style={btnSecundario}>Hoy</button>
         <button onClick={() => { const d = new Date(semanaBase); d.setDate(d.getDate() + 7); setSemanaBase(d) }} style={btnSecundario}>Siguiente →</button>
       </div>
-
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
         <span style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280' }}>Agenda:</span>
         <button onClick={() => setAgendaFiltro('todas')} style={{ padding: '7px 16px', borderRadius: '8px', border: '1px solid #e5e7eb', cursor: 'pointer', background: agendaFiltro === 'todas' ? '#1a1a1a' : 'white', color: agendaFiltro === 'todas' ? 'white' : '#374151', fontSize: '13px', fontWeight: '600', fontFamily: "'Outfit', sans-serif" }}>Todas</button>
-        {agendas.map((a, i) => (
-          <button key={a.id} onClick={() => setAgendaFiltro(String(a.id))} style={{ padding: '7px 16px', borderRadius: '8px', border: `1px solid ${COLORES_AGENDA[i % COLORES_AGENDA.length]}`, cursor: 'pointer', background: agendaFiltro === String(a.id) ? COLORES_AGENDA[i % COLORES_AGENDA.length] : 'white', color: agendaFiltro === String(a.id) ? 'white' : COLORES_AGENDA[i % COLORES_AGENDA.length], fontSize: '13px', fontWeight: '600', fontFamily: "'Outfit', sans-serif" }}>
-            {a.nombre}
-          </button>
-        ))}
+        {agendasActivas.map((a) => {
+          const color = getColorAgenda(a.id)
+          return (
+            <button key={a.id} onClick={() => setAgendaFiltro(String(a.id))} style={{ padding: '7px 16px', borderRadius: '8px', border: `1px solid ${color}`, cursor: 'pointer', background: agendaFiltro === String(a.id) ? color : 'white', color: agendaFiltro === String(a.id) ? 'white' : color, fontSize: '13px', fontWeight: '600', fontFamily: "'Outfit', sans-serif" }}>
+              {a.nombre}
+            </button>
+          )
+        })}
         <button onClick={() => setVerCancelados(!verCancelados)} style={{ padding: '7px 16px', borderRadius: '8px', cursor: 'pointer', border: `1px solid ${verCancelados ? '#6b7280' : '#e5e7eb'}`, background: verCancelados ? '#6b7280' : 'white', color: verCancelados ? 'white' : '#9ca3af', fontSize: '13px', fontWeight: '600', fontFamily: "'Outfit', sans-serif" }}>{verCancelados ? '✕ Ocultar cancelados' : '👁 Ver cancelados'}</button>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           {Object.entries(coloresEstado).map(([estado, c]) => (
@@ -433,7 +396,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
           ))}
         </div>
       </div>
-
       <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: `${80 + dias.length * 140}px`, background: 'white' }}>
           <thead>
@@ -502,7 +464,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
           </tbody>
         </table>
       </div>
-
       {modalNuevo && (
         <div style={overlay}>
           <div style={modalBox}>
@@ -515,7 +476,7 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
                 <label style={labelStyle}>Agenda *</label>
                 <select value={formTurno.agenda_id} onChange={(e) => setFormTurno({ ...formTurno, agenda_id: e.target.value })} style={inputStyle}>
                   <option value="">Seleccionar agenda</option>
-                  {agendas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                  {agendasActivas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
                 </select>
               </div>
               <div>
@@ -587,7 +548,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
           </div>
         </div>
       )}
-
      {modalVer && (
         <div style={overlay}>
           <div style={modalBox}>
@@ -706,7 +666,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
           </div>
         </div>
       )}
-
       {modalBloqueo && (
         <div style={overlay}>
           <div style={modalBox}>
@@ -721,7 +680,7 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', marginBottom: '8px' }}>
                   <input type="checkbox" checked={formBloqueo.todas_las_agendas} onChange={(e) => setFormBloqueo({ ...formBloqueo, todas_las_agendas: e.target.checked, profesional_id: '' })} />Todas las agendas
                 </label>
-                {!formBloqueo.todas_las_agendas && <select value={formBloqueo.profesional_id} onChange={(e) => setFormBloqueo({ ...formBloqueo, profesional_id: e.target.value })} style={inputStyle}><option value="">Seleccionar agenda</option>{agendas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}</select>}
+                {!formBloqueo.todas_las_agendas && <select value={formBloqueo.profesional_id} onChange={(e) => setFormBloqueo({ ...formBloqueo, profesional_id: e.target.value })} style={inputStyle}><option value="">Seleccionar agenda</option>{agendasActivas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}</select>}
               </div>
               <div>
                 <label style={labelStyle}>Horario</label>
@@ -747,7 +706,6 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
     </div>
   )
 }
-
 function Row({ label, children }) {
   return (
     <div style={{ display: 'flex', gap: '8px', fontSize: '14px' }}>
@@ -756,7 +714,6 @@ function Row({ label, children }) {
     </div>
   )
 }
-
 const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '14px', fontFamily: "'Outfit', sans-serif", background: 'white', color: '#1a1a1a', outline: 'none', boxSizing: 'border-box' }
 const labelStyle = { fontSize: '13px', fontWeight: '600', color: '#6b7280', marginBottom: '4px', display: 'block' }
 const btnPrimario = { padding: '10px 20px', background: '#8B1E2D', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Outfit', sans-serif" }
