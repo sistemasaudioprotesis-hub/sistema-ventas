@@ -1,12 +1,9 @@
 'use client'
-
 export const dynamic = 'force-dynamic'
-
 import { useEffect, useState } from 'react'
 import { fetchConToken } from '../../lib/fetchConToken'
 import { normalizarTexto } from '../../lib/formatText'
 import { usePermiso } from '../../lib/usePermisos'
-
 export default function NumerosSerie() {
   const [series, setSeries] = useState([])
   const [productos, setProductos] = useState([])
@@ -24,18 +21,13 @@ export default function NumerosSerie() {
   const [seriesMasivas, setSeriesMasivas] = useState('')
   const [guardandoMasivo, setGuardandoMasivo] = useState(false)
   const { verificando, permitido } = usePermiso('stock_series')
-
   const [guardando, setGuardando] = useState(false)
-
   const [modalEditar, setModalEditar] = useState(null)
-  const [formEditar, setFormEditar] = useState({ numero_serie: '', costo_usd: '', deposito_id: '' })
-
+  const [modelosFiltradosEditar, setModelosFiltradosEditar] = useState([])
+  const [formEditar, setFormEditar] = useState({ producto_id: '', modelo_id: '', numero_serie: '', costo_usd: '', deposito_id: '' })
   const [form, setForm] = useState({ tipo_id: '', producto_id: '', modelo_id: '', numero_serie: '', costo_usd: '', deposito_id: '' })
-
   useEffect(() => { obtenerDatos() }, [])
-
   if (verificando || !permitido) return null
-
   async function obtenerDatos() {
     const [resSeries, resProductos, resTipos, resDepositos, resModelos] = await Promise.all([
       fetchConToken('/api/stock/series'),
@@ -53,7 +45,6 @@ export default function NumerosSerie() {
     setDepositos(dDepositos.depositos || [])
     setModelos(dModelos.modelos || [])
   }
-
   function handleChange(e) {
     const { name, value } = e.target
     if (name === 'tipo_id') {
@@ -73,7 +64,6 @@ export default function NumerosSerie() {
     const nuevoValor = name === 'numero_serie' ? normalizarTexto(value) : value
     setForm({ ...form, [name]: nuevoValor })
   }
-
   async function guardar() {
   if (guardando) return
   setGuardando(true)
@@ -102,7 +92,6 @@ export default function NumerosSerie() {
     setGuardando(false)
   }
 }
-
   async function guardarMasivo() {
     if (!form.producto_id || !form.deposito_id) { alert('Seleccionar producto y depósito'); return }
     const prod = productos.find(p => p.id === Number(form.producto_id))
@@ -136,17 +125,36 @@ export default function NumerosSerie() {
     setModoMasivo(false)
     obtenerDatos()
   }
-
   function abrirEditar(s) {
     setModalEditar(s)
-    setFormEditar({ numero_serie: s.numero_serie || '', costo_usd: s.costo_usd || '', deposito_id: String(s.depositos?.id || '') })
+    const prodId = s.productos?.id || ''
+    const prod = productos.find(p => p.id === Number(prodId))
+    const mods = prod?.requiere_modelo ? modelos.filter(m => m.producto_id === Number(prodId) && m.activo) : []
+    setModelosFiltradosEditar(mods)
+    setFormEditar({
+      producto_id: prodId ? String(prodId) : '',
+      modelo_id: s.modelo_id ? String(s.modelo_id) : '',
+      numero_serie: s.numero_serie || '',
+      costo_usd: s.costo_usd || '',
+      deposito_id: String(s.depositos?.id || '')
+    })
   }
-
+  function handleChangeEditarProducto(e) {
+    const value = e.target.value
+    const prod = productos.find(p => p.id === Number(value))
+    const mods = prod?.requiere_modelo ? modelos.filter(m => m.producto_id === Number(value) && m.activo) : []
+    setModelosFiltradosEditar(mods)
+    setFormEditar({ ...formEditar, producto_id: value, modelo_id: '' })
+  }
   async function guardarEdicion() {
-    if (!formEditar.numero_serie || !formEditar.deposito_id) { alert('Completar campos obligatorios'); return }
+    if (!formEditar.producto_id || !formEditar.numero_serie || !formEditar.deposito_id) { alert('Completar campos obligatorios'); return }
+    const prod = productos.find(p => p.id === Number(formEditar.producto_id))
+    if (prod?.requiere_modelo && !formEditar.modelo_id) { alert('Seleccionar modelo'); return }
     const res = await fetchConToken(`/api/stock/series/${modalEditar.id}`, {
       method: 'PUT',
       body: JSON.stringify({
+        producto_id: Number(formEditar.producto_id),
+        modelo_id: formEditar.modelo_id ? Number(formEditar.modelo_id) : null,
         numero_serie: normalizarTexto(formEditar.numero_serie),
         costo_usd: formEditar.costo_usd ? Number(formEditar.costo_usd) : null,
         deposito_id: Number(formEditar.deposito_id),
@@ -156,7 +164,6 @@ export default function NumerosSerie() {
     setModalEditar(null)
     obtenerDatos()
   }
-
   const seriesFiltradas = series.filter(s => {
   const estadoOk = filtroEstado === 'todos' ? true : filtroEstado === 'stock' ? s.en_stock : !s.en_stock
   const productoOk = filtroProducto ? s.productos?.id == filtroProducto : true
@@ -164,13 +171,10 @@ export default function NumerosSerie() {
   const depositoOk = filtroDeposito ? s.depositos?.id == filtroDeposito : true
   return estadoOk && productoOk && modeloOk && depositoOk
 })
-
   const totalStock = series.filter(s => s.en_stock).length
   const totalVendidos = series.filter(s => !s.en_stock).length
-
   return (
     <div style={{ maxWidth: '850px' }}>
-
       <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#1a1a1a', margin: 0 }}>Números de Serie</h1>
@@ -180,14 +184,12 @@ export default function NumerosSerie() {
           {mostrarFormulario ? '✕ Cancelar' : '+ Agregar serie'}
         </button>
       </div>
-
       {/* Estadísticas */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '20px' }}>
         <div style={{ ...statCard, borderLeft: '4px solid #8B1E2D' }}><div style={statLabel}>Total</div><div style={statNum}>{series.length}</div></div>
         <div style={{ ...statCard, borderLeft: '4px solid #16a34a' }}><div style={statLabel}>En stock</div><div style={{ ...statNum, color: '#16a34a' }}>{totalStock}</div></div>
         <div style={{ ...statCard, borderLeft: '4px solid #6b7280' }}><div style={statLabel}>Vendidos</div><div style={statNum}>{totalVendidos}</div></div>
       </div>
-
       {/* Formulario */}
       {mostrarFormulario && (
         <div style={card}>
@@ -228,7 +230,6 @@ export default function NumerosSerie() {
               </select>
             </Field>
           </div>
-
           {!modoMasivo ? (
             <div style={{ marginTop: '14px' }}>
               <Field label="Número de serie *">
@@ -249,7 +250,6 @@ export default function NumerosSerie() {
               {seriesMasivas && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>{seriesMasivas.split('\n').filter(l => l.trim()).length} series a cargar</div>}
             </div>
           )}
-
           <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #f3f4f6' }}>
             {!modoMasivo ? (
               <button onClick={guardar} disabled={guardando} style={{ ...btnPrimario, opacity: guardando ? 0.7 : 1 }}>
@@ -263,7 +263,6 @@ export default function NumerosSerie() {
           </div>
         </div>
       )}
-
       {/* Filtros */}
       <div style={{ ...card, padding: '14px 20px' }}>
   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -288,7 +287,6 @@ export default function NumerosSerie() {
     </select>
   </div>
 </div>
-
       {/* Lista */}
       <div style={card}>
         <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>{seriesFiltradas.length} resultado{seriesFiltradas.length !== 1 ? 's' : ''}</div>
@@ -319,17 +317,26 @@ export default function NumerosSerie() {
           </div>
         )}
       </div>
-
       {/* MODAL EDITAR */}
       {modalEditar && (
         <div style={modalOverlay}>
           <div style={modalBox}>
-            <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a', marginBottom: '4px' }}>✏️ Editar serie</div>
-            <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>
-              {modalEditar.productos?.producto}
-              {modalEditar.modelos?.modelo ? ` · ${modalEditar.modelos.modelo}` : ''}
-            </div>
+            <div style={{ fontWeight: '700', fontSize: '16px', color: '#1a1a1a', marginBottom: '20px' }}>✏️ Editar serie</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <Field label="Producto *">
+                <select value={formEditar.producto_id} onChange={handleChangeEditarProducto} style={inputStyle}>
+                  <option value="">Seleccionar producto</option>
+                  {productos.filter(p => p.tipo_producto?.requiere_serie).map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
+                </select>
+              </Field>
+              {modelosFiltradosEditar.length > 0 && (
+                <Field label="Modelo *">
+                  <select value={formEditar.modelo_id} onChange={(e) => setFormEditar({ ...formEditar, modelo_id: e.target.value })} style={inputStyle}>
+                    <option value="">Seleccionar modelo</option>
+                    {modelosFiltradosEditar.map(m => <option key={m.id} value={m.id}>{m.modelo}</option>)}
+                  </select>
+                </Field>
+              )}
               <Field label="Número de serie *">
                 <input value={formEditar.numero_serie} onChange={(e) => setFormEditar({ ...formEditar, numero_serie: e.target.value })} style={{ ...inputStyle, textTransform: 'uppercase' }} />
               </Field>
@@ -350,11 +357,9 @@ export default function NumerosSerie() {
           </div>
         </div>
       )}
-
     </div>
   )
 }
-
 function Field({ label, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -363,7 +368,6 @@ function Field({ label, children }) {
     </div>
   )
 }
-
 const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '15px', fontFamily: "'Outfit', sans-serif", background: 'white', color: '#1a1a1a', outline: 'none', boxSizing: 'border-box' }
 const card = { background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px 24px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }
 const cardTitle = { fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '0' }
