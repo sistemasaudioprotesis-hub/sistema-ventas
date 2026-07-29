@@ -128,8 +128,11 @@ export default function NumerosSerie() {
   function abrirEditar(s) {
     setModalEditar(s)
     const prodId = s.productos?.id || ''
-    const prod = productos.find(p => p.id === Number(prodId))
-    const mods = prod?.requiere_modelo ? modelos.filter(m => m.producto_id === Number(prodId) && m.activo) : []
+    let mods = modelos.filter(m => m.producto_id === Number(prodId) && m.activo)
+    if (s.modelo_id && !mods.some(m => m.id === s.modelo_id)) {
+      const modeloActual = modelos.find(m => m.id === s.modelo_id)
+      if (modeloActual) mods = [...mods, modeloActual]
+    }
     setModelosFiltradosEditar(mods)
     setFormEditar({
       producto_id: prodId ? String(prodId) : '',
@@ -326,7 +329,7 @@ export default function NumerosSerie() {
               <Field label="Producto *">
                 <select value={formEditar.producto_id} onChange={handleChangeEditarProducto} style={inputStyle}>
                   <option value="">Seleccionar producto</option>
-                  {productos.filter(p => p.tipo_producto?.requiere_serie).map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
+                  {productos.filter(p => p.tipo_producto?.requiere_serie || p.id === Number(formEditar.producto_id)).map(p => <option key={p.id} value={p.id}>{p.producto}</option>)}
                 </select>
               </Field>
               {modelosFiltradosEditar.length > 0 && (
