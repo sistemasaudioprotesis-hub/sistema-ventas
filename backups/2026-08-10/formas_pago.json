@@ -1,0 +1,110 @@
+[
+  {
+    "id": 1,
+    "forma_pago": "EFECTIVO",
+    "observaciones": null,
+    "created_at": "2026-04-15T07:27:26.903215-03:00",
+    "creado_por": 1,
+    "es_efectivo": true,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 3,
+    "forma_pago": "MERCADO PAGO JULI",
+    "observaciones": null,
+    "created_at": "2026-04-15T07:28:05.108421-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 4,
+    "forma_pago": "MERCADO PAGO FRANCO",
+    "observaciones": null,
+    "created_at": "2026-04-15T07:28:14.609852-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 5,
+    "forma_pago": "MERCADO PAGO HERNAN",
+    "observaciones": null,
+    "created_at": "2026-05-03T11:57:40.825987-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 7,
+    "forma_pago": "TRANSFERENCIA",
+    "observaciones": null,
+    "created_at": "2026-05-03T11:59:39.308587-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 2,
+    "forma_pago": "MERCADO PAGO LUCIANO",
+    "observaciones": null,
+    "created_at": "2026-04-15T07:27:54.125753-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 8,
+    "forma_pago": "CUENTA DNI MARCELA",
+    "observaciones": null,
+    "created_at": "2026-05-04T10:08:53.88503-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 11,
+    "forma_pago": "TARJETA DE CREDITO VISA 12 PAGO",
+    "observaciones": null,
+    "created_at": "2026-05-04T10:16:09.637627-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 6,
+    "forma_pago": "TARJETA DE CREDITO VISA 01 PAGO",
+    "observaciones": null,
+    "created_at": "2026-05-03T11:58:09.630524-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 0.7
+  },
+  {
+    "id": 9,
+    "forma_pago": "TARJETA DE CREDITO VISA 03 PAGO",
+    "observaciones": null,
+    "created_at": "2026-05-04T10:15:49.927408-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 10,
+    "forma_pago": "TARJETA DE CREDITO VISA 06 PAGO",
+    "observaciones": null,
+    "created_at": "2026-05-04T10:15:59.455343-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  },
+  {
+    "id": 12,
+    "forma_pago": "TARJETA DE DEBITO",
+    "observaciones": null,
+    "created_at": "2026-05-20T18:01:32.893955-03:00",
+    "creado_por": 1,
+    "es_efectivo": false,
+    "factor_rentabilidad": 1
+  }
+]
