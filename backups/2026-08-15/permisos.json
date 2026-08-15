@@ -1,0 +1,359 @@
+[
+  {
+    "id": 1,
+    "rol": "admin",
+    "seccion": "pacientes",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 2,
+    "rol": "admin",
+    "seccion": "agenda",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 3,
+    "rol": "admin",
+    "seccion": "reparaciones",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 4,
+    "rol": "admin",
+    "seccion": "ventas",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 5,
+    "rol": "admin",
+    "seccion": "pagos",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 6,
+    "rol": "admin",
+    "seccion": "caja",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 7,
+    "rol": "admin",
+    "seccion": "reportes",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 8,
+    "rol": "admin",
+    "seccion": "stock_productos",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 9,
+    "rol": "admin",
+    "seccion": "derivadores_reporte",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 10,
+    "rol": "admin",
+    "seccion": "rentabilidad",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 11,
+    "rol": "admin",
+    "seccion": "stock_series",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 12,
+    "rol": "admin",
+    "seccion": "configuracion",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 13,
+    "rol": "admin",
+    "seccion": "usuarios",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 14,
+    "rol": "director",
+    "seccion": "pacientes",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 15,
+    "rol": "director",
+    "seccion": "agenda",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 16,
+    "rol": "director",
+    "seccion": "reparaciones",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 17,
+    "rol": "director",
+    "seccion": "ventas",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 18,
+    "rol": "director",
+    "seccion": "pagos",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 19,
+    "rol": "director",
+    "seccion": "caja",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 20,
+    "rol": "director",
+    "seccion": "reportes",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 21,
+    "rol": "director",
+    "seccion": "stock_productos",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 22,
+    "rol": "director",
+    "seccion": "derivadores_reporte",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 23,
+    "rol": "director",
+    "seccion": "rentabilidad",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 24,
+    "rol": "director",
+    "seccion": "stock_series",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 25,
+    "rol": "director",
+    "seccion": "configuracion",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 26,
+    "rol": "director",
+    "seccion": "usuarios",
+    "tiene_acceso": false,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 27,
+    "rol": "vendedor",
+    "seccion": "pacientes",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 28,
+    "rol": "vendedor",
+    "seccion": "agenda",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 29,
+    "rol": "vendedor",
+    "seccion": "reparaciones",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 30,
+    "rol": "vendedor",
+    "seccion": "ventas",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 31,
+    "rol": "vendedor",
+    "seccion": "pagos",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 32,
+    "rol": "vendedor",
+    "seccion": "caja",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 34,
+    "rol": "vendedor",
+    "seccion": "stock_productos",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 36,
+    "rol": "vendedor",
+    "seccion": "rentabilidad",
+    "tiene_acceso": false,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 37,
+    "rol": "vendedor",
+    "seccion": "stock_series",
+    "tiene_acceso": false,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 38,
+    "rol": "vendedor",
+    "seccion": "configuracion",
+    "tiene_acceso": false,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 39,
+    "rol": "vendedor",
+    "seccion": "usuarios",
+    "tiene_acceso": false,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 35,
+    "rol": "vendedor",
+    "seccion": "derivadores_reporte",
+    "tiene_acceso": false,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 40,
+    "rol": "laboratorio",
+    "seccion": "moldes_tapones",
+    "tiene_acceso": true,
+    "created_at": "2026-04-30T23:18:10.421454-03:00"
+  },
+  {
+    "id": 41,
+    "rol": "director",
+    "seccion": "moldes_tapones",
+    "tiene_acceso": true,
+    "created_at": "2026-04-30T23:18:13.303334-03:00"
+  },
+  {
+    "id": 42,
+    "rol": "vendedor",
+    "seccion": "moldes_tapones",
+    "tiene_acceso": true,
+    "created_at": "2026-04-30T23:18:23.283359-03:00"
+  },
+  {
+    "id": 43,
+    "rol": "admin",
+    "seccion": "moldes_tapones",
+    "tiene_acceso": true,
+    "created_at": "2026-05-01T09:19:02.150662-03:00"
+  },
+  {
+    "id": 33,
+    "rol": "vendedor",
+    "seccion": "reportes",
+    "tiene_acceso": true,
+    "created_at": "2026-04-24T13:51:52.482474-03:00"
+  },
+  {
+    "id": 44,
+    "rol": "admin",
+    "seccion": "saldos_impagos",
+    "tiene_acceso": true,
+    "created_at": "2026-05-03T19:42:33.522764-03:00"
+  },
+  {
+    "id": 45,
+    "rol": "director",
+    "seccion": "saldos_impagos",
+    "tiene_acceso": true,
+    "created_at": "2026-05-03T19:42:33.522764-03:00"
+  },
+  {
+    "id": 47,
+    "rol": "laboratorio",
+    "seccion": "saldos_impagos",
+    "tiene_acceso": false,
+    "created_at": "2026-05-03T19:42:33.522764-03:00"
+  },
+  {
+    "id": 46,
+    "rol": "vendedor",
+    "seccion": "saldos_impagos",
+    "tiene_acceso": true,
+    "created_at": "2026-05-03T19:42:33.522764-03:00"
+  },
+  {
+    "id": 48,
+    "rol": "admin",
+    "seccion": "turnos_pami_bernal",
+    "tiene_acceso": true,
+    "created_at": "2026-05-20T12:58:51.033742-03:00"
+  },
+  {
+    "id": 49,
+    "rol": "director",
+    "seccion": "turnos_pami_bernal",
+    "tiene_acceso": true,
+    "created_at": "2026-05-20T12:58:51.033742-03:00"
+  },
+  {
+    "id": 50,
+    "rol": "vendedor",
+    "seccion": "turnos_pami_bernal",
+    "tiene_acceso": true,
+    "created_at": "2026-05-20T12:58:51.033742-03:00"
+  },
+  {
+    "id": 51,
+    "rol": "laboratorio",
+    "seccion": "turnos_pami_bernal",
+    "tiene_acceso": true,
+    "created_at": "2026-05-20T12:58:51.033742-03:00"
+  }
+]
