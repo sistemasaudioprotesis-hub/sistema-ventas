@@ -1,0 +1,502 @@
+[
+  {
+    "id": 55,
+    "producto": "(I + T) IMPEDANCIOMETRIA + TIMPANOMETRIA ",
+    "tipo_id": 8,
+    "activo": true,
+    "created_at": "2026-05-05T17:46:35.116222-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 56,
+    "producto": "AUDIFONO BERNAFON IN",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-06-02T15:54:57.906815-03:00",
+    "creado_por": 7,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 57,
+    "producto": "CARGADOR VIAJERO",
+    "tipo_id": 3,
+    "activo": true,
+    "created_at": "2026-06-02T16:26:10.769565-03:00",
+    "creado_por": 7,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 58,
+    "producto": "CARGADOR DE ESCRITORIO BERNAFON",
+    "tipo_id": 3,
+    "activo": true,
+    "created_at": "2026-06-02T16:30:31.986984-03:00",
+    "creado_por": 7,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 18,
+    "producto": "OTICON MINI RITE RECARGABLE",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-05-03T16:53:25.583851-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": true
+  },
+  {
+    "id": 19,
+    "producto": "OTICON MINI RITE PILA",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-05-03T16:53:40.812817-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": true
+  },
+  {
+    "id": 11,
+    "producto": "BERNAFON BTE PILA",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-05-03T16:51:05.270201-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": true
+  },
+  {
+    "id": 10,
+    "producto": "BERNAFON INTRACANAL PILA",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-05-03T16:50:20.59022-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": true
+  },
+  {
+    "id": 20,
+    "producto": "OTICON MINI BTE PILA",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-05-03T16:53:55.761107-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": true
+  },
+  {
+    "id": 17,
+    "producto": "OTICON BTE PILA",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-05-03T16:53:09.978583-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": true
+  },
+  {
+    "id": 9,
+    "producto": "MOLDES",
+    "tipo_id": 6,
+    "activo": true,
+    "created_at": "2026-04-30T19:29:36.949171-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 14,
+    "producto": "BERNAFON PICO RITE PILA",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-05-03T16:52:05.776125-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": true
+  },
+  {
+    "id": 12,
+    "producto": "BERNAFON MINI RITE RECARGABLE",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-05-03T16:51:26.882428-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": true
+  },
+  {
+    "id": 13,
+    "producto": "BERNAFON MINI RITE PILA",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-05-03T16:51:44.260081-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": true
+  },
+  {
+    "id": 16,
+    "producto": "BERNAFON MINI BTE RECARGABLE",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-05-03T16:52:46.286961-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": true
+  },
+  {
+    "id": 15,
+    "producto": "BERNAFON MINI BTE PILA",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-05-03T16:52:23.727062-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": true
+  },
+  {
+    "id": 21,
+    "producto": "ACCESORIOS AUDIFONOS",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-05-03T17:09:09.477004-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": true
+  },
+  {
+    "id": 22,
+    "producto": "GENERICO RITE",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-05-03T17:44:19.456816-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": true
+  },
+  {
+    "id": 23,
+    "producto": "GENERICO BTE PILA",
+    "tipo_id": 1,
+    "activo": true,
+    "created_at": "2026-05-03T18:09:09.166333-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": true
+  },
+  {
+    "id": 24,
+    "producto": "OLIVAS",
+    "tipo_id": 3,
+    "activo": true,
+    "created_at": "2026-05-03T20:13:34.624759-03:00",
+    "creado_por": 1,
+    "controla_stock": true,
+    "requiere_modelo": false
+  },
+  {
+    "id": 25,
+    "producto": "PILAS NUMERO 13",
+    "tipo_id": 3,
+    "activo": true,
+    "created_at": "2026-05-03T20:13:53.798847-03:00",
+    "creado_por": 1,
+    "controla_stock": true,
+    "requiere_modelo": false
+  },
+  {
+    "id": 26,
+    "producto": "PILAS NUMERO 312",
+    "tipo_id": 3,
+    "activo": true,
+    "created_at": "2026-05-03T20:14:08.051277-03:00",
+    "creado_por": 1,
+    "controla_stock": true,
+    "requiere_modelo": false
+  },
+  {
+    "id": 27,
+    "producto": "PILAS NUMERO 10",
+    "tipo_id": 3,
+    "activo": true,
+    "created_at": "2026-05-03T20:14:41.951952-03:00",
+    "creado_por": 1,
+    "controla_stock": true,
+    "requiere_modelo": false
+  },
+  {
+    "id": 28,
+    "producto": "PILAS NUMERO 675",
+    "tipo_id": 3,
+    "activo": true,
+    "created_at": "2026-05-03T20:14:54.525477-03:00",
+    "creado_por": 1,
+    "controla_stock": true,
+    "requiere_modelo": false
+  },
+  {
+    "id": 29,
+    "producto": "BLISTER DE FILTROS",
+    "tipo_id": 3,
+    "activo": true,
+    "created_at": "2026-05-03T20:15:10.915489-03:00",
+    "creado_por": 1,
+    "controla_stock": true,
+    "requiere_modelo": false
+  },
+  {
+    "id": 30,
+    "producto": "DESHUMIDIFICADOR",
+    "tipo_id": 3,
+    "activo": true,
+    "created_at": "2026-05-03T20:16:35.278979-03:00",
+    "creado_por": 1,
+    "controla_stock": true,
+    "requiere_modelo": false
+  },
+  {
+    "id": 32,
+    "producto": "CALIBRACION",
+    "tipo_id": 7,
+    "activo": true,
+    "created_at": "2026-05-03T20:17:59.195303-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 33,
+    "producto": "CAMBIO DE SPAGUETTI",
+    "tipo_id": 7,
+    "activo": true,
+    "created_at": "2026-05-03T20:21:12.389862-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 34,
+    "producto": "SERVICE",
+    "tipo_id": 7,
+    "activo": true,
+    "created_at": "2026-05-03T20:21:22.60982-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 35,
+    "producto": "CAMBIO DE FILTROS",
+    "tipo_id": 7,
+    "activo": true,
+    "created_at": "2026-05-03T20:21:31.607665-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 36,
+    "producto": "CAMBIO DE MICROFONO",
+    "tipo_id": 7,
+    "activo": true,
+    "created_at": "2026-05-03T20:21:48.420997-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 37,
+    "producto": "CAMBIO DE PARLANTE",
+    "tipo_id": 7,
+    "activo": true,
+    "created_at": "2026-05-03T20:21:59.731997-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 38,
+    "producto": "CAMBIO DE TUBO FINO",
+    "tipo_id": 7,
+    "activo": true,
+    "created_at": "2026-05-03T20:22:11.747487-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 39,
+    "producto": "AUDIOMETRIA",
+    "tipo_id": 8,
+    "activo": true,
+    "created_at": "2026-05-03T20:22:59.651619-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 40,
+    "producto": "LOGOAUDIOMETRIA",
+    "tipo_id": 8,
+    "activo": true,
+    "created_at": "2026-05-03T20:23:13.386858-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 41,
+    "producto": "TIMPANOMETRIA",
+    "tipo_id": 8,
+    "activo": true,
+    "created_at": "2026-05-03T20:23:25.305282-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 42,
+    "producto": "IMPEDANCIOMETRIA",
+    "tipo_id": 8,
+    "activo": true,
+    "created_at": "2026-05-03T20:23:52.234612-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 43,
+    "producto": "ACUFENOMETRIA",
+    "tipo_id": 8,
+    "activo": true,
+    "created_at": "2026-05-03T20:24:02.56806-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 3,
+    "producto": "PROTECTORES AUDITIVOS",
+    "tipo_id": 6,
+    "activo": true,
+    "created_at": "2026-04-14T20:35:33.407281-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 44,
+    "producto": "REPARACION",
+    "tipo_id": 7,
+    "activo": true,
+    "created_at": "2026-05-03T22:09:37.053776-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 45,
+    "producto": "CAMBIO DE SPAGHETTI",
+    "tipo_id": 6,
+    "activo": true,
+    "created_at": "2026-05-05T16:54:58.817243-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 46,
+    "producto": "(AT + L) AUDIOMETRIA + LOGOAUDIOMETRIA ",
+    "tipo_id": 8,
+    "activo": true,
+    "created_at": "2026-05-05T17:39:42.204936-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 47,
+    "producto": "(AT + L + I) AUDIOMETRIA + LOGOAUDIOMETRIA + IMPEDANCIOMETRIA ",
+    "tipo_id": 8,
+    "activo": true,
+    "created_at": "2026-05-05T17:43:19.658635-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 48,
+    "producto": "(AT + L + T) AUDIOMETRIA + LOGOAUDIOMETRIA + TIMPANOMETRIA ",
+    "tipo_id": 8,
+    "activo": true,
+    "created_at": "2026-05-05T17:43:45.893272-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 49,
+    "producto": "(AT + L + A) AUDIOMETRIA + LOGOAUDIOMETRIA + ACUFENOMETRIA ",
+    "tipo_id": 8,
+    "activo": true,
+    "created_at": "2026-05-05T17:44:31.649743-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 50,
+    "producto": "(AT + L + I + T) AUDIOMETRIA + LOGOAUDIOMETRIA + IMPEDANCIOMETRIA + TIMPANOMETRIA ",
+    "tipo_id": 8,
+    "activo": true,
+    "created_at": "2026-05-05T17:44:52.785339-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 51,
+    "producto": "(AT + L + I + A) AUDIOMETRIA + LOGOAUDIOMETRIA + IMPEDANCIOMETRIA + ACUFENOMETRIA ",
+    "tipo_id": 8,
+    "activo": true,
+    "created_at": "2026-05-05T17:45:12.619779-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 52,
+    "producto": "(AT + L + T + A) AUDIOMETRIA + LOGOAUDIOMETRIA + TIMPANOMETRIA + ACUFENOMETRIA ",
+    "tipo_id": 8,
+    "activo": true,
+    "created_at": "2026-05-05T17:45:37.452039-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 53,
+    "producto": "(AT + L + I + T + A) AUDIOMETRIA + LOGOAUDIOMETRIA + IMPEDANCIOMETRIA + TIMPANOMETRIA + ACUFENOMETRIA ",
+    "tipo_id": 8,
+    "activo": true,
+    "created_at": "2026-05-05T17:45:57.446695-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  },
+  {
+    "id": 54,
+    "producto": "(A + T) ACUFENOMETRIA + TIMPANOMETRIA ",
+    "tipo_id": 8,
+    "activo": true,
+    "created_at": "2026-05-05T17:46:14.564158-03:00",
+    "creado_por": 1,
+    "controla_stock": false,
+    "requiere_modelo": false
+  }
+]
