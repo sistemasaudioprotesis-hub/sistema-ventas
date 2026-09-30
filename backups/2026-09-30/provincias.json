@@ -1,0 +1,146 @@
+[
+  {
+    "id": 1,
+    "provincia": "Buenos Aires",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 2,
+    "provincia": "Catamarca",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 3,
+    "provincia": "Chaco",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 4,
+    "provincia": "Chubut",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 5,
+    "provincia": "Ciudad Autónoma de Buenos Aires",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 6,
+    "provincia": "Córdoba",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 7,
+    "provincia": "Corrientes",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 8,
+    "provincia": "Entre Ríos",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 9,
+    "provincia": "Formosa",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 10,
+    "provincia": "Jujuy",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 11,
+    "provincia": "La Pampa",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 12,
+    "provincia": "La Rioja",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 13,
+    "provincia": "Mendoza",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 14,
+    "provincia": "Misiones",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 15,
+    "provincia": "Neuquén",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 16,
+    "provincia": "Río Negro",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 17,
+    "provincia": "Salta",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 18,
+    "provincia": "San Juan",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 19,
+    "provincia": "San Luis",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 20,
+    "provincia": "Santa Cruz",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 21,
+    "provincia": "Santa Fe",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 22,
+    "provincia": "Santiago del Estero",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 23,
+    "provincia": "Tierra del Fuego, Antártida e Islas del Atlántico Sur",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 24,
+    "provincia": "Tucumán",
+    "created_at": "2026-04-14T19:43:35.142898-03:00",
+    "creado_por": 1
+  }
+]
