@@ -200,7 +200,10 @@ const [guardandoReprogramar, setGuardandoReprogramar] = useState(false)
       }
     }
     setModalVer(null); cargarTurnos()
-  }
+if (asistio && turno?.pacientes?.dni) {
+  window.location.href = `/ventas?dni=${turno.pacientes.dni}`
+}
+ }   
   async function cancelarTurno(turnoId) {
     if (!confirm('¿Cancelar este turno?')) return
     await fetchConToken(`/api/turnos/${turnoId}`, { method: 'PUT', body: JSON.stringify({ estado: 'cancelado' }) })
