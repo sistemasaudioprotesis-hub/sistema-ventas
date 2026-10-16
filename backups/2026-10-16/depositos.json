@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "deposito": "HERNAN",
+    "observaciones": null,
+    "created_at": "2026-04-14T20:37:26.937017-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 2,
+    "deposito": "LUCIANO",
+    "observaciones": null,
+    "created_at": "2026-04-14T20:37:47.052053-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 3,
+    "deposito": "LOCAL",
+    "observaciones": null,
+    "created_at": "2026-04-14T20:37:56.939869-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 4,
+    "deposito": "AMBOS",
+    "observaciones": null,
+    "created_at": "2026-04-14T20:38:05.69129-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 6,
+    "deposito": "CONSIGNACION PAM",
+    "observaciones": null,
+    "created_at": "2026-05-03T17:03:10.235939-03:00",
+    "creado_por": 1
+  }
+]
