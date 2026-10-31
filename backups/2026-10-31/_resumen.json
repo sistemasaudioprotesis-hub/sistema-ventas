@@ -1,0 +1,98 @@
+{
+  "fecha": "2026-10-31",
+  "tablas": {
+    "pacientes": {
+      "registros": 829
+    },
+    "pacientes_historial": {
+      "registros": 51
+    },
+    "ventas": {
+      "registros": 547
+    },
+    "venta_detalle": {
+      "registros": 623
+    },
+    "ventas_historial": {
+      "registros": 0
+    },
+    "venta_detalle_historial": {
+      "registros": 25
+    },
+    "pagos": {
+      "registros": 557
+    },
+    "pagos_historial": {
+      "registros": 46
+    },
+    "turnos": {
+      "registros": 873
+    },
+    "visitas": {
+      "registros": 776
+    },
+    "visita_motivos": {
+      "registros": 9
+    },
+    "productos": {
+      "registros": 55
+    },
+    "tipo_producto": {
+      "registros": 6
+    },
+    "modelos": {
+      "registros": 43
+    },
+    "numeros_serie": {
+      "registros": 465
+    },
+    "stock_general": {
+      "registros": 4
+    },
+    "stock_general_movimientos": {
+      "registros": 47
+    },
+    "depositos": {
+      "registros": 5
+    },
+    "obras_sociales": {
+      "registros": 3
+    },
+    "formas_pago": {
+      "registros": 12
+    },
+    "usuarios": {
+      "registros": 6
+    },
+    "permisos": {
+      "registros": 51
+    },
+    "caja_movimientos": {
+      "registros": 104
+    },
+    "caja_movimientos_historial": {
+      "registros": 4
+    },
+    "valor_dolar_bna": {
+      "registros": 361
+    },
+    "provincias": {
+      "registros": 24
+    },
+    "profesionales": {
+      "registros": 4
+    },
+    "derivadores": {
+      "registros": 2
+    },
+    "venta_derivadores": {
+      "registros": 32
+    },
+    "agenda_bloqueos": {
+      "registros": 7
+    },
+    "reparaciones_historial": {
+      "registros": 250
+    }
+  }
+}
