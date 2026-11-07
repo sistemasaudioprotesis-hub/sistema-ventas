@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "obra_social": "IOMA",
+    "observaciones": null,
+    "created_at": "2026-04-15T07:28:33.382159-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 3,
+    "obra_social": "PAMI",
+    "observaciones": null,
+    "created_at": "2026-04-15T07:28:56.896066-03:00",
+    "creado_por": 1
+  },
+  {
+    "id": 4,
+    "obra_social": "OSDE",
+    "observaciones": null,
+    "created_at": "2026-04-15T07:29:05.643646-03:00",
+    "creado_por": 1
+  }
+]
